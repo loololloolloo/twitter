@@ -95,30 +95,53 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_match(/avatar avatar-200/, response.body)
   end
 
-  # The bannerless backdrop has to be tall enough for the picture that hangs
-  # over it. It was 60px, so the frame's top rendered 50px above the backdrop
-  # and was clipped by the fixed top bar - on every profile, since no account
-  # has a banner. The failure is in the stylesheet alone, with no markup
+  # The bannerless backdrop has to be tall enough for the picture that rises
+  # above the stat bar. It was 60px, so the frame's top rendered above the
+  # backdrop and was clipped by the fixed top bar - on every profile, since no
+  # account has a banner. The failure is in the stylesheet alone, with no markup
   # symptom, so the numbers that have to agree are checked here rather than
   # left to a browser measurement.
   test "the bannerless canopy is tall enough for the picture it backs" do
     css = Rails.root.join("app/assets/stylesheets/twitter.css").read
 
-    canopy = css[/\.profile-canopy\.no-banner\s*\{\s*height:\s*(\d+)px/, 1].to_i
-    statbar = css[/\.profile-statbar\s*\{[^}]*?height:\s*(\d+)px/m, 1].to_i
+    rise = css[/^:root\s*\{[^}]*?--pfp-rise:\s*(\d+)px/m, 1].to_i
+    headroom = css[/\.profile-canopy\.no-banner\s*\{\s*height:\s*calc\(var\(--pfp-rise\)\s*\+\s*(\d+)px\)/, 1].to_i
     frame = css[/\.statbar-avatar-frame\s*\{[^}]*?height:\s*(\d+)px/m, 1].to_i
-    overhang = css[/\.statbar-avatar-frame\s*\{[^}]*?bottom:\s*(-?\d+)px/m, 1].to_i
 
-    [ canopy, statbar, frame ].each { |n| assert_operator n, :>, 0 }
+    assert_operator rise, :>, 0, "the picture's rise above the bar has to be defined"
+    assert_operator headroom, :>, 0,
+                    "the backdrop needs headroom above the picture's top edge, not just the rise"
+    assert_operator frame, :>, 0
 
-    # The frame's `bottom` is negative, so its lower edge hangs that far below
-    # the bar. From there its top rises above the bar by the rest of its
-    # height, and the backdrop has to reach at least that high.
-    hang = -overhang
-    rise = frame - statbar - hang
-    assert_operator canopy, :>=, rise,
-                    "the bannerless canopy (#{canopy}px) must reach the picture's top, " \
-                    "which rises #{rise}px above the stat bar"
+    # The backdrop's height is the picture's rise plus its headroom. It has to
+    # reach the picture's top, and it must not run past the picture's own height
+    # or the tinted band would show below the frame.
+    assert_operator rise + headroom, :<=, frame,
+                    "the backdrop should not be taller than the picture it backs"
+  end
+
+  # The picture used to be pinned with `bottom` against `.statbar-avatar`. That
+  # slot is a stretched flex item, so its height collapses once the bar wraps
+  # its metrics onto a second row, and the picture slid down into the metrics at
+  # narrow widths. It is pinned to the bar's top edge instead - the same line at
+  # every width - so the offset below the banner never moves.
+  test "the picture is pinned to the stat bar, not to the collapsing picture slot" do
+    css = Rails.root.join("app/assets/stylesheets/twitter.css").read
+
+    slot = css[/\.statbar-avatar\s*\{([^}]*)\}/m, 1]
+    assert_no_match(/position:\s*relative/, slot,
+                    "anchoring the frame to the picture slot reintroduces the drift")
+
+    frame = css[/\.statbar-avatar-frame\s*\{([^}]*)\}/m, 1]
+    assert_match(/position:\s*absolute/, frame)
+    assert_match(/top:\s*calc\(-1\s*\*\s*var\(--pfp-rise\)\)/, frame)
+    assert_no_match(/bottom:/, frame,
+                    "a `bottom` offset is measured against the slot that collapses")
+
+    # The scaled picture has to move with the same variable, or one of the two
+    # rules drifts while the other stays put.
+    tablet = media_blocks(css, "@media (max-width: 1000px)")
+    assert_match(/top:\s*calc\(-1\s*\*\s*var\(--pfp-rise\)\)/, tablet)
   end
 
   # Pulls out every @media block with the given header. A balanced-brace scan is
@@ -173,13 +196,13 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     # The narrowed picture must not reintroduce the bug the desktop numbers
     # solve: it still has to fit entirely inside the bannerless backdrop.
     frame = tablet[/\.statbar-avatar-frame\s*\{[^}]*?height:\s*(\d+)px/m, 1].to_i
-    overhang = tablet[/\.statbar-avatar-frame\s*\{[^}]*?bottom:\s*(-?\d+)px/m, 1].to_i
-    statbar = css[/\.profile-statbar\s*\{[^}]*?height:\s*(\d+)px/m, 1].to_i
-    canopy = css[/\.profile-canopy\.no-banner\s*\{\s*height:\s*(\d+)px/, 1].to_i
+    tablet_rise = tablet[/--pfp-rise:\s*(\d+)px/m, 1].to_i
+    headroom = css[/\.profile-canopy\.no-banner\s*\{\s*height:\s*calc\(var\(--pfp-rise\)\s*\+\s*(\d+)px\)/, 1].to_i
 
     assert_operator frame, :>, 0
-    assert_operator statbar, :>, 0
-    assert_operator canopy, :>=, frame - statbar - (-overhang),
+    assert_operator tablet_rise, :>, 0,
+                    "the scaled picture needs its own rise or it drifts out of the backdrop"
+    assert_operator tablet_rise + headroom, :<=, frame,
                     "the scaled picture must still fit the bannerless backdrop"
   end
 

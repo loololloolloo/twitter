@@ -15,6 +15,10 @@
   --red:         #E0245E;
   --green:       #5C913B;
   --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* How far the profile picture rises above the stat bar. It is the one number
+     the frame's inset, its rise and the bannerless backdrop all have to agree
+     on, so it lives here instead of being repeated in three rules. */
+  --pfp-rise: 111px;
 }
 
 /* Night mode. The variables are redefined on the root element so every rule
@@ -878,12 +882,12 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 }
 .profile-canopy.has-banner { height: 300px; }
 /* No banner: the tinted backdrop still has to be tall enough to sit behind the
-   200px picture, which is absolutely positioned to hang 30px below the 60px
-   stat bar. With the old 60px strip the frame's top landed 50px above the
-   backdrop - underneath the fixed top bar - so the picture was clipped on
-   every bannerless profile (which is all 5,000 bots). 125px puts the frame's
-   top 15px below the backdrop's top, matching its 15px inset from the left. */
-.profile-canopy.no-banner { height: 125px; }
+   picture, which rises above the stat bar by --pfp-rise. With the old 60px
+   strip the frame's top landed above the backdrop - underneath the fixed top
+   bar - so the picture was clipped on every bannerless profile (which is all
+   5,000 bots). The rise plus a 14px inset from the top, matching the 15px
+   inset from the left. */
+.profile-canopy.no-banner { height: calc(var(--pfp-rise) + 14px); }
 
 .profile-statbar {
   position: relative;
@@ -897,12 +901,17 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
   height: 100%;
 }
 .statbar-avatar {
-  width: 290px; flex-shrink: 0; position: relative;
+  width: 290px; flex-shrink: 0;
 }
 /* ProfileCard-avatarLink: the 2015 profile hung a 200px picture over the
-   banner, in a 5px white frame, so a fifth of it sat on the header. */
+   banner, in a 5px white frame, so a fifth of it sat on the header.
+   Pinned by `top` against the stat bar - whose top edge is the banner's bottom
+   edge - rather than by `bottom` against the picture slot. The slot is a
+   stretched flex item, so its height collapses once the bar wraps its metrics
+   onto a second row; anchoring to it slid the picture down into the metrics at
+   narrow widths. The bar's top edge is the same line at every width. */
 .statbar-avatar-frame {
-  position: absolute; left: 15px; bottom: -30px;
+  position: absolute; left: 15px; top: calc(-1 * var(--pfp-rise));
   width: 200px; height: 200px; padding: 5px;
   background: var(--white); border-radius: 12px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, .1);
@@ -944,10 +953,11 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 @media (max-width: 1000px) {
   .statbar-avatar { width: 160px; }
   /* The frame is scaled with its slot rather than left to hang over the
-     metrics. The overhang is recomputed to match: 130 - 60 - 24 = 46px above
-     the bar, so the side column keeps the same 15px of clearance below it. */
+     metrics, and the backdrop shrinks with it so the picture still starts
+     14px below the canopy's top edge. */
+  :root { --pfp-rise: 46px; }
   .statbar-avatar-frame {
-    width: 130px; height: 130px; left: 12px; bottom: -24px; padding: 4px;
+    width: 130px; height: 130px; left: 12px; top: calc(-1 * var(--pfp-rise)); padding: 4px;
   }
   .statbar-actions { width: auto; flex-shrink: 1; padding-right: 12px; }
 }
@@ -959,7 +969,13 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 @media (max-width: 960px) {
   .statbar-inner { flex-wrap: wrap; }
   .statbar-actions { order: 2; width: auto; margin-left: auto; }
-  .statbar-metrics { order: 3; flex-basis: 100%; min-width: 0; flex-wrap: wrap; margin-top: 34px; }
+  /* The metrics drop below the bar's top edge, which is the band the picture
+     occupies, so the row is inset past the picture's right edge - otherwise the
+     first metric sits underneath it. */
+  .statbar-metrics {
+    order: 3; flex-basis: 100%; min-width: 0; flex-wrap: wrap;
+    margin-top: 34px; padding-left: 175px;
+  }
   .sm-item { flex: 1 1 0; min-width: 0; }
   .sm-label, .sm-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .profile-statbar { height: auto; }

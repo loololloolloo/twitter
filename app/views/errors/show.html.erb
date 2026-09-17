@@ -1,13 +1,21 @@
 <% content_for :title, "#{@code} / #{@site_name}" %>
 
-<div id="page-outer">
-  <div id="page-container" class="wrapper wrapper-login">
-    <div class="page-canvas">
-      <div class="signin-wrapper">
-        <h1><%= @code %></h1>
-        <p class="signup-helper"><%= @message %></p>
-        <a class="btn primary-btn" href="<%= @back_path %>">Go home</a>
-      </div>
-    </div>
+<%# The 2019 error screen: the logged-out chrome - bird, large code, one plain
+    sentence - with a way back and a way to search. Signed-in members get the
+    home link, signed-out ones the log-in link, since that is where they can go
+    next. %>
+<div class="error-page">
+  <div class="auth-bird"><%= bird %></div>
+
+  <p class="error-code"><%= @code %></p>
+  <p class="error-message"><%= @message %></p>
+
+  <div class="error-actions">
+    <a class="btn primary-btn" href="<%= @back_path %>"><%= signed_in? ? "Go home" : "Log in" %></a>
+    <% if signed_in? %>
+      <a class="btn" href="<%= explore_path %>">Search <%= @site_name %></a>
+    <% else %>
+      <a class="btn" href="<%= signup_path %>">Sign up</a>
+    <% end %>
   </div>
 </div>

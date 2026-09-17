@@ -36,11 +36,15 @@ class TimelinesController < ApplicationController
     render json: {
       count: rows.size,
       html: render_to_string(partial: "tweets/tweet", collection: rows, formats: [ :html ]),
-      newest: rows.map(&:created_at).max&.iso8601(6)
+      newest: rows.map(&:created_at).max&.iso8601(6),
+      # Engagement for the entries already on the page, so their counters keep
+      # moving while the reader is looking at them. Posts the reader can see are
+      # named by the client; anything else is not counted.
+      counts: engagement_counts(params[:ids])
     }
   rescue ArgumentError, TypeError
     # A malformed `after` means "send the latest", not an error.
-    render json: { count: 0, html: "", newest: nil }
+    render json: { count: 0, html: "", newest: nil, counts: {} }
   end
 
   def explore
@@ -94,5 +98,41 @@ class TimelinesController < ApplicationController
          .includes(:user, retweet_of: :user)
          .recent
          .limit(120)
+  end
+
+  # Current engagement for a set of tweets the client named, keyed by id.
+  #
+  # The ids arrive as a comma-separated list from the page, so they are parsed
+  # and bounded here rather than trusted: a poll can only ask about posts that
+  # exist, and only a page-sized number of them at a time.
+  MAX_COUNT_IDS = 120
+
+  def engagement_counts(raw_ids)
+    ids = raw_ids.to_s.split(",").filter_map { |id| Integer(id, exception: false) }
+    ids = ids.uniq.first(MAX_COUNT_IDS)
+    return {} if ids.empty?
+
+    tweets = Tweet.where(id: ids).includes(:user).to_a
+    return {} if tweets.empty?
+
+    # One query per reaction table for the whole set, rather than counting per
+    # post, so a poll costs a fixed number of queries regardless of page size.
+    like_totals = Like.where(tweet_id: ids).group(:tweet_id, :kind).count
+    retweet_totals = Tweet.visible.where(retweet_of_id: ids).group(:retweet_of_id).count
+
+    tweets.each_with_object({}) do |tweet, out|
+      likes = like_totals[[ tweet.id, Like::LIKE ]].to_i
+      favourites = like_totals[[ tweet.id, Like::FAVOURITE ]].to_i
+      retweets = retweet_totals[tweet.id].to_i
+
+      # Labels are built here with the same helper the page uses, so a count the
+      # poll writes back is formatted exactly like the one it replaced.
+      out[tweet.id] = {
+        like_count_label: helpers.count_label(tweet.bonus_likes.to_i + likes),
+        favourite_count_label: helpers.count_label(tweet.bonus_favourites.to_i + favourites),
+        retweet_count_label: helpers.count_label(tweet.bonus_retweets.to_i + retweets),
+        reply_count_label: helpers.count_label(tweet.reply_count)
+      }
+    end
   end
 end

@@ -15,10 +15,23 @@ module ActiveSupport
     parallelize_setup do |worker|
       Uploads.send(:remove_const, :ROOT)
       Uploads.const_set(:ROOT, Rails.root.join("public", "uploads", "test-#{worker}"))
+
+      # The bot runner's pid and log files are single paths on disk too, so two
+      # workers driving BotRunner would start and stop each other's stand-in
+      # processes. Each worker gets its own pair, for the same reason as the
+      # upload root above.
+      BotRunner.define_singleton_method(:pid_path) do
+        Rails.root.join("tmp/pids/bots_run-test-#{worker}.pid")
+      end
+      BotRunner.define_singleton_method(:log_path) do
+        Rails.root.join("log/bots_run-test-#{worker}.log")
+      end
     end
 
     parallelize_teardown do |worker|
       FileUtils.rm_rf(Rails.root.join("public", "uploads", "test-#{worker}"))
+      FileUtils.rm_f(Rails.root.join("tmp/pids/bots_run-test-#{worker}.pid"))
+      FileUtils.rm_f(Rails.root.join("log/bots_run-test-#{worker}.log"))
     end
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.

@@ -12,6 +12,7 @@ class Permission < ApplicationRecord
     "users.delete"       => "Delete users",
     "users.verify"       => "Grant or revoke verified badge",
     "users.bot_followers" => "Set a user's follower count",
+    "bots.runner"        => "Start, stop and restart the bot runner",
     "users.avatar"       => "Import profile pictures from external providers",
     "users.email"        => "Change a user's email address",
     "users.roles"        => "Assign roles to users",

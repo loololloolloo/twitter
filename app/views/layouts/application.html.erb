@@ -13,25 +13,64 @@
 <body class="<%= "logged-out" unless signed_in? %>">
 
 <% if signed_in? %>
-<header class="topbar">
-  <div class="topbar-inner">
-    <a class="brand" href="<%= home_path %>" title="<%= @site_name %>">
-      <%= bird %>
-    </a>
-    <nav class="topnav">
-      <a href="<%= home_path %>" class="<%= 'active' if controller_name == 'timelines' && action_name == 'home' %>"><%= icon('house') %><span>Home</span></a>
-      <a href="<%= notifications_path %>" class="<%= 'active' if controller_name == 'notifications' %>"><%= icon('bell') %><span>Notifications</span></a>
-      <a href="<%= messages_path %>" class="<%= 'active' if controller_name == 'messages' %>"><%= icon('envelope') %><span>Messages</span></a>
-    </nav>
-    <%= form_with url: explore_path, method: :get, class: "topsearch", local: true do %>
-      <%= icon('magnifying-glass') %>
-      <input type="text" name="q" placeholder="Search Twitter" value="<%= params[:q] %>">
-    <% end %>
-    <div class="topbar-right">
+<%# The 2019 redesign moves navigation out of a global top bar and into a left
+    sidebar: icon plus label, a primary action button, and the account switcher
+    pinned to the bottom. The grid is three columns - the rail, the stream and
+    the right rail - so the shell owns the horizontal structure rather than each
+    page rebuilding it. %>
+<div class="app-shell">
+  <nav class="side-nav" aria-label="Primary">
+    <a class="side-brand" href="<%= home_path %>" title="<%= @site_name %>"><%= bird %></a>
+
+    <ul class="side-menu">
+      <li>
+        <a href="<%= home_path %>" class="side-link <%= 'is-active' if controller_name == 'timelines' && action_name == 'home' %>">
+          <%= icon('house') %><span class="side-label">Home</span>
+        </a>
+      </li>
+      <li>
+        <a href="<%= explore_path %>" class="side-link <%= 'is-active' if controller_name == 'timelines' && action_name == 'explore' %>">
+          <%= icon('magnifying-glass') %><span class="side-label">Explore</span>
+        </a>
+      </li>
+      <li>
+        <a href="<%= notifications_path %>" class="side-link <%= 'is-active' if controller_name == 'notifications' %>">
+          <%= icon('bell') %><span class="side-label">Notifications</span>
+        </a>
+      </li>
+      <li>
+        <a href="<%= messages_path %>" class="side-link <%= 'is-active' if controller_name == 'messages' %>">
+          <%= icon('chat') %><span class="side-label">Messages</span>
+        </a>
+      </li>
+      <li>
+        <a href="<%= profile_path(current_user.username) %>" class="side-link <%= 'is-active' if controller_name == 'profiles' && @user == current_user %>">
+          <%= icon('user') %><span class="side-label">Profile</span>
+        </a>
+      </li>
+      <li>
+        <a href="<%= users_path %>" class="side-link <%= 'is-active' if controller_name == 'people' %>">
+          <%= icon('user') %><span class="side-label">People</span>
+        </a>
+      </li>
+      <% if can?('admin.access') %>
+        <li>
+          <a href="<%= admin_root_path %>" class="side-link"><%= icon('shield-halved') %><span class="side-label">Admin</span></a>
+        </li>
+      <% end %>
+    </ul>
+
+    <a class="side-compose" href="<%= home_path %>#reply"><%= icon('compose') %><span class="side-label">Tweet</span></a>
+
+    <div class="side-account">
       <div class="account-menu">
         <a class="account-link" href="<%= profile_path(current_user.username) %>">
-          <%= pic(current_user.avatar_path, 32) %>
-          <span class="account-caret">&#9662;</span>
+          <%= pic(current_user.avatar_path, 40) %>
+          <span class="account-names">
+            <span class="account-name"><%= current_user.display_name %></span>
+            <span class="account-handle">@<%= current_user.username %></span>
+          </span>
+          <span class="account-caret"><%= icon('ellipsis') %></span>
         </a>
         <div class="account-dropdown">
           <a href="<%= profile_path(current_user.username) %>">View profile</a>
@@ -45,8 +84,13 @@
         </div>
       </div>
     </div>
-  </div>
-</header>
+  </nav>
+
+  <div class="app-main">
+    <div class="page <%= 'page-wide' if controller_name == 'profiles' && action_name == 'show' %>">
+<% else %>
+  <div class="app-main app-main-public">
+    <div class="page">
 <% end %>
 
 <% if @announcement.present? %>
@@ -62,10 +106,20 @@
   <% end %>
 </div>
 
-<main class="page <%= 'page-wide' if controller_name == 'profiles' && action_name == 'show' %>">
 <%= yield %>
-</main>
 
+<% if signed_in? %>
+    </div>
+  </div>
+</div>
+<% else %>
+    </div>
+  </div>
+<% end %>
+
+<%# The rail already carries these links and the copyright on signed-in pages,
+    so the global footer is only for the signed-out screens. %>
+<% unless signed_in? %>
 <footer class="site-footer">
   <a href="<%= about_path %>">About</a>
   <a href="<%= help_path %>">Help</a>
@@ -73,6 +127,7 @@
   <a href="<%= privacy_path %>">Privacy</a>
   <span>&copy; <%= @site_name %></span>
 </footer>
+<% end %>
 
 <%= javascript_include_tag "jquery.min" %>
 <%= javascript_include_tag "twitter" %>

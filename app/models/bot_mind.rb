@@ -124,8 +124,9 @@ class BotMind
 
     # Crossing zero is a change of mind, and a change of mind deserves a new
     # reason: keeping the old one would make the account explain a position it
-    # no longer holds.
-    if before.sign != record["position"].sign
+    # no longer holds. Ruby's numbers have no `sign`, so the comparison operator
+    # gives -1/0/1.
+    if (before <=> 0) != (record["position"] <=> 0)
       record["basis"] = Belief.pick_basis(Random.new(hash_seed(key)))
       record["formed_at"] = ticks
     end

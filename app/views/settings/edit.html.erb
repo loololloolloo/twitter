@@ -1,11 +1,15 @@
 <% content_for :title, "Settings / #{@site_name}" %>
 
 <div class="layout">
-  <aside class="col-left"></aside>
-
   <section class="col-main">
-    <div class="settings-header-bar">
-      <h1>Profile settings</h1>
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Settings</h1>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h2>Profile</h2>
     </div>
 
     <%= form_with url: settings_path, method: :patch, class: "form-horizontal settings-profile",
@@ -182,5 +186,7 @@
     </div>
   </section>
 
-  <aside class="col-right"></aside>
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
 </div>

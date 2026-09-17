@@ -7,13 +7,14 @@
   <%# A permanently banned account keeps its handle visible so the page still
       resolves, but every personal detail is withheld - name, picture, bio,
       location, links and counts - and the picture falls back to the default. %>
-  <div class="profile-canopy no-banner"></div>
+  <div class="profile-canopy no-banner">
+    <div class="statbar-avatar">
+      <div class="statbar-avatar-frame"><%= pic(nil, 200) %></div>
+    </div>
+  </div>
 
   <div class="profile-statbar">
     <div class="statbar-inner">
-      <div class="statbar-avatar">
-        <div class="statbar-avatar-frame"><%= pic(nil, 200) %></div>
-      </div>
       <ul class="statbar-metrics"></ul>
       <div class="statbar-actions"></div>
     </div>
@@ -30,20 +31,21 @@
     </aside>
   </div>
 <% else %>
-<%# The 2015 profile is a full-bleed 300px banner, a 60px stat bar whose
-    metrics are the navigation, and a three-column body underneath. The avatar
-    hangs off the stat bar into the left column, which is why the banner and
-    the bar are siblings rather than one nested card. %>
-<div class="profile-canopy <%= @user.banner_path.present? ? 'has-banner' : 'no-banner' %>"
-     <% if @user.banner_path.present? %>style="background-image:url('/uploads/<%= @user.banner_path %>')"<% end %>>
-</div>
-
-<div class="profile-statbar">
-  <div class="statbar-inner">
+<%# Two columns, like the rest of the shell: the account's stream - banner,
+    stat bar, tabs and timeline as one card - beside the suggestion rail. The
+    picture is a child of the banner so it cannot drift into the metrics when
+    the layout narrows. %>
+<div class="layout">
+  <section class="col-main">
+  <div class="profile-canopy <%= @user.banner_path.present? ? 'has-banner' : 'no-banner' %>"
+       <% if @user.banner_path.present? %>style="background-image:url('/uploads/<%= @user.banner_path %>')"<% end %>>
     <div class="statbar-avatar">
       <div class="statbar-avatar-frame"><%= pic(@user.avatar_path, 200) %></div>
     </div>
+  </div>
 
+<div class="profile-statbar">
+  <div class="statbar-inner">
     <ul class="statbar-metrics">
       <li class="sm-item <%= 'is-active' if @active == 'tweets' %>">
         <a href="<%= profile_path(@user.username) %>">
@@ -164,26 +166,11 @@
     <% end %>
   </section>
 
-  <aside class="profile-aside">
-    <% if @suggestions.present? %>
-      <div class="panel">
-        <h3 class="panel-title">Who to follow</h3>
-        <% @suggestions.each do |person| %>
-          <div class="suggestion">
-            <%= pic(person.avatar_path, 32) %>
-            <div class="suggestion-body">
-              <a href="<%= profile_path(person.username) %>"><%= person.display_name %></a>
-              <span>@<%= person.username %></span>
-            </div>
-            <%= form_with url: follow_user_path(person.username), method: :post, class: "inline" do %>
-              <button class="btn btn-follow btn-mini" type="submit">Follow</button>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
+</div>
+  </section>
 
-    <%= render "timelines/sidebar" %>
+  <aside class="col-right profile-aside">
+    <%= render "shared/rail", suggestions: @suggestions, trends_title: "Trends for you" %>
   </aside>
 </div>
 <% end %>

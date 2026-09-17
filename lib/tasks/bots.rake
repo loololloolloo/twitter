@@ -92,8 +92,8 @@ namespace :bots do
 
   desc "Run the engine continuously; args are [interval_seconds, actions_per_tick]"
   task :run, [ :interval, :batch ] => :environment do |_task, args|
-    interval = (args[:interval].presence || 2.0).to_f
-    batch = (args[:batch].presence || 60).to_i
+    interval = (args[:interval].presence || BotEngine::DEFAULT_INTERVAL).to_f
+    batch = (args[:batch].presence || BotEngine::DEFAULT_BATCH).to_i
 
     puts "bot runner starting: tick every #{interval}s, up to #{batch} actions per tick"
     puts "population: #{BotFactory.count} bots / #{User.humans.count} humans"
@@ -108,23 +108,34 @@ namespace :bots do
       Signal.trap(signal) { stop = true }
     end
 
+    # The pid file is how the admin panel knows the runner is up, so it is
+    # written once the loop is actually about to start and removed on the way
+    # out - including on a signal, which is the normal way it is stopped.
+    pid_path = BotRunner.pid_path
+    FileUtils.mkdir_p(pid_path.dirname)
+    File.write(pid_path, Process.pid.to_s)
+
     acts = 0
     ticks = 0
 
-    until stop
-      started = Time.current
-      # A tick can raise if the database is briefly locked by a web write; the
-      # loop is long-lived, so retry on the next pass instead of dying.
-      begin
-        acts += BotEngine.tick(count: batch)
-      rescue ActiveRecord::StatementInvalid => e
-        warn "tick skipped: #{e.class}"
+    begin
+      until stop
+        started = Time.current
+        # A tick can raise if the database is briefly locked by a web write; the
+        # loop is long-lived, so retry on the next pass instead of dying.
+        begin
+          acts += BotEngine.tick(count: batch)
+        rescue ActiveRecord::StatementInvalid => e
+          warn "tick skipped: #{e.class}"
+        end
+        ticks += 1
+
+        puts "tick #{ticks}: #{acts} actions total (#{(Time.current - started).round(2)}s)" if (ticks % 30).zero?
+
+        sleep interval
       end
-      ticks += 1
-
-      puts "tick #{ticks}: #{acts} actions total (#{(Time.current - started).round(2)}s)" if (ticks % 30).zero?
-
-      sleep interval
+    ensure
+      File.delete(pid_path) if File.exist?(pid_path)
     end
 
     puts "stopped after #{ticks} ticks and #{acts} actions"

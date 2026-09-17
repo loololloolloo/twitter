@@ -60,6 +60,8 @@ Rails.application.routes.draw do
   post   "tweet/:id/favorite",   to: "likes#create",  as: :favorite_tweet, defaults: { kind: "favourite" }
   delete "tweet/:id/favorite",   to: "likes#destroy", defaults: { kind: "favourite" }
   post   "tweet/:id/retweet", to: "tweets#retweet", as: :retweet_tweet
+  # Engagement for the open permalink, polled so its counts keep moving.
+  get    "tweet/:id/stats",   to: "tweets#stats",   as: :tweet_stats
   post   "tweet/:id/delete",  to: "tweets#destroy"
   delete "tweet/:id",         to: "tweets#destroy"
 
@@ -98,6 +100,12 @@ Rails.application.routes.draw do
     post "sidebar/announcement", to: "sidebar#update_announcement", as: :sidebar_announcement
     post "sidebar/bots",         to: "sidebar#toggle_bots",         as: :sidebar_bots
 
+    # The bot runner is a separate process; these control it.
+    get  "bots",         to: "bots#show",    as: :bots
+    post "bots/start",   to: "bots#start",   as: :start_bots
+    post "bots/stop",    to: "bots#stop",    as: :stop_bots
+    post "bots/restart", to: "bots#restart", as: :restart_bots
+
     root to: "dashboard#index"
   end
 
@@ -116,4 +124,14 @@ Rails.application.routes.draw do
   match "/403", to: "errors#forbidden",      via: :all, as: :forbidden
   match "/422", to: "errors#unprocessable",  via: :all, as: :unprocessable
   match "/500", to: "errors#internal_error", via: :all, as: :internal_error
+
+  # Anything still unmatched is a 404 in its own right, so an unknown URL gets
+  # the app's own page rather than the framework's routing-error screen. This
+  # has to stay last: routes are matched in order, so every real route above
+  # wins, and only the leftovers land here.
+  #
+  # Rails' own development-only endpoints are excluded so the routing inspector
+  # and mailer previews keep working.
+  match "*path", to: "errors#not_found", via: :all,
+        constraints: ->(request) { !request.path.start_with?("/rails/") && request.path != "/rails" }
 end

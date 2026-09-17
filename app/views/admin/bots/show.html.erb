@@ -1,0 +1,74 @@
+<% content_for :title, "Bot runner / Admin / #{@site_name}" %>
+
+<h1 class="admin-title">Bot runner</h1>
+
+<p class="muted">
+  The simulation runs in its own process, separate from the web server. Restart
+  it after changing how bots behave, or if it has stopped and activity on the
+  site has gone quiet.
+</p>
+
+<% if @status[:running] %>
+  <p class="rail-status">
+    <span class="pill pill-ok">running</span>
+    <span class="muted">pid <%= @status[:pid] %></span>
+  </p>
+<% else %>
+  <p class="rail-status">
+    <span class="pill pill-warn">stopped</span>
+    <span class="muted">no runner process is up</span>
+  </p>
+<% end %>
+
+<table class="data-table">
+  <tbody>
+    <tr><th>Simulated accounts</th><td><%= count_label(@status[:population]) %></td></tr>
+    <tr><th>Real members</th><td><%= count_label(@status[:humans]) %></td></tr>
+    <tr><th>Actions performed</th><td><%= count_label(@status[:actions]) %></td></tr>
+    <tr><th>Due now</th><td><%= count_label(@status[:due]) %></td></tr>
+    <tr><th>Last action</th>
+        <td><%= @status[:last_action_at] ? time_ago(@status[:last_action_at]) : "never" %></td></tr>
+    <tr><th>Pacing</th>
+        <td class="muted">one tick every <%= @status[:interval] %>s, up to
+          <%= @status[:batch] %> actions</td></tr>
+  </tbody>
+</table>
+
+<div class="rail-actions">
+  <%= button_to "Restart bots", admin_restart_bots_path,
+                class: "btn btn-primary",
+                form_class: "inline" %>
+
+  <% if @status[:running] %>
+    <%= button_to "Stop", admin_stop_bots_path, class: "btn", form_class: "inline" %>
+  <% else %>
+    <%= button_to "Start", admin_start_bots_path, class: "btn", form_class: "inline" %>
+  <% end %>
+</div>
+
+<h2 class="admin-title">Recent bot activity</h2>
+
+<table class="data-table">
+  <thead><tr><th>Account</th><th>Actions</th><th>Last action</th></tr></thead>
+  <tbody>
+    <% if @recent.present? %>
+      <% @recent.each do |bot| %>
+        <tr>
+          <td><%= link_to "@#{bot.username}", admin_user_path(bot) %></td>
+          <td class="muted"><%= count_label(bot.actions_performed) %></td>
+          <td class="muted"><%= bot.last_action_at ? time_ago(bot.last_action_at) : "never" %></td>
+        </tr>
+      <% end %>
+    <% else %>
+      <tr><td colspan="3" class="muted">No simulated accounts yet.</td></tr>
+    <% end %>
+  </tbody>
+</table>
+
+<h2 class="admin-title">Runner log</h2>
+
+<% if @status[:log_tail].present? %>
+  <pre class="runner-log"><%= @status[:log_tail].join("\n") %></pre>
+<% else %>
+  <p class="muted">Nothing logged yet. A restart will write here.</p>
+<% end %>

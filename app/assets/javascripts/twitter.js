@@ -114,7 +114,41 @@ $(function () {
       $row.find('form.js-fav').data('favourited', !!data.favourited);
     });
 
-    // The permalink page's count line is a separate block from the buttons.
+    // Writes refreshed engagement onto every row for the given tweets, keyed by
+  // id. Shared by the timeline poll and the permalink poll.
+  //
+  // A control the reader has already used is skipped: those show a word
+  // ("Liked") instead of a number and carry the active class, and repainting
+  // them from a count would clear the reader's own reaction. Everything else is
+  // safe to update in place.
+  function paintCounts(counts) {
+    if (!counts) return;
+
+    var fresh = function ($el) {
+      return $el.length && !$el.hasClass('hearted') && !$el.hasClass('faved') &&
+             !$el.hasClass('rt-active');
+    };
+
+    for (var id in counts) {
+      if (!Object.prototype.hasOwnProperty.call(counts, id)) continue;
+
+      var data = counts[id];
+      $('[data-tweet="' + id + '"]').each(function () {
+        var $row = $(this);
+        var $fav = $row.find('.act-fav');
+        var $like = $row.find('.act-heart');
+        var $rt = $row.find('.act-rt');
+        var $reply = $row.find('.act-reply');
+
+        if (fresh($fav)) paintCount($fav, data.favourite_count_label, false, null);
+        if (fresh($like)) paintCount($like, data.like_count_label, false, null);
+        if (fresh($rt)) paintCount($rt, data.retweet_count_label, false, null);
+        if (fresh($reply)) paintCount($reply, data.reply_count_label, false, null);
+      });
+    }
+  }
+
+  // The permalink page's count line is a separate block from the buttons.
     $('.permalink-tweet[data-tweet="' + data.id + '"] .tweet-stats').each(function () {
       var $stats = $(this);
       var $spans = $stats.children();
@@ -202,9 +236,22 @@ $(function () {
     });
 
     var poll = function () {
-      $.getJSON(feedUrl, { after: newest })
+      // Ids of the posts currently on the page, so the same poll that fetches
+      // new entries also brings back the current engagement for the ones
+      // already rendered. Without this the counters froze at whatever they
+      // were when the page was drawn, which is what made them look like they
+      // stopped climbing.
+      var ids = $timeline.find('[data-tweet]').map(function () {
+        return $(this).data('tweet');
+      }).get().join(',');
+
+      $.getJSON(feedUrl, { after: newest, ids: ids })
         .done(function (data) {
-          if (!data || !data.count || !data.html) return;
+          if (!data) return;
+
+          paintCounts(data.counts);
+
+          if (!data.count || !data.html) return;
 
           var $rows = $('<div>').html(data.html).children();
           var added = 0;
@@ -249,5 +296,34 @@ $(function () {
     });
 
     setInterval(poll, 5000);
+  }
+
+  // A permalink stays current the same way the timeline does. The focused post
+  // and its replies are all on the page, so their ids go in one request and the
+  // refreshed figures are written back over the rows already there.
+  var $permalink = $('#permalink');
+  if ($permalink.length && $permalink.data('stats-url')) {
+    var statsUrl = $permalink.data('stats-url');
+
+    var refreshStats = function () {
+      var ids = $permalink.find('[data-tweet]').map(function () {
+        return $(this).data('tweet');
+      }).get().join(',');
+
+      $.getJSON(statsUrl, { ids: ids })
+        .done(function (data) {
+          if (!data || data.id === undefined) return;
+
+          var counts = {};
+          counts[data.id] = data;
+          (data.replies || []).forEach(function (reply) {
+            counts[reply.id] = reply;
+          });
+
+          paintCounts(counts);
+        });
+    };
+
+    setInterval(refreshStats, 5000);
   }
 });

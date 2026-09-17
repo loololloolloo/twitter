@@ -65,16 +65,19 @@ class Tweet < ApplicationRecord
       .map { |tag, count| [ tag, count, authors[tag].size ] }
   end
 
+  # Displayed counts. Real reactions from accounts are counted from their own
+  # tables and the bonus carries what has no rows behind it, so the figure a
+  # post shows is not limited by how many accounts exist.
   def like_count
-    likes.where(kind: Like::LIKE).count
+    bonus_likes.to_i + likes.where(kind: Like::LIKE).count
   end
 
   def favourite_count
-    likes.where(kind: Like::FAVOURITE).count
+    bonus_favourites.to_i + likes.where(kind: Like::FAVOURITE).count
   end
 
   def retweet_count
-    retweets.visible.count
+    bonus_retweets.to_i + retweets.visible.count
   end
 
   def reply_count

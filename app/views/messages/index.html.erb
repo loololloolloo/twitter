@@ -1,34 +1,47 @@
 <% content_for :title, "Messages / #{@site_name}" %>
 
-<div class="layout">
-  <aside class="col-left"></aside>
+<%# The 2019 inbox is two panes: the conversation list on the left and the open
+    thread on the right. With nothing selected the right pane says so rather
+    than redirecting, so the list is never lost. %>
+<div class="page page-dm">
+  <div class="dm-shell">
+    <div class="dm-list-pane">
+      <div class="dm-list-head">
+        <h1 class="dm-list-title">Messages</h1>
+      </div>
 
-  <section class="col-main">
-    <h2 class="section-title">Messages</h2>
-
-    <ul class="conv-list">
-      <% if @conversations.present? %>
-        <% @conversations.each do |conversation| %>
-          <% other = conversation.other_for(current_user) %>
-          <% last = conversation.last_message %>
-          <%# The whole row is the link, the way the 2015 DMInboxItem worked:
-              clicking anywhere opens the thread, not just the name. %>
-          <li class="conv">
-            <a class="conv-link" href="<%= conversation_path(other.id) %>">
-              <span class="conv-avatar"><%= pic(other.avatar_path, 48) %></span>
-              <span class="conv-body">
-                <span class="conv-name"><%= other.display_name.presence || other.username %></span>
-                <span class="conv-handle">@<%= other.username %></span>
-                <span class="conv-preview"><%= last&.body.presence || "No messages yet" %></span>
-              </span>
-            </a>
-          </li>
+      <ul class="dm-list">
+        <% if @conversations.present? %>
+          <% @conversations.each do |conversation| %>
+            <% other = conversation.other_for(current_user) %>
+            <% last = conversation.last_message %>
+            <li class="dm-list-item">
+              <a class="dm-list-link" href="<%= conversation_path(other.id) %>">
+                <span class="row-avatar"><%= pic(other.avatar_path, 48) %></span>
+                <span class="dm-list-body">
+                  <span class="dm-list-names">
+                    <span class="dm-list-name"><%= other.display_name.presence || other.username %></span>
+                    <span class="dm-list-handle">@<%= other.username %></span>
+                  </span>
+                  <span class="dm-list-preview"><%= last&.body.presence || "No messages yet" %></span>
+                </span>
+              </a>
+            </li>
+          <% end %>
+        <% else %>
+          <li class="empty-note">No conversations yet.</li>
         <% end %>
-      <% else %>
-        <li class="empty">No conversations. Visit someone's profile to send a message.</li>
-      <% end %>
-    </ul>
-  </section>
+      </ul>
+    </div>
 
-  <aside class="col-right"></aside>
+    <div class="dm-thread-pane">
+      <div class="dm-thread-head">
+        <h2>Select a message</h2>
+      </div>
+      <div class="dm-thread-empty">
+        Choose a conversation on the left, or open a profile and use Message to
+        start a new one.
+      </div>
+    </div>
+  </div>
 </div>

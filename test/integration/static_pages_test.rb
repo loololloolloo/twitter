@@ -8,10 +8,10 @@ class StaticPagesTest < ActionDispatch::IntegrationTest
     sign_in(user)
 
     {
-      about_path => /classic web client/i,
+      about_path => /self-hosted social network/i,
       help_path => /Tweets are limited to/i,
-      tos_path => /Terms of Service/i,
-      privacy_path => /Privacy Policy/i
+      tos_path => /agree to follow the rules/i,
+      privacy_path => /salted hash/i
     }.each do |path, pattern|
       get path
       assert_response :success, "#{path} did not render"
@@ -49,7 +49,8 @@ class StaticPagesTest < ActionDispatch::IntegrationTest
       assert_response code
       assert_match pattern, response.body
       # The error screen uses the app's own layout, not a bare static page.
-      assert_match(/site-footer/, response.body)
+      assert_match(/class="app-shell"/, response.body)
+      assert_match(/error-page/, response.body)
     end
   end
 end

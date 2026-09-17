@@ -1,48 +1,55 @@
 <% content_for :title, "Accounts / #{@site_name}" %>
 
 <div class="layout">
-  <aside class="col-left"></aside>
-
   <section class="col-main">
-    <div class="settings-header-bar">
-      <h1>Accounts</h1>
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Accounts</h1>
+      </div>
     </div>
 
-    <div class="settings-section">
+    <div class="section-card">
       <p class="settings-note">
         These accounts are signed into this browser. Switching does not ask for
         a password again.
       </p>
-      <ul class="account-switch-list">
-        <% @accounts.each do |account| %>
-          <li class="account-switch-row <%= 'is-current' if account.id == current_user.id %>">
-            <span class="account-switch-pic"><%= pic(account.avatar_path, 48) %></span>
-            <span class="account-switch-body">
-              <span class="account-switch-name"><%= account.display_name %></span>
-              <span class="account-switch-handle">@<%= account.username %></span>
-            </span>
+    </div>
+
+    <ul class="row-list">
+      <% @accounts.each do |account| %>
+        <li class="row-item <%= 'is-current' if account.id == current_user.id %>">
+          <span class="row-avatar"><%= pic(account.avatar_path, 48) %></span>
+          <div class="row-body">
+            <div class="row-title">
+              <span class="row-name"><%= account.display_name %></span>
+              <span class="row-handle">@<%= account.username %></span>
+            </div>
+          </div>
+          <div class="row-action">
             <% if account.id == current_user.id %>
               <span class="account-switch-current">Current</span>
             <% else %>
               <%= form_with url: switch_account_path(account.id), method: :post, class: "inline" do %>
-                <button class="btn btn-follow" type="submit">Switch</button>
+                <button class="btn btn-follow btn-pill" type="submit">Switch</button>
               <% end %>
               <%= form_with url: forget_account_path(account.id), method: :delete, class: "inline" do %>
-                <button class="btn btn-mini" type="submit">Remove</button>
+                <button class="btn btn-pill" type="submit">Remove</button>
               <% end %>
             <% end %>
-          </li>
-        <% end %>
-      </ul>
+          </div>
+        </li>
+      <% end %>
+    </ul>
 
+    <div class="section-card">
       <%# Signed-in members were previously redirected away from the login form,
           which left no way to attach a second account to the browser. The extra
           flag is what opens the form here instead. %>
-      <p>
-        <%= link_to "Add account", login_path(add: 1), class: "btn btn-primary" %>
-      </p>
+      <%= link_to "Add account", login_path(add: 1), class: "btn primary-btn" %>
     </div>
   </section>
 
-  <aside class="col-right"></aside>
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
 </div>

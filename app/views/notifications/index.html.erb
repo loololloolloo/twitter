@@ -1,38 +1,52 @@
 <% content_for :title, "Notifications / #{@site_name}" %>
 
 <div class="layout">
-  <aside class="col-left"></aside>
-
   <section class="col-main">
-    <h2 class="section-title">Notifications</h2>
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Notifications</h1>
+      </div>
+    </div>
 
-    <ul class="notif-list">
+    <ul class="row-list">
       <% if @items.present? %>
         <% @items.each do |note| %>
-          <li class="notif">
-            <%= pic(note.actor&.avatar_path, 32) %>
-            <div class="notif-body">
-              <% if note.actor %>
-                <a href="<%= profile_path(note.actor.username) %>">@<%= note.actor.username %></a>
-              <% end %>
-              <% if note.kind == "favourite" %>favorited your tweet
-              <% elsif note.kind == "like" %>liked your tweet
-              <% elsif note.kind == "retweet" %>retweeted your tweet
-              <% elsif note.kind == "reply" %>replied: <%= note.body %>
-              <% elsif note.kind == "follow" %>followed you
-              <% elsif note.kind == "mention" %>mentioned you: <%= note.body %>
-              <% else %><%= note.body %>
-              <% end %>
-              <span class="notif-time"><%= time_ago(note.created_at) %></span>
+          <li class="row-item">
+            <a class="row-avatar" href="<%= note.actor ? profile_path(note.actor.username) : home_path %>">
+              <%= pic(note.actor&.avatar_path, 48) %>
+            </a>
+            <div class="row-body">
+              <div class="row-title">
+                <% if note.actor %>
+                  <a class="row-name" href="<%= profile_path(note.actor.username) %>">@<%= note.actor.username %></a>
+                <% end %>
+              </div>
+              <p class="row-note">
+                <% if note.kind == "favourite" %>favorited your tweet
+                <% elsif note.kind == "like" %>liked your tweet
+                <% elsif note.kind == "retweet" %>retweeted your tweet
+                <% elsif note.kind == "reply" %>replied: <%= note.body %>
+                <% elsif note.kind == "follow" %>followed you
+                <% elsif note.kind == "mention" %>mentioned you: <%= note.body %>
+                <% else %><%= note.body %>
+                <% end %>
+              </p>
+              <span class="row-meta"><%= time_ago(note.created_at) %></span>
             </div>
-            <% if note.tweet_id %><a class="notif-link" href="<%= tweet_path(note.tweet_id) %>">View</a><% end %>
+            <% if note.tweet_id %>
+              <div class="row-action">
+                <a class="btn btn-pill" href="<%= tweet_path(note.tweet_id) %>">View</a>
+              </div>
+            <% end %>
           </li>
         <% end %>
       <% else %>
-        <li class="empty">No notifications yet.</li>
+        <li class="empty-note">No notifications yet.</li>
       <% end %>
     </ul>
   </section>
 
-  <aside class="col-right"></aside>
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
 </div>

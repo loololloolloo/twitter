@@ -1,6 +1,6 @@
 class TweetsController < ApplicationController
   before_action :require_login!
-  before_action :load_tweet, only: [ :show, :retweet, :destroy ]
+  before_action :load_tweet, only: [ :show, :retweet, :destroy, :stats ]
 
   def show
     @replies = @tweet.replies.visible.includes(:user).order(:created_at)
@@ -10,6 +10,18 @@ class TweetsController < ApplicationController
       @ancestors.unshift(node)
       node = node.parent
     end
+  end
+
+  # Current engagement for the focused post and its replies, so the permalink
+  # keeps counting while it is open. The shape matches what the action endpoints
+  # already return, so the client can repaint both the count line and the
+  # buttons with the same code.
+  def stats
+    return if performed?
+
+    render json: stats_payload(@tweet).merge(
+      replies: @tweet.replies.visible.order(:created_at).limit(50).map { |reply| stats_payload(reply) }
+    )
   end
 
   def create
@@ -137,5 +149,21 @@ class TweetsController < ApplicationController
     return if @tweet
 
     render plain: "Not found", status: :not_found
+  end
+
+  # One post's engagement, in the same shape the action endpoints return, so
+  # the permalink's poll can repaint counts and buttons the same way.
+  def stats_payload(tweet)
+    {
+      id: tweet.id,
+      like_count: tweet.like_count,
+      like_count_label: helpers.count_label(tweet.like_count),
+      favourite_count: tweet.favourite_count,
+      favourite_count_label: helpers.count_label(tweet.favourite_count),
+      retweet_count: tweet.retweet_count,
+      retweet_count_label: helpers.count_label(tweet.retweet_count),
+      reply_count: tweet.reply_count,
+      reply_count_label: helpers.count_label(tweet.reply_count)
+    }
   end
 end

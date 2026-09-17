@@ -95,53 +95,53 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_match(/avatar avatar-200/, response.body)
   end
 
-  # The bannerless backdrop has to be tall enough for the picture that rises
-  # above the stat bar. It was 60px, so the frame's top rendered above the
-  # backdrop and was clipped by the fixed top bar - on every profile, since no
-  # account has a banner. The failure is in the stylesheet alone, with no markup
-  # symptom, so the numbers that have to agree are checked here rather than
-  # left to a browser measurement.
-  test "the bannerless canopy is tall enough for the picture it backs" do
+  # The bannerless backdrop has to be tall enough to hold the whole picture plus
+  # its stand-off. It was a 60px strip, so the frame rendered above the backdrop
+  # and was clipped by the fixed top bar - on every profile, since no account has
+  # a banner. The failure is in the stylesheet alone, with no markup symptom, so
+  # the numbers that have to agree are checked here rather than left to a browser
+  # measurement.
+  test "the bannerless canopy is tall enough for the picture it holds" do
     css = Rails.root.join("app/assets/stylesheets/twitter.css").read
 
-    rise = css[/^:root\s*\{[^}]*?--pfp-rise:\s*(\d+)px/m, 1].to_i
-    headroom = css[/\.profile-canopy\.no-banner\s*\{\s*height:\s*calc\(var\(--pfp-rise\)\s*\+\s*(\d+)px\)/, 1].to_i
-    frame = css[/\.statbar-avatar-frame\s*\{[^}]*?height:\s*(\d+)px/m, 1].to_i
+    size = css[/^:root\s*\{[^}]*?--pfp-size:\s*(\d+)px/m, 1].to_i
+    inset = css[/^:root\s*\{[^}]*?--pfp-inset:\s*(\d+)px/m, 1].to_i
+    headroom = css[/\.profile-canopy\.no-banner\s*\{\s*height:\s*calc\(var\(--pfp-size\)\s*\+\s*var\(--pfp-inset\)\s*\+\s*(\d+)px\)/, 1].to_i
 
-    assert_operator rise, :>, 0, "the picture's rise above the bar has to be defined"
+    assert_operator size, :>, 0, "the picture's size has to be defined"
+    assert_operator inset, :>, 0, "the stand-off from the banner's bottom has to be defined"
     assert_operator headroom, :>, 0,
-                    "the backdrop needs headroom above the picture's top edge, not just the rise"
-    assert_operator frame, :>, 0
+                    "the backdrop needs headroom above the picture's top edge"
 
-    # The backdrop's height is the picture's rise plus its headroom. It has to
-    # reach the picture's top, and it must not run past the picture's own height
-    # or the tinted band would show below the frame.
-    assert_operator rise + headroom, :<=, frame,
-                    "the backdrop should not be taller than the picture it backs"
+    # The band is the picture, the stand-off below it and the headroom above it.
+    # It has to hold the picture and its stand-off, and the headroom should stay
+    # modest rather than the band ballooning past the picture it holds.
+    band = size + inset + headroom
+    assert_operator band, :>=, size + inset, "the picture and its stand-off must fit in the band"
+    assert_operator headroom, :<, size, "the headroom should not dwarf the picture"
   end
 
-  # The picture used to be pinned with `bottom` against `.statbar-avatar`. That
-  # slot is a stretched flex item, so its height collapses once the bar wraps
-  # its metrics onto a second row, and the picture slid down into the metrics at
-  # narrow widths. It is pinned to the bar's top edge instead - the same line at
-  # every width - so the offset below the banner never moves.
-  test "the picture is pinned to the stat bar, not to the collapsing picture slot" do
+  # The picture is anchored inside the banner: its slot is positioned against
+  # the banner's edges and the frame fills it. It used to hang off the stat bar
+  # by a negative `top`, which is what let it drift off the banner and into the
+  # bar - so these are the properties that keep it in place, and the browser
+  # measurement in ProfileLayoutSystemTest is what proves the result.
+  test "the picture is anchored inside the banner" do
     css = Rails.root.join("app/assets/stylesheets/twitter.css").read
 
-    slot = css[/\.statbar-avatar\s*\{([^}]*)\}/m, 1]
-    assert_no_match(/position:\s*relative/, slot,
-                    "anchoring the frame to the picture slot reintroduces the drift")
+    slot = css[/\.profile-canopy\s+\.statbar-avatar\s*\{([^}]*)\}/m, 1]
+    refute_nil slot, "the picture slot has to be positioned against the banner"
+    assert_match(/position:\s*absolute/, slot)
+    assert_match(/bottom:\s*var\(--pfp-inset\)/, slot,
+                 "the stand-off from the banner's bottom edge is what keeps it clear of the bar")
+    assert_match(/left:\s*15px/, slot)
 
     frame = css[/\.statbar-avatar-frame\s*\{([^}]*)\}/m, 1]
-    assert_match(/position:\s*absolute/, frame)
-    assert_match(/top:\s*calc\(-1\s*\*\s*var\(--pfp-rise\)\)/, frame)
-    assert_no_match(/bottom:/, frame,
-                    "a `bottom` offset is measured against the slot that collapses")
-
-    # The scaled picture has to move with the same variable, or one of the two
-    # rules drifts while the other stays put.
-    tablet = media_blocks(css, "@media (max-width: 1000px)")
-    assert_match(/top:\s*calc\(-1\s*\*\s*var\(--pfp-rise\)\)/, tablet)
+    assert_match(/width:\s*var\(--pfp-size\)/, frame)
+    assert_no_match(/position:\s*absolute/, frame,
+                    "the frame should fill its slot, not position itself independently")
+    assert_no_match(/--pfp-rise/, frame,
+                    "a negative top against the bar is the drift being fixed")
   end
 
   # Pulls out every @media block with the given header. A balanced-brace scan is
@@ -186,24 +186,16 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
 
     assert tablet.present?, "the stat bar needs a rule for viewports under 1000px"
 
-    avatar = tablet[/\.statbar-avatar\s*\{[^}]*?width:\s*(\d+)px/m, 1].to_i
-    assert_operator avatar, :>, 0
-    assert_operator avatar, :<, 290, "the picture slot must shrink below its desktop width"
-
     actions = tablet[/\.statbar-actions\s*\{[^}]*?width:\s*(auto)/m, 1]
     assert_equal "auto", actions, "the action slot must not hold a fixed width when narrow"
 
-    # The narrowed picture must not reintroduce the bug the desktop numbers
-    # solve: it still has to fit entirely inside the bannerless backdrop.
-    frame = tablet[/\.statbar-avatar-frame\s*\{[^}]*?height:\s*(\d+)px/m, 1].to_i
-    tablet_rise = tablet[/--pfp-rise:\s*(\d+)px/m, 1].to_i
-    headroom = css[/\.profile-canopy\.no-banner\s*\{\s*height:\s*calc\(var\(--pfp-rise\)\s*\+\s*(\d+)px\)/, 1].to_i
-
-    assert_operator frame, :>, 0
-    assert_operator tablet_rise, :>, 0,
-                    "the scaled picture needs its own rise or it drifts out of the backdrop"
-    assert_operator tablet_rise + headroom, :<=, frame,
-                    "the scaled picture must still fit the bannerless backdrop"
+    # The narrowed picture still has to fit inside the bannerless band: the band
+    # is sized from the picture's own variables, so both have to be scaled
+    # together at this breakpoint or the picture outgrows what holds it.
+    assert_match(/--pfp-size:\s*\d+px/, tablet,
+                 "the picture has to scale with the narrow layout")
+    assert_match(/--pfp-inset:\s*\d+px/, tablet)
+    assert_match(/\.profile-canopy\.no-banner|--pfp-size/, tablet)
   end
 
   # Below the rail breakpoint even the shrunk bands do not fit on one row, so

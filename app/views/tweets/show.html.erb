@@ -1,11 +1,20 @@
 <% content_for :title, "Tweet by @#{@tweet.user.username} / #{@site_name}" %>
 
 <div class="layout">
-  <aside class="col-left"></aside>
+  <%# The 2019 permalink: a sticky header with the back target, the focused
+      tweet set larger than it is in the stream, then the reply composer and the
+      conversation below it. %>
+  <section class="col-main permalink"
+           id="permalink"
+           data-tweet="<%= @tweet.id %>"
+           data-stats-url="<%= tweet_stats_path(@tweet) %>">
+    <div class="stream-head">
+      <a class="head-back" href="<%= home_path %>" title="Back">&#8592;</a>
+      <div class="stream-head-title">
+        <h1>Tweet</h1>
+      </div>
+    </div>
 
-  <%# The 2015 permalink was a grey panel holding the focused tweet, with the
-      reply thread below it on the white stream. %>
-  <section class="col-main permalink">
     <div class="permalink-inner">
       <%# The conversation above this tweet, oldest first, so a reply always
           shows what it was replying to. %>
@@ -121,5 +130,7 @@
     </ul>
   </section>
 
-  <aside class="col-right"></aside>
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
 </div>

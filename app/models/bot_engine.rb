@@ -37,6 +37,36 @@ class BotEngine
   # How many candidates to pull when choosing a tweet to engage with.
   CANDIDATE_POOL = 120
 
+  # How the long-lived runner paces itself by default: one tick every couple of
+  # seconds, up to this many actions in a tick. Declared here because the admin
+  # panel reports the pacing and the rake task reads it.
+  DEFAULT_INTERVAL = 2.0
+  DEFAULT_BATCH = 60
+
+  # How far back a real member's posts are considered from when a bot picks
+  # something to engage with. The general pool is the newest posts on the site,
+  # and in a busy hour that window fills up with simulated accounts alone - so a
+  # member's post, however recent, fell outside a plain recency slice and was
+  # never chosen. Members are a small minority of the accounts, so their posts
+  # are gathered on their own window and merged into the pool.
+  HUMAN_ENGAGEMENT_WINDOW = 36.hours
+
+  # The extra engagement one reaction stands for on a post that is doing well.
+  # The population is ~5,000 accounts, so a post with six figures of likes has
+  # no row behind most of them and cannot have one. A slice of the reactions
+  # carries this much weight instead, which is what lets a busy post reach the
+  # kind of numbers a widely-shared one would.
+  ENGAGEMENT_CUT_PER_TWEET = 5_000
+
+  # How a post's accumulated engagement divides between the counters. Reads and
+  # weighted reactions both use these shares, so the numbers grow in proportion
+  # instead of one racing ahead of the others.
+  ENGAGEMENT_SHARES = {
+    bonus_likes: 0.88,
+    bonus_favourites: 0.035,
+    bonus_retweets: 0.085
+  }.freeze
+
   # The engine keeps bots at least this sociable. Weighting alone let replies
   # all but vanish, because likes and posts are far more frequent than
   # conversations; these floors guarantee a bot's history contains visible
@@ -66,6 +96,14 @@ class BotEngine
   # How long a computed spotlight is trusted before it is looked up again.
   # Short, so a fresh post is picked up almost immediately.
   SPOTLIGHT_CACHE = 10.seconds
+
+  # The share of the population that keeps to its own habits while somebody is
+  # the centre of attention. Without this every bot in the site piles onto
+  # whichever member posted most recently, so one account collects all the
+  # engagement and the other members get none. This is not applied to the
+  # deliberate wave around a watched account's own post, which is meant to be
+  # the whole population at once.
+  SPOTLIGHT_DEVIATION = 0.45
 
   # How many bots answer the post inline, in the same request that created it.
   # Everyone else is made due in one statement and drained by the runner on its
@@ -266,20 +304,16 @@ class BotEngine
         perform_spotlight(bot, persona, mind, rng, focus.user, focus: focus)
       elsif (spotlight = spotlight_user)
         # A member everybody is watching changes what the population does: bots
-        # drop what they were doing and react to that account first.
-        perform_spotlight(bot, persona, mind, rng, spotlight)
-      else
-        case choose_action(persona, rng, mind)
-        when :post    then do_post(bot, persona, rng, mind)
-        when :like    then do_like(bot, persona, rng, mind)
-        when :retweet then do_retweet(bot, persona, rng, mind)
-        when :reply   then do_reply(bot, persona, rng, mind)
-        when :follow  then do_follow(bot, persona, rng, mind)
-        when :dm      then do_dm(bot, persona, rng, mind)
-        when :view    then do_view(bot, persona, rng, mind)
-        when :browse  then do_browse(bot, persona, rng, mind)
-        when :scroll  then do_scroll(bot, persona, rng, mind)
+        # drop what they were doing and react to that account first. Part of the
+        # population carries on regardless, so the attention spreads over the
+        # other members rather than landing on one account alone.
+        if rng.rand < SPOTLIGHT_DEVIATION
+          normal_action(bot, persona, rng, mind)
+        else
+          perform_spotlight(bot, persona, mind, rng, spotlight)
         end
+      else
+        normal_action(bot, persona, rng, mind)
       end
 
       mind.tick!
@@ -296,6 +330,22 @@ class BotEngine
       # than letting one collision stall the runner.
       bot.update_columns(next_action_at: next_delay(bot.persona_hash, Random.new))
       false
+    end
+
+    # What a bot does when it is not reacting to whoever is the centre of
+    # attention: one action drawn from its persona's mix.
+    def normal_action(bot, persona, rng, mind)
+      case choose_action(persona, rng, mind)
+      when :post    then do_post(bot, persona, rng, mind)
+      when :like    then do_like(bot, persona, rng, mind)
+      when :retweet then do_retweet(bot, persona, rng, mind)
+      when :reply   then do_reply(bot, persona, rng, mind)
+      when :follow  then do_follow(bot, persona, rng, mind)
+      when :dm      then do_dm(bot, persona, rng, mind)
+      when :view    then do_view(bot, persona, rng, mind)
+      when :browse  then do_browse(bot, persona, rng, mind)
+      when :scroll  then do_scroll(bot, persona, rng, mind)
+      end
     end
 
     # The account the whole population is currently paying attention to, or nil
@@ -331,10 +381,18 @@ class BotEngine
                     .count
       return nil if recent.empty?
 
-      pick = recent.max_by { |user_id, count| count + (verified?(user_id) ? 5 : 0) }
-      return nil if pick.nil?
+      # Drawn by weight rather than taken as the single maximum. Picking the
+      # top account every time meant one member collected essentially all of
+      # the population's attention and the other members got none, because
+      # whoever posted most recently stayed the maximum for as long as the
+      # window covered them. Weighting by how much each member has posted keeps
+      # the active ones in front while still giving everybody a turn.
+      chosen = weighted_pick(recent.to_a, Random.new) do |user_id, count|
+        count + (verified?(user_id) ? 5 : 0)
+      end
+      return nil if chosen.nil?
 
-      User.find_by(id: pick.first)
+      User.find_by(id: chosen.first)
     end
 
     def spotlight_username
@@ -362,6 +420,10 @@ class BotEngine
       # Everyone reads it first; some like, some retweet, some answer.
       if tweet
         TweetView.record!(user: bot, tweet: tweet, dwell_seconds: dwell_time(persona, rng))
+        # Opening the post is the one thing every bot in the wave does, so the
+        # readership it passes in front of is recorded here for all of them.
+        # Reactions below carry their own weight on top.
+        bump_engagement(tweet, reads: 1)
 
         # Once a post has enough answers the conversation turns into a wall, so
         # later arrivals read and like instead of piling on another reply.
@@ -580,6 +642,7 @@ class BotEngine
       return if tweet.nil?
 
       Like.find_or_create_by!(user: bot, tweet: tweet)
+      bump_engagement(tweet, cut: ENGAGEMENT_CUT_PER_TWEET)
       mind&.absorb!(tweet.body, from_id: tweet.user_id)
 
       if tweet.user_id != bot.id
@@ -593,6 +656,7 @@ class BotEngine
       return if tweet.nil?
 
       Tweet.create!(user: bot, body: "", retweet_of: tweet)
+      bump_engagement(tweet, cut: ENGAGEMENT_CUT_PER_TWEET)
       mind&.absorb!(tweet.body, from_id: tweet.user_id, weight: 1.5)
 
       Notification.create!(user: tweet.user, actor: bot, kind: "retweet",
@@ -607,6 +671,7 @@ class BotEngine
       return if body.blank?
 
       reply = Tweet.create!(user: bot, body: body, parent: parent)
+      bump_engagement(parent, cut: ENGAGEMENT_CUT_PER_TWEET)
       mind&.practice!
 
       if parent.user_id != bot.id
@@ -631,6 +696,11 @@ class BotEngine
     def do_follow(bot, persona, rng, mind = nil)
       target = pick_user(bot, rng, mind: mind)
       return if target.nil?
+      # Members stay in the candidate pool whether or not the bot follows them,
+      # so the subscription itself is what decides whether this is a new follow.
+      # A duplicate would be caught by the unique index, but the bot's action
+      # for the tick would have been spent on a no-op.
+      return if bot.active_follows.exists?(followee_id: target.id)
 
       Follow.create!(follower: bot, followee: target)
       mind&.note_affinity!(target.id, 0.5)
@@ -774,10 +844,11 @@ class BotEngine
     # one aimed at somebody the bot follows and has argued with before reads as
     # a relationship.
     def pick_tweet(bot, rng, retweetable: false, fresh: false, conversational: false, mind: nil)
-      scope = Tweet.visible.where.not(user_id: bot.id).recent.limit(CANDIDATE_POOL)
-      scope = scope.where(retweet_of_id: nil) if retweetable
-
-      candidates = scope.includes(:user).to_a
+      if retweetable
+        candidates = engagement_pool(bot).reject { |t| t.retweet_of_id }
+      else
+        candidates = engagement_pool(bot)
+      end
       return nil if candidates.empty?
 
       # Only consider tweets this bot has not already liked or retweeted.
@@ -819,6 +890,38 @@ class BotEngine
       end
     end
 
+    # The newest posts, with a real member's recent posts folded in. Read into
+    # memory rather than composed as a UNION: each arm needs its own ordering
+    # and limit, which SQLite will not accept inside a compound SELECT.
+    def engagement_pool(bot)
+      general = Tweet.visible.where.not(user_id: bot.id).recent.limit(CANDIDATE_POOL).includes(:user).to_a
+      # The same `where.not` as the general arm: a bot whose account is a real
+      # member's would otherwise be offered its own post by this arm.
+      members = Tweet.visible.where(user_id: User.humans.select(:id))
+                     .where.not(user_id: bot.id).recent
+                     .where("created_at >= ?", HUMAN_ENGAGEMENT_WINDOW.ago)
+                     .limit(CANDIDATE_POOL).includes(:user).to_a
+
+      # A member's post can appear in both arms; `|` keys on the row, so it is
+      # kept once.
+      general | members
+    end
+
+    # Adds engagement to a post that no single account is responsible for.
+    #
+    # `reads` is the passing readership the post picked up, `cut` the weight
+    # behind one genuine reaction. Both are split across the counters by the
+    # same shares, so one number never races ahead of the rest. Called on every
+    # reaction, so it is a single atomic increment against the row.
+    def bump_engagement(tweet, reads: 0, cut: 0)
+      total = reads.to_i + cut.to_i
+      return if tweet.nil? || total <= 0
+
+      amounts = ENGAGEMENT_SHARES.map { |column, share| [ column, (total * share).round ] }
+      assignments = amounts.map { |column, _| "#{column} = #{column} + ?" }.join(", ")
+      Tweet.where(id: tweet.id).update_all([ assignments, *amounts.map(&:last) ])
+    end
+
     # Chooses an account for the bot to follow or message, preferring members.
     def pick_user(bot, rng, mind: nil)
       following_ids = bot.active_follows.limit(2000).pluck(:followee_id).to_set
@@ -840,9 +943,13 @@ class BotEngine
                       .limit(30)
                       .to_a
 
-      # Real members are always in the running, even if the bot already follows
-      # a lot of other accounts.
-      humans = User.not_suspended.where(is_bot: false).where.not(id: following_ids.to_a)
+      # Real members are always in the running. Unlike the bot arm they are not
+      # filtered by who the bot already follows: every bot subscribes to the
+      # members when the population is seeded, so filtering them out would drop
+      # members from the pool entirely and leave the simulation talking only to
+      # itself. A follow aimed at someone already followed is skipped in
+      # `do_follow` instead.
+      humans = User.not_suspended.where(is_bot: false)
                   .order(Arel.sql("RANDOM()")).limit(15).to_a
       candidates = (candidates + humans + close).uniq
 

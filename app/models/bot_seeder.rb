@@ -13,7 +13,21 @@ module BotSeeder
   # Caps that keep the backfill to a size SQLite handles comfortably: roughly
   # 50k posts, 250k likes and 150k follows for a 5,000 account population.
   MAX_POSTS_PER_BOT = 14
+  # Account-backed reactions per post. The population is a few thousand, so a
+  # busy post is given a long tail of extra engagement on top of these - see
+  # `engagement_tail`.
   MAX_LIKERS_PER_TWEET = 9
+  # How often a post is one of the site's popular ones. Most posts are ordinary
+  # and only a small share carry the big numbers, which is the shape a real
+  # timeline has.
+  VIRAL_SHARE = 0.03
+  # The spread of the tail on a popular post. Drawn log-uniformly across this
+  # range so there are a few enormous hits and a broad slope beneath them
+  # rather than a cluster of posts all sitting at the same figure.
+  VIRAL_RANGE = 8_000..600_000
+  # A member's post is pushed up the tail: real accounts are what the site is
+  # for, so their posts should be among the ones that carry real numbers.
+  MEMBER_TAIL_FLOOR = 250
   FOLLOW_BATCH = 5_000
   TWEET_BATCH = 2_000
   LIKE_BATCH = 5_000
@@ -111,6 +125,8 @@ module BotSeeder
       bot_ids = User.bots.pluck(:id)
       like_rows = []
       rt_rows = []
+      tail_rows = []
+      member_ids = User.humans.pluck(:id).to_set
       now = Time.current
 
       tweet_ids.each do |tweet_id, author_id|
@@ -138,12 +154,57 @@ module BotSeeder
           }
         end
 
+        tail_rows << [ tweet_id, engagement_tail(author_id, member_ids) ]
+
         flush_likes(like_rows) if like_rows.size >= LIKE_BATCH
         flush_rts(rt_rows) if rt_rows.size >= TWEET_BATCH
+        flush_tails(tail_rows) if tail_rows.size >= TWEET_BATCH
       end
 
       flush_likes(like_rows)
       flush_rts(rt_rows)
+      flush_tails(tail_rows)
+    end
+
+    # The engagement a post carries beyond the reactions that have an account
+    # behind them, which is what lets a post show numbers larger than the
+    # population. Zero for an ordinary post, so most of the timeline stays
+    # modest; a small share draws a figure spread across VIRAL_RANGE, giving the
+    # handful of hits a long tail beneath them. A member's own posts are always
+    # given at least MEMBER_TAIL_FLOOR, so real accounts are not drowned out by
+    # the simulated ones.
+    def engagement_tail(author_id, member_ids)
+      base = rand < VIRAL_SHARE ? log_uniform(VIRAL_RANGE) : 0
+      return base unless member_ids.include?(author_id)
+
+      [ base, MEMBER_TAIL_FLOOR ].max
+    end
+
+    # A value drawn evenly across the orders of magnitude in the range, so each
+    # power of ten is equally likely and the result reads as a long tail rather
+    # than a uniform smear.
+    def log_uniform(range)
+      low = Math.log10(range.first)
+      high = Math.log10(range.last)
+      (10**(low + rand * (high - low))).round
+    end
+
+    # Writes a batch of tails as one statement per counter, rather than a save
+    # per post. The same shares the engine uses split each post's total, so a
+    # seeded post and one the engine goes on to bump stay in proportion.
+    def flush_tails(rows)
+      return if rows.empty?
+
+      totals = rows.to_h
+      BotEngine::ENGAGEMENT_SHARES.each do |column, share|
+        values = totals.transform_values { |total| (total * share).round }
+        next if values.values.all?(&:zero?)
+
+        cases = values.map { |id, value| "WHEN #{id.to_i} THEN #{value.to_i}" }.join(" ")
+        Tweet.where(id: values.keys).update_all("#{column} = CASE id #{cases} END")
+      end
+
+      rows.clear
     end
 
     def flush_likes(rows)

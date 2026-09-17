@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_16_000010) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_000001) do
   create_table "audit_logs", force: :cascade do |t|
     t.string "action", null: false
     t.integer "actor_id"
@@ -140,6 +140,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_16_000010) do
 
   create_table "tweets", force: :cascade do |t|
     t.text "body", default: "", null: false
+    t.integer "bonus_favourites", default: 0, null: false
+    t.integer "bonus_likes", default: 0, null: false
+    t.integer "bonus_retweets", default: 0, null: false
     t.datetime "created_at", null: false
     t.boolean "is_deleted", default: false, null: false
     t.boolean "is_pinned", default: false, null: false

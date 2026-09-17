@@ -1,44 +1,67 @@
 <% content_for :title, "Chat with @#{@other.username} / #{@site_name}" %>
 
-<div class="layout">
-  <aside class="col-left"></aside>
+<%# Same two-pane inbox as the index: the conversation list stays on the left
+    with the open thread highlighted, so moving between threads never leaves the
+    page. %>
+<div class="page page-dm">
+  <div class="dm-shell">
+    <div class="dm-list-pane">
+      <div class="dm-list-head">
+        <a class="dm-list-title" href="<%= messages_path %>">Messages</a>
+      </div>
 
-  <section class="col-main">
-    <nav class="dm-header">
-      <a class="dm-back" href="<%= messages_path %>" title="Back to Messages">&larr;</a>
-      <h2 class="dm-title">
-        <a href="<%= profile_path(@other.username) %>"><%= pic(@other.avatar_path, 32) %></a>
-        <span><a href="<%= profile_path(@other.username) %>"><%= @other.display_name.presence || @other.username %></a>
-        <small>@<%= @other.username %></small></span>
-      </h2>
-    </nav>
-
-    <ul class="dm-thread">
-      <% if @messages.present? %>
-        <% @messages.each do |message| %>
-          <% mine = message.sender_id == current_user.id %>
-          <li class="dm-msg <%= mine ? 'dm-sent' : 'dm-received' %>">
-            <div class="dm-msg-row">
-              <span class="dm-msg-avatar"><%= pic(message.sender.avatar_path, 34) %></span>
-              <div class="dm-bubble">
-                <p><%= message.body %></p>
-                <span class="dm-msg-time"><%= time_ago(message.created_at) %></span>
-              </div>
-            </div>
+      <ul class="dm-list">
+        <% @conversations.each do |conversation| %>
+          <% other = conversation.other_for(current_user) %>
+          <% last = conversation.last_message %>
+          <li class="dm-list-item <%= 'is-active' if other.id == @other.id %>">
+            <a class="dm-list-link" href="<%= conversation_path(other.id) %>">
+              <span class="row-avatar"><%= pic(other.avatar_path, 48) %></span>
+              <span class="dm-list-body">
+                <span class="dm-list-names">
+                  <span class="dm-list-name"><%= other.display_name.presence || other.username %></span>
+                  <span class="dm-list-handle">@<%= other.username %></span>
+                </span>
+                <span class="dm-list-preview"><%= last&.body.presence || "No messages yet" %></span>
+              </span>
+            </a>
           </li>
         <% end %>
-      <% else %>
-        <li class="empty">Say hello.</li>
-      <% end %>
-    </ul>
-
-    <div class="dm-composer">
-      <%= form_with url: conversation_path(@other), method: :post, class: "dm-form" do %>
-        <textarea name="body" placeholder="Start a new message" required></textarea>
-        <button class="btn primary-btn" type="submit">Send</button>
-      <% end %>
+      </ul>
     </div>
-  </section>
 
-  <aside class="col-right"></aside>
+    <div class="dm-thread-pane">
+      <div class="dm-thread-head">
+        <a href="<%= profile_path(@other.username) %>"><%= pic(@other.avatar_path, 32) %></a>
+        <h2>
+          <a href="<%= profile_path(@other.username) %>"><%= @other.display_name.presence || @other.username %></a>
+          <small>@<%= @other.username %></small>
+        </h2>
+      </div>
+
+      <div class="dm-thread-body">
+        <% if @messages.present? %>
+          <% @messages.each do |message| %>
+            <% mine = message.sender_id == current_user.id %>
+            <div class="dm-line <%= 'is-mine' if mine %>">
+              <span class="dm-line-avatar"><%= pic(message.sender.avatar_path, 32) %></span>
+              <div class="dm-bubble-new">
+                <%= message.body %>
+                <span class="dm-line-time"><%= time_ago(message.created_at) %></span>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="dm-thread-empty">Say hello.</div>
+        <% end %>
+      </div>
+
+      <div class="dm-compose-new">
+        <%= form_with url: conversation_path(@other), method: :post, class: "dm-compose-form" do %>
+          <textarea name="body" placeholder="Start a new message" required></textarea>
+          <button class="auth-submit" type="submit">Send</button>
+        <% end %>
+      </div>
+    </div>
+  </div>
 </div>

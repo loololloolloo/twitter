@@ -1,94 +1,74 @@
 <% content_for :title, "Sign up / #{@site_name}" %>
 
-<div id="page-outer">
-  <div id="page-container" class="wrapper wrapper-signup">
-    <div class="page-canvas">
-      <div class="signup-wrapper">
-        <h1>Join <%= @site_name %> today.</h1>
+<%# Sign-up gets the same single-column treatment as log-in: bird, heading, and
+    one card holding the whole form. The fields carry visible labels now, which
+    is the redesign's own treatment. %>
+<div class="auth-page">
+  <div class="auth-bird"><%= bird %></div>
+  <h1 class="auth-title">Join <%= @site_name %> today.</h1>
 
-        <% if @signups_closed %>
-          <p class="signup-closed">Signups are currently closed on this instance.</p>
-        <% else %>
-          <%= form_with url: signup_path, method: :post, id: "phx-signup-form",
-                        class: "t1-form signup", local: true do %>
-            <div class="textbox">
-              <% if @user&.errors&.any? %>
-                <div class="signup-errors">
-                  <% @user.errors.full_messages.each do |message| %>
-                    <p class="error" role="alert"><%= message %></p>
-                  <% end %>
-                </div>
-              <% end %>
-
-              <div class="prompt name">
-                <div class="field" data-fieldname="name">
-                  <input id="full-name" type="text" autocomplete="off" name="display_name"
-                         maxlength="20" aria-required="true" placeholder="Full name"
-                         value="<%= params[:display_name] %>">
-                </div>
-              </div>
-
-              <div class="prompt username">
-                <div class="field" data-fieldname="username">
-                  <div class="sidetip">
-                    <p class="blank error" role="alert">Choose a username.</p>
-                    <p class="invalid error" role="alert">Usernames can only contain letters, numbers and underscores.</p>
-                  </div>
-                  <input id="username" type="text" autocomplete="off" name="username"
-                         maxlength="15" aria-required="true" placeholder="Username"
-                         value="<%= params[:username] %>">
-                </div>
-              </div>
-
-              <div class="prompt email">
-                <div class="field" data-fieldname="email">
-                  <div class="sidetip">
-                    <p class="invalid error" role="alert">Please enter a valid email address.</p>
-                  </div>
-                  <input id="email" class="email-input" type="text" autocomplete="off"
-                         name="email" aria-required="true" placeholder="Email"
-                         value="<%= params[:email] %>">
-                </div>
-              </div>
-
-              <div class="prompt password">
-                <div class="field" data-fieldname="password">
-                  <div class="sidetip">
-                    <p class="invalid error" role="alert">Your password must be at least 8 characters.</p>
-                  </div>
-                  <input id="password" type="password" name="password" aria-required="true"
-                         placeholder="Password" autocomplete="new-password">
-                </div>
-              </div>
-
-              <div class="prompt password">
-                <div class="field" data-fieldname="password_confirm">
-                  <div class="sidetip">
-                    <p class="invalid error" role="alert">Your passwords must match.</p>
-                  </div>
-                  <input id="password_confirm" type="password" name="password_confirm"
-                         aria-required="true" placeholder="Confirm password"
-                         autocomplete="new-password">
-                </div>
-              </div>
-            </div>
-
-            <div class="doit">
-              <div class="sign-up-box">
-                <input class="submit button signup" type="submit" id="submit_button" value="Sign up">
-              </div>
-              <div class="befound">
-                <p>
-                  By signing up, you agree to the
-                  <a href="<%= tos_path %>" class="legal-link">Terms of Service</a> and
-                  <a href="<%= privacy_path %>" class="legal-link">Privacy Policy</a>,
-                  including Cookie Use. Others will be able to find you by email when provided.
-                </p>
-              </div>
-            </div>
-          <% end %>
+  <div class="auth-card">
+    <% if @signups_closed %>
+      <p class="signup-closed">Signups are currently closed on this instance.</p>
+    <% else %>
+      <%= form_with url: signup_path, method: :post, id: "phx-signup-form",
+                    class: "auth-form signup", local: true do %>
+        <% if @user&.errors&.any? %>
+          <div class="auth-errors">
+            <% @user.errors.full_messages.each do |message| %>
+              <p class="error" role="alert"><%= message %></p>
+            <% end %>
+          </div>
         <% end %>
-      </div>
-    </div>
+
+        <div class="auth-field">
+          <label for="full-name">Full name</label>
+          <input id="full-name" type="text" autocomplete="off" name="display_name"
+                 maxlength="20" aria-required="true" placeholder="Full name"
+                 value="<%= params[:display_name] %>">
+        </div>
+
+        <div class="auth-field">
+          <label for="username">Username</label>
+          <input id="username" type="text" autocomplete="off" name="username"
+                 maxlength="15" aria-required="true" placeholder="Username"
+                 value="<%= params[:username] %>">
+        </div>
+
+        <div class="auth-field">
+          <label for="email">Email</label>
+          <input id="email" type="text" autocomplete="off"
+                 name="email" aria-required="true" placeholder="Email"
+                 value="<%= params[:email] %>">
+        </div>
+
+        <div class="auth-field">
+          <label for="password">Password</label>
+          <input id="password" type="password" name="password" aria-required="true"
+                 placeholder="Password" autocomplete="new-password">
+        </div>
+
+        <div class="auth-field">
+          <label for="password_confirm">Confirm password</label>
+          <input id="password_confirm" type="password" name="password_confirm"
+                 aria-required="true" placeholder="Confirm password"
+                 autocomplete="new-password">
+        </div>
+
+        <input class="auth-submit" type="submit" id="submit_button" value="Sign up">
+      <% end %>
+
+      <p class="befound">
+        By signing up, you agree to the
+        <a href="<%= tos_path %>" class="legal-link">Terms of Service</a> and
+        <a href="<%= privacy_path %>" class="legal-link">Privacy Policy</a>,
+        including Cookie Use. Others will be able to find you by email when provided.
+      </p>
+    <% end %>
   </div>
+
+  <p class="auth-foot">
+    Already have an account?
+    <a href="<%= login_path %>">Log in</a>
+  </p>
 </div>

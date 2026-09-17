@@ -1,16 +1,18 @@
 <% content_for :title, "#{@title} / #{@site_name}" %>
 
 <div class="layout">
-  <aside class="col-left"></aside>
-
   <section class="col-main">
-    <h2 class="section-title"><%= @title %></h2>
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1><%= @title %></h1>
+      </div>
+    </div>
 
-    <div class="panel static-page">
+    <div class="section-card">
       <% case @slug %>
       <% when "about" %>
         <p><%= @site_name %> is a small, self-hosted social network built to look and
-           behave like the classic web client from 2014&ndash;2016.</p>
+           behave like the Twitter web client of 2019.</p>
         <p>Post short updates, follow people, favorite and retweet what you like, and
            message anyone directly. The first account created owns the instance and can
            moderate members, grant verified badges and adjust site settings.</p>
@@ -45,5 +47,7 @@
     </div>
   </section>
 
-  <aside class="col-right"></aside>
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
 </div>

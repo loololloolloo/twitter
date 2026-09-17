@@ -1,41 +1,50 @@
 <% content_for :title, "Who to follow / #{@site_name}" %>
 
 <div class="layout">
-  <aside class="col-left"></aside>
-
   <section class="col-main">
-    <h2 class="section-title">People on <%= @site_name %></h2>
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Who to follow</h1>
+        <span class="stream-head-sub">People on <%= @site_name %></span>
+      </div>
+    </div>
 
-    <ul class="people-list">
+    <ul class="row-list">
       <% if @people.present? %>
         <% @people.each do |person| %>
-          <li class="person">
-            <%= pic(person.avatar_path, 48) %>
-            <div class="person-body">
-              <a href="<%= profile_path(person.username) %>"><%= person.display_name %></a>
-              <% if person.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
-              <span>@<%= person.username %></span>
-              <p><%= count_label(person.follower_count) %> followers</p>
+          <li class="row-item">
+            <a class="row-avatar" href="<%= profile_path(person.username) %>"><%= pic(person.avatar_path, 48) %></a>
+            <div class="row-body">
+              <div class="row-title">
+                <a class="row-name" href="<%= profile_path(person.username) %>"><%= person.display_name %></a>
+                <% if person.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
+                <span class="row-handle">@<%= person.username %></span>
+              </div>
+              <% if person.bio.present? %><p class="row-note"><%= person.bio %></p><% end %>
+              <span class="row-meta"><%= count_label(person.follower_count) %> followers</span>
             </div>
 
-            <% if current_user.following.exists?(id: person.id) %>
-              <%= form_with url: follow_user_path(person.username), method: :delete, class: "inline" do %>
-                <button class="btn btn-following" type="submit">Following</button>
+            <div class="row-action">
+              <% if current_user.following.exists?(id: person.id) %>
+                <%= form_with url: follow_user_path(person.username), method: :delete, class: "inline" do %>
+                  <button class="btn btn-following btn-pill" type="submit">Following</button>
+                <% end %>
+              <% else %>
+                <%= form_with url: follow_user_path(person.username), method: :post, class: "inline" do %>
+                  <button class="btn btn-follow btn-pill" type="submit">Follow</button>
+                <% end %>
               <% end %>
-            <% else %>
-              <%= form_with url: follow_user_path(person.username), method: :post, class: "inline" do %>
-                <button class="btn btn-follow" type="submit">Follow</button>
-              <% end %>
-            <% end %>
-
-            <a class="btn btn-follow" href="<%= conversation_path(person.id) %>">Message</a>
+              <a class="btn btn-pill" href="<%= conversation_path(person.id) %>">Message</a>
+            </div>
           </li>
         <% end %>
       <% else %>
-        <li class="empty">Nobody else has signed up yet.</li>
+        <li class="empty-note">Nobody else has signed up yet.</li>
       <% end %>
     </ul>
   </section>
 
-  <aside class="col-right"></aside>
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
 </div>

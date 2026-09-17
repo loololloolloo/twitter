@@ -79,6 +79,15 @@ class AccountFeaturesTest < ActionDispatch::IntegrationTest
     assert_equal @other.id, session[:user_id], "the added account becomes active"
   end
 
+  test "the add-account form carries the add flag so the submit returns to the list" do
+    get login_path(add: 1)
+    assert_response :success
+    assert_match(/type="hidden" name="add"[^>]*value="1"/, response.body)
+
+    get login_path
+    assert_no_match(/name="add"/, response.body)
+  end
+
   test "the accounts page offers a way to add another account" do
     get accounts_path
     assert_response :success

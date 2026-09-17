@@ -7,6 +7,10 @@
         <h1>Log in to <%= @site_name %></h1>
 
         <%= form_with url: login_path, method: :post, class: "t1-form signin", local: true do %>
+          <%# The add flag has to survive the POST, not just the GET. Without it
+              the submit looks like an ordinary sign-in and lands on the home
+              feed instead of back on the account list it was opened from. %>
+          <%= hidden_field_tag :add, "1" if params[:add].present? %>
           <fieldset>
             <legend class="visuallyhidden">Log in</legend>
 

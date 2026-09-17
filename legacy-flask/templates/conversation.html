@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Chat with @{{ other.username }} / {{ site_name }}{% endblock %}
+{% block body %}
+<div class="layout">
+  <aside class="col-left"></aside>
+  <section class="col-main">
+    <h2 class="section-title">Chat with <a href="{{ url_for('profile', username=other.username) }}">@{{ other.username }}</a></h2>
+    <ul class="chat">
+      {% for m in msgs %}
+      <li class="chat-msg {{ 'mine' if m.sender_id == me.id }}">
+        <p>{{ m.body }}</p>
+        <span class="chat-time">{{ m.created_at }}</span>
+      </li>
+      {% else %}
+      <li class="empty">Say hello.</li>
+      {% endfor %}
+    </ul>
+    <form class="compose chat-compose" method="post">
+      <textarea name="body" placeholder="Start a new message" required></textarea>
+      <button class="btn btn-primary" type="submit">Send</button>
+    </form>
+  </section>
+  <aside class="col-right"></aside>
+</div>
+{% endblock %}

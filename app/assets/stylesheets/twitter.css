@@ -1,0 +1,1152 @@
+/* Classic Twitter web client styling.
+   Palette taken from the 2015 twitter_core/twitter_logged_out bundles:
+   Blue #55ACEE, Dark Gray #292F33, Medium Gray #66757F,
+   Light Gray #CCD6DD, Extra Light Gray #E1E8ED, White #FFFFFF */
+
+:root {
+  --blue:        #55ACEE;
+  --blue-dark:   #3B94D9;
+  --dark:        #292F33;
+  --gray:        #66757F;
+  --light-gray:  #CCD6DD;
+  --xlight-gray: #E1E8ED;
+  --white:       #FFFFFF;
+  --bg:          #F5F8FA;
+  --red:         #E0245E;
+  --green:       #5C913B;
+  --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* Night mode. The variables are redefined on the root element so every rule
+   below keeps referencing the same names and no component needs a second
+   palette. Surfaces stay a touch lighter than the page so cards still read as
+   raised, which is what the 2015 palette did in reverse. */
+html[data-theme="dark"] {
+  --dark:        #F5F8FA;
+  --gray:        #8899A6;
+  --light-gray:  #38444D;
+  --xlight-gray: #2C3640;
+  --white:       #1B262C;
+  --bg:          #15202B;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--dark);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.muted { color: var(--gray); }
+
+/* Form fields default to the browser's white face, which would leave
+   light-on-light text once the dark palette is active, so they take the
+   surface colour explicitly. */
+input[type=text], input[type=password], input[type=email], textarea, select {
+  background: var(--white);
+}
+code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; color: var(--gray); }
+
+/* ---------------- top bar ----------------
+   2015 global nav: 46px white bar, 1px hairline bottom, links grey with an
+   icon above/beside a bold 13px label, the active one in brand blue. */
+.topbar {
+  background: var(--white);
+  border-bottom: 1px solid rgba(0,0,0,0.15);
+  position: fixed; top: 0; right: 0; left: 0; z-index: 1000;
+}
+.topbar-inner {
+  max-width: 890px; margin: 0 auto; padding: 0 12px;
+  display: flex; align-items: center; gap: 16px; height: 46px;
+}
+/* The fixed bar would cover the first row without the top padding. */
+.brand { display: flex; align-items: center; }
+.brand img { width: 24px; height: 24px; display: block; }
+.topnav { display: flex; align-items: center; gap: 4px; }
+.topnav a {
+  display: flex; align-items: center; gap: 5px;
+  color: var(--gray); font-weight: 700; font-size: 13px;
+  padding: 6px 8px; border-radius: 3px;
+}
+.topnav a:hover { background: var(--bg); text-decoration: none; color: var(--blue); }
+.topnav a.active { color: var(--blue); }
+.topbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+
+.topsearch {
+  display: flex; align-items: center; gap: 6px; flex: 1; max-width: 220px;
+  margin-left: auto;
+}
+.topsearch .ico { width: 14px; height: 14px; opacity: .45; margin-right: -26px; margin-left: 10px; z-index: 1; }
+.topsearch input {
+  border: 1px solid var(--xlight-gray); background: var(--bg);
+  border-radius: 21px; padding: 6px 14px 6px 32px; font-size: 13px; width: 100%;
+  font-family: var(--font); outline: none;
+}
+.topsearch input:focus { background: var(--white); border-color: var(--blue); }
+
+.account-menu { position: relative; }
+.account-link { display: flex; align-items: center; gap: 6px; color: var(--gray); font-size: 13px; font-weight: 700; }
+.account-link:hover { text-decoration: none; color: var(--dark); }
+.account-dropdown {
+  display: none; position: absolute; right: 0; top: 30px;
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 4px; min-width: 160px; padding: 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+}
+.account-menu:hover .account-dropdown { display: block; }
+.account-dropdown a { display: block; padding: 8px 14px; color: var(--dark); font-size: 13px; }
+.account-dropdown a:hover { background: var(--bg); text-decoration: none; }
+
+/* ---------------- icons & avatars ----------------
+   2015 avatars were 48px rounded squares (5px radius), not circles. The
+   circular treatment only arrived with the 2017 redesign. */
+.ico { width: 16px; height: 16px; vertical-align: middle; opacity: .65; }
+.avatar { border-radius: 5px; object-fit: cover; display: block; flex-shrink: 0; }
+.avatar-24 { width: 24px; height: 24px; border-radius: 4px; }
+.avatar-32 { width: 32px; height: 32px; border-radius: 4px; }
+.avatar-48 { width: 48px; height: 48px; }
+.avatar-200 { width: 200px; height: 200px; }
+.avatar-empty {
+  background: var(--xlight-gray); display: flex; align-items: center;
+  justify-content: center; border-radius: 5px;
+}
+.avatar-empty .ico { width: 55%; height: 55%; opacity: .45; }
+
+/* ---------------- layout ----------------
+   The 2015 desktop client is a 890px centred container with a 290px
+   dashboard rail; the stream column takes the remainder. Top padding clears
+   the fixed 46px global nav. */
+.page { max-width: 890px; margin: 0 auto; padding: 56px 12px 40px; }
+/* The profile is a 1190px three-column screen, like the 2015 desktop client. */
+.page-wide { max-width: 1190px; }
+.layout { display: flex; gap: 10px; align-items: flex-start; }
+.col-left  { width: 290px; flex-shrink: 0; }
+.col-main  { flex: 1; min-width: 0; background: var(--white);
+             border: 1px solid var(--xlight-gray); border-radius: 5px; }
+.col-right { width: 290px; flex-shrink: 0; }
+/* Pages without a rail (notifications, messages, settings, static pages) leave
+   the aside empty; collapsing it hands the full 890px to the content column. */
+.col-left:empty, .col-right:empty { display: none; }
+@media (max-width: 960px) {
+  .layout { flex-direction: column; }
+  .col-left, .col-right { width: 100%; }
+}
+
+/* Modules: the rounded white cards that make up the rails. */
+.panel {
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 6px; padding: 12px; margin-bottom: 10px;
+}
+.panel-title { margin: 0 0 8px; font-size: 15px; color: var(--dark); }
+.panel-note { margin: 0; color: var(--gray); font-size: 13px; }
+.panel-avatar { display: block; width: 48px; height: 48px; margin-bottom: 6px; }
+.panel-avatar .avatar, .panel-avatar img { width: 48px; height: 48px; border-radius: 5px; }
+
+/* Left profile box: white module with a tinted stats strip. The 2015 stats
+   row is three uppercase mini-columns whose numbers are 18px and blue. */
+.profile-panel { background: var(--bg); }
+.panel-stats {
+  display: flex; gap: 0; margin: 8px 0 0; font-size: 10px; color: #8899a6;
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.panel-stats a { display: flex; flex-direction: column; color: #8899a6;
+                padding-right: 28px; }
+.panel-stats a:hover { text-decoration: none; color: var(--blue); }
+.panel-stats strong { color: #0084b4; font-size: 18px; font-weight: 500;
+                      line-height: 20px; text-transform: none; }
+.panel-cta {
+  display: inline-block; border: 1px solid var(--blue); color: var(--blue);
+  border-radius: 4px; padding: 5px 12px; font-weight: 700; font-size: 13px;
+}
+.panel-cta:hover { background: var(--blue); color: var(--white); text-decoration: none; }
+
+.panel-name { display: block; font-weight: 700; color: var(--dark); font-size: 14px; }
+.panel-handle { display: block; color: var(--gray); font-size: 13px; }
+.trend-list { list-style: none; margin: 0 -12px; padding: 0; }
+/* 2015 "list-link": full-width rows with a grey link and a small muted count. */
+.trend-list li { padding: 0; font-size: 13px; }
+.trend-list li a {
+  display: block; padding: 8px 12px; color: var(--gray); font-weight: 400;
+  border-top: 1px solid var(--xlight-gray);
+}
+.trend-list li:first-child a { border-top: 0; }
+.trend-list li a:hover { background: var(--bg); color: var(--dark); text-decoration: none; }
+.trend-list a { font-weight: 400; }
+/* The tag and its counts share the row so the counts line up under the tag
+   rather than starting at the panel edge. */
+.trend-tag { display: block; }
+.trend-count { display: block; color: #8899a6; font-size: 12px; line-height: 16px; }
+
+.section-title {
+  margin: 0; padding: 12px; font-size: 18px; font-weight: 400;
+  border-bottom: 1px solid var(--xlight-gray); color: var(--dark);
+}
+
+/* ---------------- compose ----------------
+   2015 tweet box: white module with a 14px bold heading, a bordered
+   auto-growing box (min 80px), and the tweet button bottom-right with the
+   remaining-character counter beside it. */
+.compose {
+  display: flex; gap: 10px; padding: 10px 12px 12px;
+  border-bottom: 1px solid var(--xlight-gray); background: var(--bg);
+}
+.timeline-tweet-box { position: relative; }
+.tweet-box-title h2 {
+  margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--dark);
+  text-shadow: 0 1px 0 var(--white);
+}
+.compose-form { flex: 1; }
+.tweet-content { position: relative; margin-bottom: 8px; }
+.compose textarea, .settings-form textarea {
+  width: 100%; border: 1px solid var(--xlight-gray); border-radius: 4px;
+  padding: 8px 10px; font-family: var(--font); font-size: 14px; line-height: 18px;
+  resize: none; min-height: 80px; max-height: 240px; overflow: hidden;
+  outline: none; color: var(--dark); text-shadow: none;
+}
+.compose textarea:focus { border-color: var(--blue); }
+/* Placeholder prompt is a grey hint in the original, not full-strength text. */
+.compose textarea::placeholder { color: #8899a6; }
+.compose-bar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+.media-btn { display: flex; align-items: center; cursor: pointer; margin-right: auto; }
+.media-btn input { display: none; }
+.media-btn:hover .ico { opacity: 1; }
+.counter { color: #8899a6; font-size: 13px; font-weight: 700; }
+.counter.over { color: var(--red); }
+/* Tweet button: solid #0084b4 with a darkening gradient on hover. */
+.tweet-btn {
+  background-color: #0084b4; border: 1px solid transparent; color: var(--white);
+  border-radius: 4px; padding: 9px 16px 8px; font-weight: 700; font-size: 14px;
+}
+.tweet-btn:hover {
+  background-color: #0084b4;
+  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.15));
+  color: var(--white);
+}
+.tweet-btn:active {
+  background-color: #0084b4;
+  background-image: linear-gradient(rgba(0,0,0,.15), rgba(0,0,0,.15));
+  box-shadow: inset 0 1px 4px rgba(0,0,0,.3);
+}
+
+/* ---------------- buttons ----------------
+   2015 buttons: grey #ccd6dd face with a hairline border and a white-to-grey
+   gradient on hover. The primary variant is brand blue with a darkening
+   gradient instead of a flat colour swap. */
+.btn {
+  border: 1px solid var(--xlight-gray); background-color: var(--light-gray);
+  color: var(--gray); border-radius: 4px; padding: 8px 16px; font-family: var(--font);
+  font-size: 14px; font-weight: 700; cursor: pointer; display: inline-block;
+  line-height: normal;
+}
+.btn:hover {
+  color: var(--dark); text-decoration: none; border-color: var(--xlight-gray);
+  background-color: var(--xlight-gray);
+  background-image: linear-gradient(var(--white), var(--xlight-gray));
+}
+.btn-primary {
+  background-color: var(--blue); background-image: none;
+  border-color: #3b88c3; color: var(--white);
+}
+.btn-primary:hover {
+  background-color: var(--blue);
+  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.15));
+  border-color: #3b88c3; color: var(--white);
+}
+.btn-follow { color: var(--blue); border-color: var(--blue); }
+.btn-follow:hover { background: var(--blue); color: var(--white); }
+.btn-following { color: var(--gray); }
+.btn-danger { color: var(--red); border-color: var(--red); }
+.btn-danger:hover { background: var(--red); color: var(--white); }
+.btn-block { width: 100%; }
+.btn-mini { padding: 3px 9px; font-size: 12px; }
+.btn-small { font-size: 13px; padding: 3px 11px 5px; color: var(--dark); }
+.inline { display: inline; }
+
+/* ---------------- timeline ----------------
+   2015 rows: 48px avatar floated left with a -58px pull so the content sits
+   on a 58px gutter, 9px/12px padding, 1px #e1e8ed divider. */
+.timeline { list-style: none; margin: 0; padding: 0; }
+.tweet { position: relative; min-height: 51px; padding: 9px 12px;
+         border-bottom: 1px solid var(--xlight-gray); }
+
+/* "New tweets" bar: 2015 used a light grey strip, not a coloured banner. */
+.new-tweets {
+  background: var(--bg);
+  border-top: 1px solid var(--xlight-gray);
+  border-bottom: 1px solid var(--xlight-gray);
+  text-align: center;
+}
+.new-tweets a {
+  display: block;
+  padding: 10px 1px;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 400;
+  text-decoration: none;
+}
+.new-tweets a:hover { background: var(--xlight-gray); text-decoration: none; }
+.tweet:hover { background: var(--bg); }
+.tweet-main { display: flex; gap: 10px; }
+
+/* Row-wide permalink target, as on the web client: clicking the empty space,
+   the avatar or the tweet text opens the tweet. The overlay sits under the
+   interactive content, and the non-interactive containers let clicks pass
+   through to it, so links, buttons and the action bar keep working. */
+.tweet-open { position: absolute; inset: 0; z-index: 1; text-decoration: none; }
+.tweet-main, .rt-flag { position: relative; z-index: 2; pointer-events: none; }
+.tweet-main a, .tweet-main button,
+.tweet-main .tweet-actions,
+.rt-flag a { pointer-events: auto; }
+.tweet-actions { z-index: 3; }
+.tweet-body { flex: 1; min-width: 0; }
+.tweet-head { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap;
+              font-size: 13px; line-height: 16px; }
+.tweet-name { font-weight: 700; color: var(--dark); }
+.tweet-handle, .tweet-time { color: #8899a6; font-size: 13px; font-weight: 400; }
+.tweet-dot { color: #8899a6; }
+.tweet-text { margin: 3px 0 6px; font-size: 14px; line-height: 18px;
+              word-wrap: break-word; white-space: pre-wrap; }
+.mention, .hashtag { color: var(--blue); }
+.tweet-media img { max-width: 100%; border-radius: 5px; border: 1px solid var(--xlight-gray); margin-bottom: 6px; }
+
+/* Engagement row. 2015 rendered these as small grey icons with the count
+   beside them, colouring on hover. */
+.tweet-actions { display: flex; gap: 22px; align-items: center; margin-top: 4px; }
+.act {
+  display: inline-flex; align-items: center; gap: 0; color: #8899a6;
+  font-size: 12px; background: none; border: none; padding: 0; cursor: pointer;
+  font-family: var(--font); text-decoration: none;
+}
+.act .ico { opacity: 1; }
+
+/* The count sits next to its own control and stays visible, the way the web
+   client showed it. Hiding it until hover made the row read as bare icons. */
+.act-count {
+  margin-left: 6px; font-size: 12px; line-height: 1;
+  font-weight: 600; color: inherit;
+}
+
+/* The hover label only appears for actions that have no count to show. */
+.act span.act-label {
+  max-width: 0; overflow: hidden; white-space: nowrap;
+  transition: max-width .15s ease, margin-left .15s ease;
+}
+.act:hover { text-decoration: none; }
+.act-reply:hover { color: var(--blue); }
+.act-rt:hover { color: var(--green); }
+.act-fav:hover { color: #E4B400; }
+.act-heart:hover { color: #E0245E; }
+.act-del:hover { color: var(--red); }
+.act-reply:hover span.act-label, .act-rt:hover span.act-label,
+.act-fav:hover span.act-label, .act-heart:hover span.act-label { max-width: 80px; margin-left: 4px; }
+.act-del { font-size: 15px; }
+
+/* Favourited: the star fills and turns gold. */
+.act-faved, .act.faved { color: #E4B400; font-weight: 700; }
+.act.faved span.act-label { max-width: 80px; margin-left: 4px; }
+.act.faved .ico { color: #E4B400; }
+
+/* Liked: the heart fills and turns red. Fav and like are separate reactions,
+   so the two states are deliberately different colours. */
+.act-heart.hearted { color: #E0245E; font-weight: 700; }
+.act-heart.hearted span.act-label { max-width: 80px; margin-left: 4px; }
+.act-heart.hearted .ico { color: #E0245E; }
+
+/* A live retweet: green, and the label stays open so the state is visible. */
+.act-rt.rt-active { color: var(--green); font-weight: 700; }
+.act-rt.rt-active span.act-label { max-width: 80px; margin-left: 4px; }
+.act-rt.rt-active .ico { color: var(--green); }
+
+/* "Retweeted by" attribution, light green, sits above the tweet. */
+.rt-flag {
+  color: var(--green); font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; gap: 4px; padding-left: 58px;
+  margin-bottom: 3px;
+}
+.rt-flag a { color: var(--green); }
+.verified { color: var(--blue); font-size: 12px; }
+.empty { padding: 30px; text-align: center; color: var(--gray); }
+
+/* ---------------- profile ----------------
+   ProfileCard: 95px canopy, a 70px avatar overlapping it inside a white
+   6px-rounded frame, and the bio in the medium grey. */
+.profile-header { padding: 0 12px 12px; border-bottom: 1px solid var(--xlight-gray); }
+.profile-banner {
+  height: 95px; background: var(--blue) center/cover no-repeat;
+  margin: 0 -12px 0; border-radius: 5px 5px 0 0;
+}
+.profile-ident { display: flex; align-items: flex-end; gap: 10px; margin-top: -28px; }
+.profile-ident .avatar, .profile-ident .avatar-empty {
+  width: 70px; height: 70px; border: 3px solid var(--white); border-radius: 5px; background: var(--white);
+}
+.profile-ident .avatar-empty { background: var(--xlight-gray); }
+.profile-names { flex: 1; padding-bottom: 4px; }
+.profile-names h1 { margin: 0; font-size: 20px; }
+.profile-names span { color: var(--gray); font-size: 13px; }
+.role-badge {
+  display: inline-block; background: var(--dark); color: var(--white);
+  border-radius: 3px; padding: 1px 6px; font-size: 10px;
+  text-transform: uppercase; letter-spacing: .5px; font-weight: 700;
+}
+.profile-bio { margin: 10px 0 6px; }
+.profile-meta { display: flex; gap: 14px; color: var(--gray); font-size: 13px; flex-wrap: wrap; }
+.profile-stats { display: flex; gap: 18px; margin-top: 8px; font-size: 13px; color: var(--gray); }
+.profile-stats strong { color: var(--dark); }
+
+/* ---------------- lists ---------------- */
+.suggestion, .person, .conv { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+.suggestion-body, .person-body, .conv-body { flex: 1; min-width: 0; }
+.suggestion-body a, .person-body a, .conv-body a { display: block; font-weight: 700; color: var(--dark); }
+.suggestion-body span, .person-body span, .conv-body span { color: var(--gray); font-size: 12px; }
+.conv-body p { margin: 3px 0 0; color: var(--gray); font-size: 12px; }
+.people-list, .conv-list { list-style: none; margin: 0; padding: 0; }
+.person, .conv { padding: 12px; border-bottom: 1px solid var(--xlight-gray); margin: 0; }
+
+/* ---------------- notifications ----------------
+   2015 activity rows: 48px avatar on a 48px gutter, tinted when unread. */
+.notif-list { list-style: none; margin: 0; padding: 0; }
+.notif {
+  display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px;
+  border-bottom: 1px solid var(--xlight-gray); min-height: 51px;
+}
+.notif.unread { background: var(--bg); }
+.notif-body { flex: 1; font-size: 13px; line-height: 17px; color: var(--dark); }
+.notif-body a { font-weight: 700; color: var(--dark); }
+.notif-time { display: block; color: #8899a6; font-size: 11px; margin-top: 2px; }
+.notif-link { font-size: 12px; color: var(--blue); }
+
+/* ---------------- direct messages ----------------
+   2015 chat: 34px avatars beside bubbles that are flat 4px-rounded blocks -
+   blue #3b94d9 for sent, grey #e1e8ed for received - with a small caret. */
+.conv-list { border-top: 1px solid var(--xlight-gray); }
+.conv { padding: 0; border-bottom: 1px solid var(--xlight-gray); }
+.conv-link {
+  display: block; min-height: 82px; padding: 15px; padding-left: 77px;
+  position: relative; color: inherit; text-decoration: none;
+}
+.conv-link:hover { background: var(--bg); text-decoration: none; }
+.conv-avatar { position: absolute; left: 15px; top: 15px; }
+.conv-avatar .avatar { width: 48px; height: 48px; border-radius: 5px; }
+.conv-body { display: block; }
+.conv-name { display: block; font-size: 14px; font-weight: 700; color: var(--dark); }
+.conv-handle { display: block; font-size: 13px; color: #8899a6; }
+.conv-preview {
+  display: block; margin-top: 3px; font-size: 13px; color: var(--gray);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.dm-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-bottom: 1px solid var(--xlight-gray);
+}
+.dm-back { color: var(--gray); font-size: 18px; text-decoration: none; }
+.dm-back:hover { color: var(--blue); text-decoration: none; }
+.dm-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; }
+.dm-title .avatar { width: 32px; height: 32px; border-radius: 4px; }
+.dm-title span { display: flex; flex-direction: column; line-height: 1.25; }
+.dm-title a { font-weight: 700; color: var(--dark); }
+.dm-title small { color: #8899a6; font-size: 12px; font-weight: 400; }
+
+.dm-thread { list-style: none; margin: 0; padding: 12px; min-height: 180px; }
+.dm-msg { margin-bottom: 10px; display: flex; flex-direction: column; }
+.dm-msg-row { display: flex; align-items: flex-end; gap: 10px; }
+.dm-msg-avatar .avatar { width: 34px; height: 34px; border-radius: 4px; }
+.dm-bubble { position: relative; max-width: 60%; }
+.dm-bubble p {
+  margin: 0; border: 1px solid var(--xlight-gray); border-radius: 4px;
+  padding: 6px 10px; font-size: 13px; line-height: 18px; color: var(--dark);
+  background: var(--xlight-gray); word-wrap: break-word;
+}
+/* Caret: a 5px triangle pointing back at the avatar. */
+.dm-bubble:before {
+  content: ""; position: absolute; bottom: 6px; left: -5px;
+  border-style: solid; border-width: 5px;
+  border-left-width: 0; border-color: transparent var(--xlight-gray) transparent transparent;
+}
+.dm-msg-time { display: block; margin-top: 2px; font-size: 11px; color: #8899a6; }
+.dm-sent .dm-msg-row { flex-direction: row-reverse; }
+.dm-sent .dm-bubble p { background: #3b94d9; border-color: #3b94d9; color: var(--white); }
+.dm-sent .dm-bubble:before {
+  left: auto; right: -5px;
+  border-left-width: 5px; border-right-width: 0;
+  border-color: transparent transparent transparent #3b94d9;
+}
+.dm-sent .dm-msg-time { text-align: right; }
+.dm-composer { padding: 10px; border-top: 1px solid var(--xlight-gray); }
+.dm-form textarea {
+  width: 100%; box-sizing: border-box; border: 1px solid var(--xlight-gray);
+  border-radius: 3px; padding: 8px 10px; font-family: var(--font); font-size: 13px;
+  line-height: 18px; min-height: 60px; resize: vertical; outline: none;
+  color: var(--dark);
+}
+.dm-form textarea:focus { border-color: var(--blue); }
+.dm-form { text-align: right; }
+.dm-form .primary-btn { margin-top: 8px; }
+
+/* ---------------- permalink ----------------
+   2015 permalink: grey panel wrapping the focused tweet, whose body is set as
+   28px/34px thin lead text, with the reply stream below on white. */
+.permalink { background: var(--bg); border: 1px solid rgba(0,0,0,.1); padding: 0; }
+.permalink-inner { position: relative; }
+.permalink-ancestors { background: var(--white); border-bottom: 1px solid var(--xlight-gray); }
+.permalink-tweet { background: var(--white); padding: 12px; }
+.permalink-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 15px; }
+.permalink-avatar .avatar { width: 48px; height: 48px; border-radius: 5px; }
+.permalink-account { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.permalink-fullname { font-size: 18px; font-weight: 700; color: var(--dark); line-height: 1.25; }
+.permalink-username { font-size: 14px; color: #8899a6; }
+.permalink-content { margin-left: 58px; }
+.tweet-text-lead { margin: 0; font-size: 28px; line-height: 34px; font-weight: 300;
+                   letter-spacing: .01em; color: var(--dark); }
+.permalink-media { margin-top: 12px; }
+.permalink-time { display: block; margin-top: 12px; font-size: 13px; color: #8899a6; }
+.permalink-actions { margin-top: 10px; padding-top: 10px;
+                     border-top: 1px solid var(--xlight-gray); }
+.permalink-replies { border-top: 1px solid var(--xlight-gray); }
+
+/* The focused tweet's stat line: bold count followed by its label. */
+.tweet-stats { display: flex; gap: 16px; margin-top: 8px; font-size: 13px; color: var(--gray); }
+.tweet-stats strong { color: var(--dark); }
+.tweet-stats .stat { color: var(--gray); text-decoration: none; }
+.tweet-stats .stat:hover { color: var(--blue); text-decoration: underline; }
+.tweet-stats .stat-retweet:hover { color: #24a15b; }
+.tweet-stats .stat-fav:hover { color: #d9a012; }
+
+/* ---------------- auth pages ----------------
+   Geometry and copy follow the 2015 twitter_logged_out / t1_signup bundles:
+   a centred white page-canvas, a 400px wrapper, 40px of air above the
+   heading, label-less inputs identified only by placeholder. */
+.wrapper-login, .wrapper-signup { max-width: 835px; margin: 0 auto; padding: 0 3%; }
+.page-canvas {
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 5px; box-shadow: 0 0 225px rgba(255, 255, 255, .55);
+  margin-top: 20px;
+}
+.signin-wrapper, .signup-wrapper { display: block; width: 400px; margin: 0 auto 10px; }
+.signin-wrapper h1, .signup-wrapper h1 {
+  padding: 40px 0 20px; margin: 0; clear: both;
+  font-size: 24px; font-weight: 300; line-height: 1.2; color: var(--dark);
+}
+.signin-wrapper form input[type=text],
+.signin-wrapper form input[type=password] {
+  display: block; width: 94%; padding: 8px 10px; margin-bottom: 10px;
+  border: 1px solid var(--xlight-gray); border-radius: 3px;
+  font-family: var(--font); font-size: 16px; line-height: 22px;
+  color: var(--dark); outline: none;
+}
+.t1-form input:focus { border-color: var(--blue); }
+.signin-wrapper .primary-btn { width: 98%; padding: 9px 13px; font-size: 18px; }
+.subchck { clear: both; padding-top: 10px; font-size: 13px; color: var(--gray); }
+.subchck .remember { font-weight: 400; }
+.t1-label.remember input { margin-right: 5px; }
+.separator { color: var(--light-gray); }
+.signup-helper { font-size: 14px; color: var(--gray); margin: 18px 0; }
+
+/* Sign-up form: stacked prompts, each field a 1px box with placeholder text. */
+.signup-wrapper .textbox { padding-bottom: 6px; }
+.prompt { position: relative; margin-bottom: 10px; }
+.prompt .field input {
+  display: block; width: 94%; padding: 9px 10px;
+  border: 1px solid var(--xlight-gray); border-radius: 3px;
+  font-family: var(--font); font-size: 16px; line-height: 22px;
+  color: var(--dark); outline: none;
+}
+.prompt .field input:focus { border-color: var(--blue); }
+/* Validation copy is reserved space in the original, revealed as errors fire.
+   Without the live JS we only surface it when the server rejects the form. */
+.sidetip { display: none; }
+.signup-errors { margin-bottom: 10px; }
+.signup-errors .error { color: var(--red); font-size: 13px; margin: 0 0 4px; }
+.signup-closed { font-size: 14px; color: var(--gray); padding-bottom: 20px; }
+.doit { clear: both; padding: 6px 0 24px; }
+.sign-up-box { margin-bottom: 12px; }
+input.submit.button.signup {
+  border: 0; border-radius: 3px; background: var(--blue); color: var(--white);
+  font-family: var(--font); font-size: 16px; font-weight: 700;
+  padding: 10px 16px; cursor: pointer;
+}
+input.submit.button.signup:hover {
+  background-color: var(--blue);
+  background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.15));
+  border-color: #3b88c3;
+}
+.befound p { font-size: 12px; color: var(--gray); line-height: 1.5; margin: 0; }
+
+/* ---------------- settings ----------------
+   2015 settings screen: a bold section header, then a form-horizontal grid
+   with a 120px right-aligned label column and a 140px content indent. */
+.settings-header-bar { padding: 14px 15px 0; }
+.settings-header-bar h1 { margin: 0; font-size: 20px; font-weight: 700; color: var(--dark); }
+.settings-header { margin: 0 0 10px; font-size: 20px; font-weight: 700; color: var(--dark); }
+.settings-section {
+  border-top: 1px solid var(--xlight-gray); padding: 20px 15px;
+}
+.settings-profile { padding: 10px 15px 4px; }
+.settings-avatar-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 0 18px 140px;
+}
+.settings-avatar .avatar { width: 73px; height: 73px; border-radius: 5px; }
+.settings-avatar-controls { display: flex; flex-direction: column; gap: 6px; }
+.settings-hint, .settings-note { margin: 0; font-size: 12px; color: var(--gray); }
+.settings-note { margin-top: 4px; }
+
+.settings-form label { display: block; margin-bottom: 14px; font-weight: 700; font-size: 13px; }
+.settings-form input {
+  width: 100%; border: 1px solid var(--xlight-gray); border-radius: 4px;
+  padding: 9px 10px; font-size: 14px; font-family: var(--font); margin-top: 5px;
+  outline: none; font-weight: 400;
+}
+.settings-form input:focus { border-color: var(--blue); }
+.hint { color: var(--gray); font-weight: 400; font-size: 11px; }
+
+/* form-horizontal: floated right-aligned label, indented controls. */
+.form-horizontal { padding: 4px 15px 20px; }
+.form-horizontal .control-group { margin-bottom: 15px; }
+.form-horizontal .control-group:after { content: ""; display: block; clear: both; }
+.form-horizontal .control-label {
+  float: left; width: 120px; padding-top: 5px; margin: 0;
+  text-align: right; font-size: 13px; font-weight: 400;
+  line-height: 20px; color: var(--gray); border-bottom: 0;
+}
+.form-horizontal .controls { margin-left: 140px; }
+.form-horizontal .controls p { color: var(--gray); font-size: 12px; }
+.form-horizontal input[type=text],
+.form-horizontal input[type=password],
+.form-horizontal textarea {
+  width: 100%; box-sizing: border-box; border: 1px solid var(--light-gray);
+  border-radius: 3px; padding: 6px 8px; margin-bottom: 5px;
+  font-family: var(--font); font-size: 13px; line-height: 18px;
+  color: var(--dark); outline: none;
+}
+.form-horizontal input:focus, .form-horizontal textarea:focus { border-color: var(--blue); }
+.form-horizontal textarea { min-height: 70px; resize: vertical; }
+.form-horizontal .form-actions { padding-left: 140px; margin: 20px 0 8px; }
+
+/* File inputs are hidden behind a button-styled label, as in the original. */
+.settings-file { display: inline-block; cursor: pointer; }
+.settings-file input[type=file] { display: none; }
+.settings-file .btn { display: inline-block; }
+
+/* ---------------- flash ---------------- */
+.flash-wrap { max-width: 1100px; margin: 10px auto 0; padding: 0 12px; }
+.flash { padding: 10px 14px; border-radius: 4px; margin-bottom: 8px; font-size: 13px; }
+.flash-error { background: #FDECEE; border: 1px solid var(--red); color: #A8193C; }
+.flash-success { background: #E8F8EF; border: 1px solid var(--green); color: #0B7A3D; }
+
+/* A message the operator pinned from the admin rail. It sits above the page
+   content rather than inside the column so it reads as coming from the site,
+   not from whatever page you happen to be on. It carries the 56px that clears
+   the fixed nav, so the page below hands that space over while it is shown. */
+.announcement-banner {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  max-width: 890px; margin: 56px auto 0; padding: 10px 14px;
+  background: #E8F4FD; border: 1px solid var(--blue); border-radius: 4px;
+  color: #1B6FA8; font-size: 13px; font-weight: 700;
+}
+.announcement-banner .ico { color: var(--blue); opacity: 1; flex-shrink: 0; }
+body:has(.announcement-banner) .page { padding-top: 12px; }
+body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
+
+/* ---------------- admin ----------------
+   The admin screen is a 1190px shell: a fixed-width rail holding the operator
+   card and the quick controls, and a fluid main column for the page itself.
+   Top padding clears the 46px global nav, which is fixed. */
+.admin-shell {
+  max-width: 1190px; margin: 0 auto; padding: 60px 15px 40px;
+  display: flex; gap: 15px; align-items: flex-start;
+}
+.admin-rail { width: 290px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
+.admin-main { flex: 1; min-width: 0; }
+
+/* Who is operating the panel, as a card rather than a sentence, so identity,
+   role and reach are scannable at a glance. */
+.operator-card {
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 4px; padding: 15px;
+}
+.operator-identity { display: flex; align-items: center; gap: 10px; }
+.operator-identity .avatar,
+.operator-identity img { width: 48px; height: 48px; border-radius: 4px; }
+.operator-names { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.operator-name { font-weight: 700; color: var(--dark); font-size: 15px; }
+.operator-handle { color: var(--gray); font-size: 13px; }
+
+.operator-facts { margin: 14px 0 0; display: flex; flex-direction: column; gap: 10px; }
+.operator-fact { margin: 0; }
+.operator-fact dt {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--gray); margin-bottom: 4px;
+}
+.operator-fact dd { margin: 0; font-size: 13px; color: var(--dark); }
+.operator-fact dd strong { font-size: 15px; color: var(--blue); }
+.pill-role { background: #E8F4FD; color: #1B6FA8; text-transform: capitalize; }
+
+/* Share of the whole permission set the current role holds. */
+.operator-meter span { display: block; }
+.meter {
+  height: 4px; margin-top: 6px; background: var(--xlight-gray);
+  border-radius: 2px; overflow: hidden;
+}
+.meter-fill { display: block; height: 100%; background: var(--blue); border-radius: 2px; }
+.operator-profile { display: block; text-align: center; margin-top: 14px; }
+
+.rail-card {
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 4px; padding: 15px;
+}
+.rail-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: var(--dark); }
+.rail-note { margin: 0 0 10px; color: var(--gray); font-size: 12px; line-height: 1.45; }
+.rail-status { margin: 0 0 10px; }
+.rail-announcement {
+  margin: 0 0 10px; padding: 8px 10px; background: var(--bg);
+  border-left: 3px solid var(--blue); border-radius: 3px;
+  font-size: 13px; color: var(--dark); word-wrap: break-word;
+}
+.rail-form { margin: 0; }
+.rail-form textarea {
+  width: 100%; border: 1px solid var(--xlight-gray); border-radius: 4px;
+  padding: 8px 10px; font-family: var(--font); font-size: 13px;
+  resize: vertical; outline: none;
+}
+.rail-form textarea:focus { border-color: var(--blue); }
+.rail-actions { display: flex; gap: 6px; margin-top: 8px; }
+.admin-main .flash-wrap { max-width: none; margin: 0 0 12px; padding: 0; }
+
+@media (max-width: 960px) {
+  .admin-shell { flex-direction: column; }
+  .admin-rail { width: 100%; }
+}
+
+/* ---------------- admin pages ---------------- */
+.page-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin: 0 0 15px;
+}
+.page-head h1 { margin: 0; font-size: 24px; font-weight: 300; color: var(--dark); }
+.page-head .page-note { margin: 4px 0 0; color: var(--gray); font-size: 13px; }
+.admin-title { margin: 0 0 12px; font-size: 24px; font-weight: 300; }
+.admin-sub { color: var(--gray); margin: 0 0 15px; font-size: 13px; }
+
+/* Sections are cards, so a long page reads as a stack of related blocks
+   rather than one undifferentiated column of tables. */
+.admin-section {
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 4px; margin-bottom: 15px; overflow: hidden;
+}
+.admin-section > .section-title {
+  margin: 0; padding: 12px 15px; font-size: 15px; font-weight: 700;
+  border-bottom: 1px solid var(--xlight-gray); color: var(--dark); background: var(--bg);
+}
+.admin-section > .section-note { margin: 0; padding: 12px 15px 0; color: var(--gray); font-size: 13px; }
+.admin-section .data-table { border: none; border-radius: 0; margin: 0; }
+.admin-section .panel { border: none; border-radius: 0; margin: 0; padding: 15px; }
+.admin-section .stack { padding: 15px; }
+.admin-section .filter-bar,
+.admin-section .admin-filter { padding: 12px 15px; margin: 0; }
+.admin-section > p, .admin-section > ul { padding: 0 15px; }
+.admin-section > p:first-of-type { padding-top: 12px; }
+.admin-section > p:last-child, .admin-section > ul:last-child { padding-bottom: 15px; }
+
+.admin-filter { display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-filter input, .admin-filter select {
+  border: 1px solid var(--xlight-gray); border-radius: 4px;
+  padding: 8px 10px; font-size: 13px; font-family: var(--font); outline: none;
+  background: var(--white);
+}
+.admin-filter input { flex: 1; min-width: 200px; }
+.admin-filter input:focus, .admin-filter select:focus { border-color: var(--blue); }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin-bottom: 20px; }
+.stat {
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 5px; padding: 14px; text-align: center;
+}
+.stat-num { display: block; font-size: 26px; font-weight: 300; color: var(--blue); }
+.stat-label { color: var(--gray); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+.stat.warn .stat-num { color: var(--red); }
+
+.data-table {
+  width: 100%; border-collapse: collapse; background: var(--white);
+  border: 1px solid var(--xlight-gray); border-radius: 5px; margin-bottom: 20px; font-size: 13px;
+}
+.data-table th, .data-table td { padding: 9px 11px; text-align: left; border-bottom: 1px solid var(--xlight-gray); }
+.data-table th {
+  background: var(--bg); font-size: 11px; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--gray);
+}
+.data-table tr:last-child td { border-bottom: none; }
+.row-suspended { background: #FFF7F8; }
+
+.pill {
+  display: inline-block; background: var(--xlight-gray); color: var(--gray);
+  border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 700;
+}
+.pill-ok { background: #E8F8EF; color: #0B7A3D; }
+.pill-bad { background: #FDECEE; color: #A8193C; }
+.pill-warn { background: #FFF4E5; color: #98560A; }
+.pill-all { background: var(--blue); color: var(--white); }
+
+.filter-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.filter-bar input, .filter-bar select {
+  border: 1px solid var(--xlight-gray); border-radius: 4px;
+  padding: 7px 10px; font-size: 13px; font-family: var(--font); outline: none;
+}
+.filter-bar input { flex: 1; min-width: 180px; }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 800px) { .detail-grid { grid-template-columns: 1fr; } }
+.action-row { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+.action-row form { margin: 0; }
+.stack label { display: block; margin-bottom: 8px; font-weight: 700; font-size: 13px; }
+.stack select {
+  width: 100%; border: 1px solid var(--xlight-gray); border-radius: 4px;
+  padding: 8px 10px; font-family: var(--font); font-size: 13px; margin-top: 5px;
+}
+
+.perm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 12px; }
+.perm-panel { margin: 0; }
+.perm-panel form { display: flex; flex-direction: column; }
+.check { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; margin-bottom: 5px; font-weight: 400; }
+.check input { margin-top: 2px; }
+.perm-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { border-radius: 3px; padding: 2px 7px; font-size: 11px; font-family: monospace; }
+.chip-on { background: #E8F8EF; color: #0B7A3D; border: 1px solid #17BF63; }
+.chip-off { background: var(--bg); color: var(--light-gray); border: 1px solid var(--xlight-gray); }
+
+/* ---------------- footer ---------------- */
+.site-footer {
+  max-width: 1100px; margin: 20px auto; padding: 12px;
+  color: var(--gray); font-size: 12px; text-align: center;
+}
+
+/* Icons are unfilled SVGs, so they pick up `color` from their container
+   instead of needing a hue-rotate filter to fake each palette entry. */
+.ico { color: var(--gray); }
+.ico path, .ico g, .ico circle, .ico rect { fill: currentColor; }
+.act:hover .ico { color: var(--blue); }
+.topnav a.active .ico, .topnav a.active:hover .ico { color: var(--blue); }
+.act-rt:hover .ico { color: var(--green); }
+.act-del:hover .ico { color: var(--red); }
+.verified-badge .ico { color: var(--blue); }
+/* ---------------- flash messages ---------------- */
+.flash-wrap { max-width: 830px; margin: 0 auto; padding: 0 12px; }
+.flash {
+  padding: 8px 12px; border-radius: 4px; margin: 10px 0; font-size: 13px;
+  border: 1px solid var(--xlight-gray); background: var(--white);
+}
+.flash-error { border-color: var(--red); color: var(--red); }
+.flash-success { border-color: var(--green); color: var(--green); }
+
+/* ---------------- site footer ---------------- */
+.site-footer {
+  max-width: 830px; margin: 0 auto; padding: 16px 12px 30px;
+  color: var(--gray); font-size: 12px;
+}
+.site-footer a { color: var(--gray); margin-right: 10px; }
+.site-footer a:hover { color: var(--blue); }
+.site-footer span { margin-left: 6px; }
+
+
+/* ---------------- profile: back bar ---------------- */
+.profile-nav {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0 10px;
+}
+.profile-nav-back {
+  color: var(--gray); font-size: 20px; line-height: 1;
+  padding: 0 4px;
+}
+.profile-nav-back:hover { color: var(--blue); text-decoration: none; }
+.profile-nav-title { font-size: 18px; font-weight: 400; color: var(--dark); }
+
+/* ---------------- profile: canopy + stat bar ----------------
+   2015 profile: a full-bleed 300px banner, then a 60px white bar holding the
+   avatar, the four metrics (which double as the tab navigation) and the follow
+   actions. The avatar is absolutely positioned so it hangs below the bar. */
+.profile-canopy {
+  position: relative;
+  background-color: var(--blue);
+  background-size: cover;
+  background-position: center;
+}
+.profile-canopy.has-banner { height: 300px; }
+/* No banner: the tinted backdrop still has to be tall enough to sit behind the
+   200px picture, which is absolutely positioned to hang 30px below the 60px
+   stat bar. With the old 60px strip the frame's top landed 50px above the
+   backdrop - underneath the fixed top bar - so the picture was clipped on
+   every bannerless profile (which is all 5,000 bots). 125px puts the frame's
+   top 15px below the backdrop's top, matching its 15px inset from the left. */
+.profile-canopy.no-banner { height: 125px; }
+
+.profile-statbar {
+  position: relative;
+  height: 60px;
+  background: var(--white);
+  border-bottom: 1px solid var(--xlight-gray);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
+}
+.statbar-inner {
+  display: flex; align-items: stretch;
+  height: 100%;
+}
+.statbar-avatar {
+  width: 290px; flex-shrink: 0; position: relative;
+}
+/* ProfileCard-avatarLink: the 2015 profile hung a 200px picture over the
+   banner, in a 5px white frame, so a fifth of it sat on the header. */
+.statbar-avatar-frame {
+  position: absolute; left: 15px; bottom: -30px;
+  width: 200px; height: 200px; padding: 5px;
+  background: var(--white); border-radius: 12px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .1);
+  z-index: 10;
+}
+.statbar-avatar-frame .avatar { width: 100%; height: 100%; border-radius: 8px; }
+.statbar-avatar-frame .avatar-empty { background: var(--bg); }
+.statbar-avatar-frame .ico { width: 120px; height: 120px; }
+.statbar-avatar-frame .avatar { display: flex; align-items: center; justify-content: center; }
+
+.statbar-metrics {
+  display: flex; list-style: none; margin: 0; padding: 0; flex-grow: 1;
+}
+.sm-item a {
+  display: block; padding: 14px 15px 0;
+  text-align: center; border-bottom: 4px solid transparent;
+  transition: border-color .15s ease-in-out;
+}
+.sm-item a:hover { text-decoration: none; border-bottom-color: var(--blue); }
+.sm-item.is-active a { border-bottom-color: var(--gray); }
+.sm-label {
+  display: block; font-size: 11px; font-weight: 700; color: var(--gray);
+  letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px;
+}
+.sm-value { display: block; font-size: 18px; font-weight: 700; color: var(--dark); }
+.sm-item a:hover .sm-value { color: var(--blue); }
+.sm-item.is-active .sm-value { color: var(--dark); }
+
+.statbar-actions {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  width: 290px; flex-shrink: 0; padding-right: 15px;
+}
+
+/* The stat bar is three bands - a 290px picture slot, the flexible metrics and
+   a 290px action slot - inside a full-bleed strip. They only add up to a page
+   that fits while the viewport is wide; below that the strip ran past the edge
+   and gave the whole page a horizontal scrollbar, because the two outer bands
+   were not allowed to shrink. They give up their fixed widths here instead. */
+@media (max-width: 1000px) {
+  .statbar-avatar { width: 160px; }
+  /* The frame is scaled with its slot rather than left to hang over the
+     metrics. The overhang is recomputed to match: 130 - 60 - 24 = 46px above
+     the bar, so the side column keeps the same 15px of clearance below it. */
+  .statbar-avatar-frame {
+    width: 130px; height: 130px; left: 12px; bottom: -24px; padding: 4px;
+  }
+  .statbar-actions { width: auto; flex-shrink: 1; padding-right: 12px; }
+}
+
+/* Below the rail breakpoint the metrics cannot hold their full width on the
+   same row as the picture and the action buttons, so they drop to their own
+   line and the bar grows to hold them. The metrics are allowed to shrink so the
+   row never re-introduces the overflow. */
+@media (max-width: 960px) {
+  .statbar-inner { flex-wrap: wrap; }
+  .statbar-actions { order: 2; width: auto; margin-left: auto; }
+  .statbar-metrics { order: 3; flex-basis: 100%; min-width: 0; flex-wrap: wrap; margin-top: 34px; }
+  .sm-item { flex: 1 1 0; min-width: 0; }
+  .sm-label, .sm-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-statbar { height: auto; }
+}
+
+/* ---------------- profile: three-column body ---------------- */
+.profile-body { display: flex; gap: 15px; padding: 15px 0; align-items: flex-start; }
+.profile-side {
+  width: 290px; flex-shrink: 0;
+  padding: 45px 0 0 15px; min-width: 0;
+}
+.profile-stream {
+  flex-grow: 1; max-width: 590px; min-width: 0;
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 5px; align-self: flex-start;
+}
+.profile-aside {
+  width: 290px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+
+/* The three columns are 290px and 290px of fixed rail around a flexible stream,
+   so below the rail breakpoint they no longer fit side by side and the body
+   pushed the page wider than the viewport. They stack here, matching how the
+   rest of the site's rails already collapse. This sits after the three width
+   rules so the equal-specificity stacking wins. */
+@media (max-width: 960px) {
+  .profile-body { flex-direction: column; }
+  .profile-side, .profile-aside, .profile-stream { width: 100%; max-width: none; }
+  .profile-side { padding: 45px 15px 0; }
+}
+
+.profile-name {
+  margin: 0; font-size: 22px; font-weight: 700; color: var(--dark);
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+}
+.profile-screenname {
+  margin: 0 0 12px; font-size: 14px; font-weight: 400; color: var(--gray);
+  display: block;
+}
+/* Bio runs in the darker body colour at 14px/20px on the 2015 profile. */
+.profile-bio { margin: 0 0 15px; font-size: 14px; line-height: 20px;
+               color: var(--dark); font-weight: 400; word-wrap: break-word; }
+
+/* Shown on the profile of a permanently banned account, in place of the bio
+   and profile fields that are withheld. */
+.profile-banned-label {
+  margin: 12px 0 4px;
+  font-size: 15px;
+  font-weight: bold;
+  color: var(--red);
+}
+.profile-banned-label .ico { width: 15px; height: 15px; vertical-align: -2px; }
+.profile-banned-note { margin: 6px 0 0; font-size: 13px; }
+.profile-fields {
+  display: flex; flex-direction: column; gap: 8px;
+  margin: 0 0 20px; font-size: 13px; color: var(--gray);
+}
+.profile-fields span { display: flex; align-items: center; gap: 8px; }
+.profile-fields .ico { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* Verified badge: the official scalloped-edge mark. */
+.verified-badge { display: inline-flex; align-items: center; }
+.verified-badge .ico { width: 17px; height: 17px; opacity: 1; }
+
+/* ---------------- profile: left-rail photo strip ---------------- */
+.photo-strip { margin-top: 20px; }
+.photo-strip-title {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--gray); margin-bottom: 8px;
+}
+.photo-strip-title .ico { width: 16px; height: 16px; }
+.photo-strip-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  border-radius: 4px; overflow: hidden;
+}
+.photo-strip-cell { display: block; aspect-ratio: 1 / 1; background: var(--xlight-gray); }
+.photo-strip-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ---------------- profile: stream tabs ---------------- */
+.stream-tabs {
+  display: flex; list-style: none; margin: 0; padding: 0;
+  border-bottom: 1px solid var(--xlight-gray);
+}
+.st-item a {
+  display: block; padding: 15px 20px; font-size: 15px; font-weight: 700;
+  color: var(--blue); border-bottom: 3px solid transparent;
+}
+.st-item a:hover { text-decoration: none; color: var(--dark); }
+.st-item.is-active a { color: var(--dark); border-bottom-color: var(--dark); }
+
+/* ---------------- connections list ---------------- */
+.connections-head { padding: 14px 0 4px; }
+.connections-head .profile-screenname { margin-bottom: 0; }
+.user-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.user-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-bottom: none; padding: 12px;
+}
+.user-row:last-child { border-bottom: 1px solid var(--xlight-gray); }
+.user-row-avatar { flex-shrink: 0; }
+.user-row-body { flex: 1; min-width: 0; }
+.user-row-name { font-weight: 700; color: var(--dark); }
+.user-row-handle { color: var(--gray); font-size: 13px; margin-left: 4px; }
+.user-row-bio { margin: 4px 0 0; font-size: 13px; color: var(--dark); word-wrap: break-word; }
+.user-row-action { flex-shrink: 0; }
+
+/* ---------------- profile: media grid ---------------- */
+.media-rail {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  margin-top: 10px;
+}
+.media-cell { display: block; aspect-ratio: 1 / 1; overflow: hidden; background: var(--xlight-gray); }
+.media-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ---------------- banned screen ---------------- */
+.banned-page {
+  min-height: 80vh; display: flex; align-items: center; justify-content: center;
+  padding: 40px 16px;
+}
+.banned-box {
+  max-width: 440px; width: 100%; text-align: center;
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 6px; padding: 32px 28px;
+}
+.banned-bird { width: 40px; height: 40px; margin-bottom: 14px; }
+.banned-box h1 { margin: 0 0 10px; font-size: 22px; color: var(--dark); }
+.banned-lead { margin: 0 0 20px; color: var(--gray); font-size: 14px; }
+.banned-details {
+  text-align: left; margin: 0 0 20px;
+  border: 1px solid var(--xlight-gray); border-radius: 5px; overflow: hidden;
+}
+.banned-details dt {
+  background: var(--bg); padding: 8px 12px; font-size: 12px; font-weight: 700;
+  color: var(--gray); text-transform: uppercase; letter-spacing: .4px;
+  border-bottom: 1px solid var(--xlight-gray);
+}
+.banned-details dd {
+  margin: 0; padding: 10px 12px; font-size: 14px; color: var(--dark);
+  border-bottom: 1px solid var(--xlight-gray);
+}
+.banned-details dd:last-child { border-bottom: none; }
+.banned-note { color: var(--gray); font-size: 13px; margin: 0 0 16px; }
+.banned-logout { display: inline-block; }
+
+/* Progress bar for the long-running avatar import. The track reuses the
+   hairline grey used for panel borders so it reads as part of the panel. */
+.progress-track {
+  height: 8px; background: var(--xlight-gray); border-radius: 4px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%; width: 0; background: var(--blue);
+  transition: width .2s ease;
+}
+
+/* ---------------- appearance & accounts ----------------
+   The theme picker is two submit buttons rather than a select, so the choice
+   is a single click and the current one is visible without opening a menu. */
+.settings-theme-choices { display: flex; gap: 10px; margin-top: 12px; }
+.btn-theme {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 14px; font-weight: 700;
+}
+.btn-theme .ico { opacity: 1; }
+.btn-theme.is-active {
+  border-color: var(--blue); color: var(--blue);
+  box-shadow: inset 0 0 0 1px var(--blue);
+}
+
+.account-switch-list { list-style: none; margin: 14px 0 0; padding: 0; }
+.account-switch-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--xlight-gray);
+}
+.account-switch-row:last-child { border-bottom: none; }
+.account-switch-row.is-current { background: var(--bg); }
+.account-switch-pic { display: flex; flex-shrink: 0; }
+.account-switch-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.account-switch-name { font-weight: 700; color: var(--dark); }
+.account-switch-handle { color: var(--gray); font-size: 13px; }
+.account-switch-current {
+  color: var(--gray); font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+/* The danger zone is separated by a red hairline so a destructive action is
+   never adjacent to a harmless one. */
+.danger-zone { border-top-color: var(--red); }
+.danger-zone .settings-header { color: var(--red); }

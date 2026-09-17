@@ -1,0 +1,48 @@
+<% content_for :title, "Accounts / #{@site_name}" %>
+
+<div class="layout">
+  <aside class="col-left"></aside>
+
+  <section class="col-main">
+    <div class="settings-header-bar">
+      <h1>Accounts</h1>
+    </div>
+
+    <div class="settings-section">
+      <p class="settings-note">
+        These accounts are signed into this browser. Switching does not ask for
+        a password again.
+      </p>
+      <ul class="account-switch-list">
+        <% @accounts.each do |account| %>
+          <li class="account-switch-row <%= 'is-current' if account.id == current_user.id %>">
+            <span class="account-switch-pic"><%= pic(account.avatar_path, 48) %></span>
+            <span class="account-switch-body">
+              <span class="account-switch-name"><%= account.display_name %></span>
+              <span class="account-switch-handle">@<%= account.username %></span>
+            </span>
+            <% if account.id == current_user.id %>
+              <span class="account-switch-current">Current</span>
+            <% else %>
+              <%= form_with url: switch_account_path(account.id), method: :post, class: "inline" do %>
+                <button class="btn btn-follow" type="submit">Switch</button>
+              <% end %>
+              <%= form_with url: forget_account_path(account.id), method: :delete, class: "inline" do %>
+                <button class="btn btn-mini" type="submit">Remove</button>
+              <% end %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+
+      <%# Signed-in members were previously redirected away from the login form,
+          which left no way to attach a second account to the browser. The extra
+          flag is what opens the form here instead. %>
+      <p>
+        <%= link_to "Add account", login_path(add: 1), class: "btn btn-primary" %>
+      </p>
+    </div>
+  </section>
+
+  <aside class="col-right"></aside>
+</div>

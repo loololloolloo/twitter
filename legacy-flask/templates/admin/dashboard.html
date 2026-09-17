@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Admin / {{ site_name }}{% endblock %}
+{% block body %}
+<div class="admin-page">
+  <h1 class="admin-title">Admin panel</h1>
+  <p class="admin-sub">Signed in as @{{ me.username }} &middot; role: <strong>{{ me.role_name }}</strong> &middot; {{ my_permissions|length }} permissions</p>
+  {% include "admin/_nav.html" %}
+
+  <div class="stat-grid">
+    <div class="stat"><span class="stat-num">{{ stats.users }}</span><span class="stat-label">Users</span></div>
+    <div class="stat"><span class="stat-num">{{ stats.tweets }}</span><span class="stat-label">Tweets</span></div>
+    <div class="stat"><span class="stat-num">{{ stats.likes }}</span><span class="stat-label">Likes</span></div>
+    <div class="stat"><span class="stat-num">{{ stats.follows }}</span><span class="stat-label">Follows</span></div>
+    <div class="stat"><span class="stat-num">{{ stats.notifications }}</span><span class="stat-label">Notifications</span></div>
+    <div class="stat warn"><span class="stat-num">{{ stats.suspended }}</span><span class="stat-label">Suspended</span></div>
+  </div>
+
+  <h2 class="section-title">Roles</h2>
+  <table class="data-table">
+    <thead><tr><th>Role</th><th>Rank</th><th>Members</th><th>Permissions</th></tr></thead>
+    <tbody>
+      {% for item in registry %}
+      <tr>
+        <td><strong>{{ item.role.name }}</strong><br><span class="muted">{{ item.role.description }}</span></td>
+        <td>{{ item.role.rank }}</td>
+        <td>{{ role_user_counts[item.role.name] }}</td>
+        <td>{% if item.role.name == 'owner' %}<span class="pill pill-all">all {{ perms|length }}</span>
+            {% else %}<span class="pill">{{ item.held|length }}</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2 class="section-title">Recent activity</h2>
+  <table class="data-table">
+    <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+    <tbody>
+      {% for a in recent %}
+      <tr><td class="muted">{{ a.created_at }}</td><td>{{ '@' ~ a.username if a.username else 'system' }}</td>
+        <td><code>{{ a.action }}</code></td><td class="muted">{{ a.target }}</td><td>{{ a.detail }}</td></tr>
+      {% else %}<tr><td colspan="5" class="muted">No activity yet.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

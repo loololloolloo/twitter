@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Tweets / Admin{% endblock %}
+{% block body %}
+<div class="admin-page">
+  <h1 class="admin-title">Tweets</h1>
+  {% include "admin/_nav.html" %}
+  <form class="filter-bar" method="get">
+    <input type="text" name="q" placeholder="Search tweet text or author" value="{{ q }}">
+    <button class="btn btn-primary" type="submit">Search</button>
+  </form>
+  <table class="data-table">
+    <thead><tr><th>ID</th><th>Author</th><th>Body</th><th>Likes</th><th>Replies</th><th>When</th><th></th></tr></thead>
+    <tbody>
+      {% for t in tweets %}
+      <tr>
+        <td class="muted">{{ t.id }}</td>
+        <td><a href="{{ url_for('profile', username=t.username) }}">@{{ t.username }}</a></td>
+        <td>{{ t.body or '(media)' }}</td>
+        <td>{{ t.like_count }}</td><td>{{ t.reply_count }}</td>
+        <td class="muted">{{ t.created_at }}</td>
+        <td><a class="btn btn-mini" href="{{ url_for('tweet_detail', tweet_id=t.id) }}">View</a>
+          {% if 'tweets.delete' in my_permissions %}
+          <form method="post" action="{{ url_for('admin_delete_tweet', tweet_id=t.id) }}" class="inline"
+                onsubmit="return confirm('Remove this tweet?')">
+            <button class="btn btn-mini btn-danger" type="submit">Delete</button></form>{% endif %}</td>
+      </tr>
+      {% else %}<tr><td colspan="7" class="muted">No tweets.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

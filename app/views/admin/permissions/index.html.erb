@@ -1,0 +1,33 @@
+<% content_for :title, "Roles & Permissions / Admin / #{@site_name}" %>
+
+<h1 class="admin-title">Roles &amp; permissions</h1>
+<p class="admin-sub">Toggle which permissions each role holds. The owner role always holds every permission.</p>
+
+<div class="perm-grid">
+  <% @roles.each do |role| %>
+    <div class="panel perm-panel">
+      <h3 class="panel-title"><%= role.name %> <span class="muted">rank <%= role.rank %></span></h3>
+
+      <% if role.name == Role::OWNER %>
+        <p class="muted">Full control &mdash; all <%= @permissions.size %> permissions, not editable.</p>
+        <div class="perm-chips">
+          <% @permissions.each do |permission| %>
+            <span class="chip chip-on"><%= permission.key %></span>
+          <% end %>
+        </div>
+      <% else %>
+        <%= form_with url: admin_permissions_path, method: :post do %>
+          <input type="hidden" name="role_id" value="<%= role.id %>">
+          <% @permissions.each do |permission| %>
+            <label class="check">
+              <input type="checkbox" name="permissions[]" value="<%= permission.key %>"
+                     <%= 'checked' if @matrix[role.id]&.include?(permission.key) %>>
+              <span><%= permission.label %> <code><%= permission.key %></code></span>
+            </label>
+          <% end %>
+          <button class="btn btn-primary" type="submit">Save <%= role.name %></button>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

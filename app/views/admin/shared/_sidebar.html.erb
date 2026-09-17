@@ -1,0 +1,47 @@
+<%# The rail's own controls, below the operator card. Both write straight to
+    SiteSetting, so what is saved here takes effect on the public site at once. %>
+
+<% if can?('settings.edit') %>
+  <section class="rail-card">
+    <h3 class="rail-title">Announcement</h3>
+    <p class="rail-note">Shown as a banner on every page until you clear it.</p>
+
+    <% if SiteSetting.announcement.present? %>
+      <p class="rail-announcement"><%= SiteSetting.announcement %></p>
+    <% end %>
+
+    <%= form_with url: admin_sidebar_announcement_path, method: :post, class: "rail-form" do %>
+      <textarea name="announcement" rows="2" maxlength="280"
+                placeholder="Say something to everyone"><%= SiteSetting.announcement %></textarea>
+      <div class="rail-actions">
+        <button class="btn btn-primary btn-mini" type="submit">Post</button>
+        <% if SiteSetting.announcement.present? %>
+          <button class="btn btn-mini btn-danger" type="submit"
+                  name="announcement" value="">Clear</button>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+<% end %>
+
+<% if can?('users.view') %>
+  <% bots_hidden = SiteSetting.hide_bots? %>
+  <% bot_count = User.where(is_bot: true).count %>
+  <section class="rail-card">
+    <h3 class="rail-title">Simulated accounts</h3>
+    <p class="rail-note">
+      <%= count_label(bot_count) %> simulated account(s) take part in the site.
+      Hiding them removes their posts and profiles from public view without
+      deleting anything.
+    </p>
+    <p class="rail-status">
+      <span class="pill <%= bots_hidden ? 'pill-warn' : 'pill-ok' %>">
+        <%= bots_hidden ? 'hidden' : 'visible' %>
+      </span>
+    </p>
+
+    <%= button_to(bots_hidden ? "Show bots" : "Hide bots",
+                  admin_sidebar_bots_path,
+                  class: "btn btn-mini", form_class: "rail-form") %>
+  </section>
+<% end %>

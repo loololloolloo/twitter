@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Settings / Admin{% endblock %}
+{% block body %}
+<div class="admin-page">
+  <h1 class="admin-title">Site settings</h1>
+  {% include "admin/_nav.html" %}
+  {% set s = {} %}
+  {% for row in settings_rows %}{% set _ = s.update({row.key: row.value}) %}{% endfor %}
+  <form method="post" class="settings-form panel">
+    <label>Site name<input type="text" name="site_name" value="{{ s.get('site_name','') }}"></label>
+    <label>Tagline / compose placeholder<input type="text" name="site_tagline" value="{{ s.get('site_tagline','') }}"></label>
+    <label>Max tweet length<input type="number" name="max_tweet_length" value="{{ s.get('max_tweet_length','140') }}" min="1" max="1000"></label>
+    <label class="check"><input type="checkbox" name="registration_open" {{ 'checked' if s.get('registration_open') == '1' }}> <span>Registration open</span></label>
+    <button class="btn btn-primary" type="submit">Save settings</button>
+  </form>
+  {% if 'backup.export' in my_permissions %}
+  <div class="panel">
+    <h3 class="panel-title">Backup</h3>
+    <p class="muted">Download a full SQL dump including schema and all rows.</p>
+    <a class="btn btn-primary" href="{{ url_for('admin_backup') }}">Export database (.sql)</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

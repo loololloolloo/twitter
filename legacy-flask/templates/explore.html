@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Discover / {{ site_name }}{% endblock %}
+{% block body %}
+<div class="layout">
+  <aside class="col-left">
+    <div class="panel">
+      <h3 class="panel-title">Search</h3>
+      <form class="side-search" action="{{ url_for('explore') }}" method="get">
+        <input type="text" name="q" placeholder="Search Twitter" value="{{ q }}">
+        <button class="btn btn-primary" type="submit">Go</button>
+      </form>
+    </div>
+  </aside>
+  <section class="col-main">
+    <h2 class="section-title">{% if q %}Results for "{{ q }}"{% else %}Popular on {{ site_name }}{% endif %}</h2>
+    <ul class="timeline">
+      {% for t in tweets %}
+      <li class="tweet">
+        {{ pic(t.avatar_path, 48) }}
+        <div class="tweet-body">
+          <div class="tweet-head">
+            <a class="tweet-name" href="{{ url_for('profile', username=t.username) }}">{{ t.display_name }}</a>
+            <span class="tweet-handle">@{{ t.username }}</span>
+            <span class="tweet-dot">&middot;</span><span class="tweet-time">{{ t.created_at }}</span>
+          </div>
+          {% if t.body %}<p class="tweet-text">{{ t.body|linkify|safe }}</p>{% endif %}
+          <div class="tweet-actions">
+            <a class="act" href="{{ url_for('tweet_detail', tweet_id=t.id) }}">{{ icon('comment') }}<span>{{ t.reply_count }}</span></a>
+            <span class="act">{{ icon('retweet') }}<span>{{ t.rt_count }}</span></span>
+            <span class="act">{{ icon('star-regular') }}<span>{{ t.like_count }}</span></span>
+          </div>
+        </div>
+      </li>
+      {% else %}
+      <li class="empty">Nothing found.</li>
+      {% endfor %}
+    </ul>
+  </section>
+  <aside class="col-right">
+    <div class="panel"><h3 class="panel-title">About</h3>
+      <p class="panel-note">Search across tweets and people.</p></div>
+  </aside>
+</div>
+{% endblock %}

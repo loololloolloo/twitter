@@ -1,0 +1,27 @@
+<%# Composer box. Used on the home timeline and on tweet permalinks for replies.
+    Mirrors the 2015 "timeline-tweet-box": an optional module heading, a
+    bordered box with a placeholder prompt, and a Tweet button on the right. %>
+<% parent_id = local_assigns[:parent_id] %>
+<% placeholder = local_assigns[:placeholder] || @site_tagline %>
+
+<div class="compose timeline-tweet-box" id="reply">
+  <%= pic(current_user&.avatar_path, 48) %>
+  <%= form_with url: compose_path, method: :post, class: "compose-form tweet-form",
+                html: { multipart: true } do %>
+    <% if parent_id %>
+      <input type="hidden" name="parent_id" value="<%= parent_id %>">
+    <% end %>
+    <div class="tweet-content">
+      <textarea class="tweet-box" name="body" maxlength="<%= @max_len %>"
+                placeholder="<%= placeholder %>" data-counter></textarea>
+      <div class="compose-bar">
+        <label class="media-btn" title="Add a photo">
+          <%= icon('image') %>
+          <input type="file" name="media" accept="image/*">
+        </label>
+        <span class="tweet-counter counter" data-counter-output><%= @max_len %></span>
+        <button class="btn primary-btn tweet-btn" type="submit">Tweet</button>
+      </div>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,56 @@
+<% content_for :title, "Users / Admin / #{@site_name}" %>
+
+<h2 class="section-title">Users</h2>
+
+<form class="admin-filter" action="<%= admin_users_path %>" method="get">
+  <input type="text" name="q" placeholder="Search username, name or email" value="<%= @search %>">
+  <select name="role">
+    <option value="">All roles</option>
+    <% @roles.each do |role| %>
+      <option value="<%= role.name %>" <%= 'selected' if @role_filter == role.name %>><%= role.name %></option>
+    <% end %>
+  </select>
+  <select name="status">
+    <option value="">Any status</option>
+    <option value="banned" <%= 'selected' if @status == 'banned' %>>Banned</option>
+    <option value="suspended" <%= 'selected' if @status == 'suspended' %>>Suspended</option>
+    <option value="verified" <%= 'selected' if @status == 'verified' %>>Verified</option>
+    <%# The three email states from the identity panel, so an operator can pull
+        up every address that bounced, went inactive or sits on a private
+        domain without visiting each account. %>
+    <option value="bounced" <%= 'selected' if @status == 'bounced' %>>Bounced</option>
+    <option value="inactive" <%= 'selected' if @status == 'inactive' %>>Inactive</option>
+    <option value="protected" <%= 'selected' if @status == 'protected' %>>Protected</option>
+  </select>
+  <button class="btn btn-primary" type="submit">Filter</button>
+</form>
+
+<table class="data-table">
+  <thead>
+    <tr><th>User</th><th>Role</th><th>Followers</th><th>Tweets</th><th>Status</th><th></th></tr>
+  </thead>
+  <tbody>
+    <% if @users.present? %>
+      <% @users.each do |user| %>
+        <tr>
+          <td>
+            <strong><%= user.display_name %></strong>
+            <% if user.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
+            <br><span class="muted">@<%= user.username %> &middot; <%= user.email %></span>
+          </td>
+          <td><%= user.role.name %></td>
+          <td><%= count_label(user.follower_count) %></td>
+          <td><%= user.tweet_count %></td>
+          <td>
+            <% if user.is_banned %><span class="pill pill-warn">banned</span><% end %>
+            <% if user.is_suspended %><span class="pill pill-warn">suspended</span><% end %>
+            <% unless user.is_banned || user.is_suspended %><span class="pill">active</span><% end %>
+          </td>
+          <td><a class="btn" href="<%= admin_user_path(user) %>">Manage</a></td>
+        </tr>
+      <% end %>
+    <% else %>
+      <tr><td colspan="6" class="muted">No users matched.</td></tr>
+    <% end %>
+  </tbody>
+</table>

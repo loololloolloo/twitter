@@ -1,0 +1,213 @@
+<% content_for :title, "@#{@user.username} / Admin / #{@site_name}" %>
+
+<h1 class="admin-title">@<%= @user.username %></h1>
+<p class="admin-sub">
+  <%= @user.display_name %> &middot; <%= @user.email %> &middot; joined <%= @user.created_at.strftime('%d %b %Y') %>
+</p>
+<p>
+  <a class="btn btn-mini" href="<%= profile_path(@user.username) %>">View public profile</a>
+  <a class="btn btn-mini" href="<%= admin_users_path %>">Back to users</a>
+</p>
+
+<div class="detail-grid">
+  <div class="panel">
+    <h3 class="panel-title">Account state</h3>
+    <p>Role: <span class="role-badge"><%= @user.role.name %></span> (rank <%= @user.role.rank %>)</p>
+    <p>Status:
+      <% if @user.is_banned %><span class="pill pill-bad">banned</span>
+      <% elsif @user.is_suspended %><span class="pill pill-bad">suspended</span>
+      <% else %><span class="pill pill-ok">active</span><% end %>
+    </p>
+    <p>Verified: <% if @user.is_verified %><span class="pill">yes</span><% else %><span class="pill">no</span><% end %></p>
+    <p>Last login: <span class="muted"><%= @user.last_login_at.presence || 'never' %></span></p>
+    <p>Permissions held: <strong><%= @held.size %></strong></p>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Identity</h3>
+    <p>Email: <strong><%= @user.email.presence || 'none' %></strong></p>
+    <p>Domain: <span class="muted"><%= @user.email_domain.presence || 'none' %></span></p>
+    <p>
+      <% @user.email_flags.each do |label, on| %>
+        <span class="pill <%= on ? 'pill-warn' : 'pill' %>"><%= label %><%= on ? '' : ': no' %></span>
+      <% end %>
+    </p>
+
+    <% if @user.email_protected? %>
+      <p class="panel-note">Email is a private domain.</p>
+    <% end %>
+    <% if @user.email_inactive? %>
+      <p class="panel-note">Account is inactive.</p>
+    <% end %>
+    <% if @user.email_bounced? %>
+      <p class="panel-note">Email bounces: this address cannot receive mail.</p>
+    <% end %>
+
+    <% if can?('users.email') %>
+      <%= form_with url: admin_user_email_path(@user), method: :post, class: "stack" do %>
+        <label>Add Email
+          <input type="email" name="email" required
+                 placeholder="name@example.com" value="<%= @user.email %>">
+        </label>
+        <button class="btn btn-primary" type="submit">Add Email</button>
+      <% end %>
+      <p class="panel-note">
+        For all emails and email history, use the audit trail below.
+      </p>
+    <% end %>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Followers</h3>
+    <p>Real follows: <strong><%= @real_followers %></strong></p>
+    <p>Displayed total: <strong><%= count_label(@real_followers + @user.bonus_followers.to_i) %></strong></p>
+    <% if can?('users.bot_followers') %>
+      <%= form_with url: admin_user_followers_path(@user), method: :post, class: "stack" do %>
+        <label>Extra followers
+          <input type="number" name="followers" min="0" step="1" value="<%= @user.bonus_followers.to_i %>" required>
+        </label>
+        <button class="btn btn-primary" type="submit">Update follower count</button>
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Ban</h3>
+    <% if @user.is_banned %>
+      <p><strong>Reason:</strong> <%= @user.ban_reason.presence || 'none given' %></p>
+      <p><strong>Duration:</strong>
+        <% if @user.ban_permanent %>
+          permanent
+        <% else %>
+          <%= @user.ban_expires_at&.strftime('%Y-%m-%d %H:%M:%S') %>
+          (<%= humanize_until(@user.ban_expires_at) %> from now)
+        <% end %>
+      </p>
+      <% if can?('users.ban') %>
+        <%= form_with url: admin_user_unban_path(@user), method: :post do %>
+          <button class="btn btn-follow" type="submit">Unban user</button>
+        <% end %>
+      <% end %>
+    <% else %>
+      <p class="muted">This account is not banned.</p>
+      <% if can?('users.ban') && @user.id != current_user.id %>
+        <%= form_with url: admin_user_ban_path(@user), method: :post, class: "stack" do %>
+          <label>Reason
+            <input type="text" name="reason" required placeholder="Why is this account being banned?">
+          </label>
+          <label>Duration
+            <select name="duration">
+              <option value="permanent">Permanent (no expiry)</option>
+              <% @ban_choices.each do |value, label| %>
+                <option value="<%= value %>"><%= label %></option>
+              <% end %>
+            </select>
+          </label>
+          <button class="btn btn-danger" type="submit">Ban user</button>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Profile picture</h3>
+    <p><%= pic(@user.avatar_path, 48) %></p>
+    <% if can?('users.avatar') %>
+      <p><a class="btn btn-mini" href="<%= admin_user_avatars_path(@user) %>">Import a picture</a></p>
+    <% else %>
+      <p class="muted"><%= @user.avatar_path.present? ? 'Has a picture.' : 'Using the default.' %></p>
+    <% end %>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Actions</h3>
+    <% if can?('users.roles') %>
+      <%= form_with url: admin_user_role_path(@user), method: :post, class: "stack" do %>
+        <label>Assign role
+          <select name="role">
+            <% @roles.each do |role| %>
+              <option value="<%= role.name %>" <%= 'selected' if role.name == @user.role.name %>>
+                <%= role.name %> (rank <%= role.rank %>)
+              </option>
+            <% end %>
+          </select>
+        </label>
+        <button class="btn btn-primary" type="submit">Update role</button>
+      <% end %>
+    <% end %>
+
+    <div class="action-row">
+      <% if can?('users.suspend') %>
+        <%= form_with url: admin_user_suspend_path(@user), method: :post do %>
+          <button class="btn <%= @user.is_suspended ? 'btn-follow' : 'btn-danger' %>" type="submit">
+            <%= @user.is_suspended ? 'Reinstate user' : 'Suspend user' %>
+          </button>
+        <% end %>
+      <% end %>
+      <% if can?('users.verify') %>
+        <%= form_with url: admin_user_verified_path(@user), method: :post do %>
+          <button class="btn btn-follow" type="submit">
+            <%= @user.is_verified ? 'Remove verified badge' : 'Grant verified badge' %>
+          </button>
+        <% end %>
+      <% end %>
+      <% if can?('users.delete') %>
+        <%= form_with url: admin_user_path(@user), method: :delete,
+                      html: { onsubmit: "return confirm('Permanently delete this user and all their content?')" } do %>
+          <button class="btn btn-danger" type="submit">Delete account</button>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title">Permissions from role</h2>
+<div class="perm-chips">
+  <% @permissions.each do |permission| %>
+    <span class="chip <%= @held.include?(permission.key) ? 'chip-on' : 'chip-off' %>"><%= permission.key %></span>
+  <% end %>
+</div>
+
+<h2 class="section-title">Recent tweets</h2>
+<table class="data-table">
+  <thead><tr><th>ID</th><th>Body</th><th>When</th><th></th></tr></thead>
+  <tbody>
+    <% if @tweets.present? %>
+      <% @tweets.each do |tweet| %>
+        <tr>
+          <td class="muted"><%= tweet.id %></td>
+          <td><%= tweet.body.presence || '(media)' %></td>
+          <td class="muted"><%= time_ago(tweet.created_at) %></td>
+          <td>
+            <% if can?('tweets.delete') %>
+              <%= form_with url: admin_tweet_path(tweet), method: :delete do %>
+                <button class="btn btn-mini btn-danger" type="submit">Delete</button>
+              <% end %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    <% else %>
+      <tr><td colspan="4" class="muted">No tweets.</td></tr>
+    <% end %>
+  </tbody>
+</table>
+
+<h2 class="section-title">Audit trail for this user</h2>
+<table class="data-table">
+  <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead>
+  <tbody>
+    <% if @log.present? %>
+      <% @log.each do |entry| %>
+        <tr>
+          <td class="muted"><%= time_ago(entry.created_at) %></td>
+          <td><%= entry.actor ? "@#{entry.actor.username}" : "system" %></td>
+          <td><code><%= entry.action %></code></td>
+          <td><%= entry.detail %></td>
+        </tr>
+      <% end %>
+    <% else %>
+      <tr><td colspan="4" class="muted">No entries.</td></tr>
+    <% end %>
+  </tbody>
+</table>

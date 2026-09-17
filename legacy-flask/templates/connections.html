@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ u.display_name }} (@{{ u.username }}) / {{ kind|capitalize }} / {{ site_name }}{% endblock %}
+{% block body %}
+<nav class="profile-nav">
+  <a class="profile-nav-back" href="{{ url_for('profile', username=u.username) }}" title="Back to profile">&larr;</a>
+  <span class="profile-nav-title">{{ u.display_name }}</span>
+</nav>
+
+<div class="profile-card">
+  <div class="profile-card-body compact">
+    <h1 class="profile-name">{{ u.display_name }}</h1>
+    <h2 class="profile-screenname">@{{ u.username }}</h2>
+  </div>
+  <ul class="profile-nav-list">
+    <li class="pn-item {{ 'is-active' if active == 'tweets' }}">
+      <a href="{{ url_for('profile', username=u.username) }}"><span class="pn-label">Tweets</span></a>
+    </li>
+    <li class="pn-item {{ 'is-active' if active == 'following' }}">
+      <a href="{{ url_for('following_list', username=u.username) }}"><span class="pn-label">Following</span></a>
+    </li>
+    <li class="pn-item {{ 'is-active' if active == 'followers' }}">
+      <a href="{{ url_for('followers_list', username=u.username) }}"><span class="pn-label">Followers</span></a>
+    </li>
+    <li class="pn-item">
+      <a href="{{ url_for('profile', username=u.username) }}?tab=favorites"><span class="pn-label">Favorites</span></a>
+    </li>
+    <li class="pn-item">
+      <a href="{{ url_for('profile', username=u.username) }}?tab=media"><span class="pn-label">Photos &amp; videos</span></a>
+    </li>
+  </ul>
+</div>
+
+<ul class="user-list">
+  {% for p in users %}
+  <li class="user-row">
+    <a class="user-row-avatar" href="{{ url_for('profile', username=p.username) }}">{{ pic(p.avatar_path, 48) }}</a>
+    <div class="user-row-body">
+      <a class="user-row-name" href="{{ url_for('profile', username=p.username) }}">{{ p.display_name }}</a>
+      {% if p.is_verified %}<span class="verified-badge" title="Verified account">{{ icon('verified') }}</span>{% endif %}
+      <span class="user-row-handle">@{{ p.username }}</span>
+      {% if p.bio %}<p class="user-row-bio">{{ p.bio }}</p>{% endif %}
+    </div>
+    {% if p.id != me.id %}
+    <form class="user-row-action" method="post" action="{{ url_for('follow', username=p.username) }}">
+      <button class="btn {{ 'btn-following' if p.i_follow else 'btn-follow' }}" type="submit">
+        {{ 'Following' if p.i_follow else 'Follow' }}
+      </button>
+    </form>
+    {% endif %}
+  </li>
+  {% else %}
+  <li class="empty">
+    {% if kind == 'following' %}@{{ u.username }} isn't following anyone yet.
+    {% else %}@{{ u.username }} doesn't have any followers yet.{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,40 @@
+<% content_for :title, "@#{@user.username} avatars / Admin / #{@site_name}" %>
+
+<h1 class="admin-title">Profile picture for @<%= @user.username %></h1>
+<p class="admin-sub"><%= @user.display_name %> &middot; currently <%= @user.avatar_path.present? ? 'has a picture' : 'using the default' %></p>
+<p><a class="btn btn-mini" href="<%= admin_avatars_path %>">Back to avatars</a></p>
+
+<div class="detail-grid">
+  <div class="panel">
+    <h3 class="panel-title">Current</h3>
+    <p><%= pic(@user.avatar_path, 73) %></p>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Import from a provider</h3>
+    <p class="muted">
+      The picture is chosen from a seed tied to this account, so the same
+      provider and style will always return the same picture for them.
+    </p>
+
+    <%= form_with url: admin_user_avatar_apply_path(@user), method: :post, class: "stack" do %>
+      <label>Provider
+        <select name="provider">
+          <% @providers.each do |key, entry| %>
+            <option value="<%= key %>" <%= 'selected' if key == @provider %>><%= entry[:label] %></option>
+          <% end %>
+        </select>
+      </label>
+
+      <label>Style
+        <select name="style">
+          <% @providers.fetch(@provider, {}).fetch(:styles, []).each do |style| %>
+            <option value="<%= style %>" <%= 'selected' if style == @style %>><%= style %></option>
+          <% end %>
+        </select>
+      </label>
+
+      <button class="btn btn-primary" type="submit">Fetch and assign</button>
+    <% end %>
+  </div>
+</div>

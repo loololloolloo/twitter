@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Who to follow / {{ site_name }}{% endblock %}
+{% block body %}
+<div class="layout">
+  <aside class="col-left"></aside>
+  <section class="col-main">
+    <h2 class="section-title">People on {{ site_name }}</h2>
+    <ul class="people-list">
+      {% for u in users %}
+      <li class="person">
+        {{ pic(u.avatar_path, 48) }}
+        <div class="person-body">
+          <a href="{{ url_for('profile', username=u.username) }}">{{ u.display_name }}</a>
+          <span>@{{ u.username }}</span>
+          <p>{{ u.follower_count }} followers</p>
+        </div>
+        <form method="post" action="{{ url_for('follow', username=u.username) }}">
+          <button class="btn btn-follow" type="submit">Follow</button>
+        </form>
+        <a class="btn btn-follow" href="{{ url_for('conversation', other_id=u.id) }}">Message</a>
+      </li>
+      {% else %}
+      <li class="empty">Nobody else has signed up yet.</li>
+      {% endfor %}
+    </ul>
+  </section>
+  <aside class="col-right"></aside>
+</div>
+{% endblock %}

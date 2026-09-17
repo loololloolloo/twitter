@@ -1,0 +1,49 @@
+<% content_for :title, "#{@title} / #{@site_name}" %>
+
+<div class="layout">
+  <aside class="col-left"></aside>
+
+  <section class="col-main">
+    <h2 class="section-title"><%= @title %></h2>
+
+    <div class="panel static-page">
+      <% case @slug %>
+      <% when "about" %>
+        <p><%= @site_name %> is a small, self-hosted social network built to look and
+           behave like the classic web client from 2014&ndash;2016.</p>
+        <p>Post short updates, follow people, favorite and retweet what you like, and
+           message anyone directly. The first account created owns the instance and can
+           moderate members, grant verified badges and adjust site settings.</p>
+      <% when "help" %>
+        <h3>Posting</h3>
+        <p>Tweets are limited to <%= max_tweet_length %> characters. Use the box at the top
+           of the home timeline to post. You can attach one image per tweet.</p>
+        <h3>Following and followers</h3>
+        <p>Open any profile and use the Follow button. Your own following and follower
+           lists are on your profile under those tabs.</p>
+        <h3>Direct messages</h3>
+        <p>Use the Message button on a profile to start a private conversation. Existing
+           conversations are listed under Messages.</p>
+        <h3>Account settings</h3>
+        <p>Change your display name, bio, links and photos, or set a new password, from
+           the Settings page.</p>
+      <% when "tos" %>
+        <p>By using <%= @site_name %> you agree to follow the rules set by the operator of
+           this instance.</p>
+        <p>Do not post content that is unlawful, harassing, or designed to deceive other
+           members. Accounts that break these rules may be suspended or banned.</p>
+        <p>You are responsible for the content you post and for keeping your password
+           secure.</p>
+      <% when "privacy" %>
+        <p><%= @site_name %> stores the account details you provide: your username, display
+           name, email address, profile fields, posts, and the social actions you take.</p>
+        <p>Your email address is never shown publicly. Your password is stored as a
+           salted hash and is never kept in readable form.</p>
+        <p>This instance is run by its own operator. Contact them with any privacy
+           questions about this deployment.</p>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="col-right"></aside>
+</div>

@@ -1,0 +1,125 @@
+<% content_for :title, "Tweet by @#{@tweet.user.username} / #{@site_name}" %>
+
+<div class="layout">
+  <aside class="col-left"></aside>
+
+  <%# The 2015 permalink was a grey panel holding the focused tweet, with the
+      reply thread below it on the white stream. %>
+  <section class="col-main permalink">
+    <div class="permalink-inner">
+      <%# The conversation above this tweet, oldest first, so a reply always
+          shows what it was replying to. %>
+      <% if @ancestors.present? %>
+        <div class="permalink-ancestors">
+          <% @ancestors.each do |parent| %>
+            <%= render "tweets/tweet", tweet: parent %>
+          <% end %>
+        </div>
+      <% end %>
+
+      <article class="tweet permalink-tweet" data-tweet="<%= @tweet.id %>">
+        <div class="permalink-header">
+          <a class="permalink-avatar" href="<%= profile_path(@tweet.user.username) %>">
+            <%= pic(@tweet.user.avatar_path, 48) %>
+          </a>
+          <div class="permalink-account">
+            <a class="permalink-fullname" href="<%= profile_path(@tweet.user.username) %>">
+              <%= @tweet.user.display_name.presence || @tweet.user.username %>
+            </a>
+            <% if @tweet.user.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
+            <span class="permalink-username">@<%= @tweet.user.username %></span>
+          </div>
+        </div>
+
+        <div class="permalink-content">
+          <% if @tweet.body.present? %>
+            <p class="tweet-text tweet-text-lead"><%= linkify(@tweet.body) %></p>
+          <% end %>
+
+          <% if @tweet.media_path.present? %>
+            <div class="tweet-media permalink-media"><img src="/uploads/<%= @tweet.media_path %>" alt=""></div>
+          <% end %>
+
+          <span class="permalink-time"><%= @tweet.created_at.strftime('%-I:%M %p - %-d %b %Y') %></span>
+
+          <%# The permalink keeps the classic count line, which is where the
+              detailed figures belong, while the controls below match the
+              timeline's icon row. %>
+          <div class="tweet-stats">
+            <span><strong><%= count_label(@tweet.retweet_count) %></strong> Retweets</span>
+            <span><strong><%= count_label(@tweet.favourite_count) %></strong> Favorites</span>
+            <span><strong><%= count_label(@tweet.like_count) %></strong> Likes</span>
+            <span><strong><%= count_label(@replies.size) %></strong> Replies</span>
+          </div>
+
+          <% rt_active = @tweet.retweeted_by?(current_user) %>
+          <% fav_active = @tweet.favourited_by?(current_user) %>
+          <% like_active = @tweet.liked_by?(current_user) %>
+          <div class="tweet-actions permalink-actions">
+            <a class="act act-reply" href="#reply" title="Reply">
+              <%= icon('reply') %>
+              <% if @replies.size.positive? %><span class="act-count"><%= count_label(@replies.size) %></span><% end %>
+            </a>
+            <%= form_with url: retweet_tweet_path(@tweet), method: :post, class: "inline js-retweet" do %>
+              <button class="act act-rt <%= 'rt-active' if rt_active %>" type="submit"
+                      title="<%= rt_active ? 'Undo retweet' : 'Retweet' %>">
+                <%= icon('retweet') %>
+                <% if rt_active %>
+                  <span class="act-count">Retweeted</span>
+                <% elsif @tweet.retweet_count.positive? %>
+                  <span class="act-count"><%= count_label(@tweet.retweet_count) %></span>
+                <% end %>
+              </button>
+            <% end %>
+            <%= form_with url: favorite_tweet_path(@tweet), method: :post,
+                          class: "inline js-fav",
+                          data: { favourited: fav_active, fav_url: favorite_tweet_path(@tweet),
+                                  unfav_url: favorite_tweet_path(@tweet) } do %>
+              <button class="act act-fav <%= 'faved' if fav_active %>" type="submit" title="Favorite">
+                <%= icon(fav_active ? 'star-solid' : 'star-regular') %>
+                <% if fav_active %>
+                  <span class="act-count">Favorited</span>
+                <% elsif @tweet.favourite_count.positive? %>
+                  <span class="act-count"><%= count_label(@tweet.favourite_count) %></span>
+                <% end %>
+              </button>
+            <% end %>
+            <%= form_with url: like_tweet_path(@tweet), method: :post,
+                          class: "inline js-like",
+                          data: { liked: like_active, like_url: like_tweet_path(@tweet),
+                                  unlike_url: like_tweet_path(@tweet) } do %>
+              <button class="act act-heart <%= 'hearted' if like_active %>" type="submit" title="Like">
+                <%= icon(like_active ? 'heart-twitter-solid' : 'heart-twitter') %>
+                <% if like_active %>
+                  <span class="act-count">Liked</span>
+                <% elsif @tweet.like_count.positive? %>
+                  <span class="act-count"><%= count_label(@tweet.like_count) %></span>
+                <% end %>
+              </button>
+            <% end %>
+            <% if @tweet.user_id == current_user.id || can?('tweets.delete') %>
+              <%= form_with url: tweet_path(@tweet), method: :delete, class: "inline",
+                            html: { onsubmit: "return confirm('Delete this tweet?')" } do %>
+                <button class="act act-del" type="submit" title="Delete">&#215;</button>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <%= render "tweets/composer", parent_id: @tweet.id, placeholder: "Reply to @#{@tweet.user.username}" %>
+
+    <ul class="timeline permalink-replies">
+      <% if @replies.present? %>
+        <% @replies.each do |reply| %>
+          <%= render "tweets/tweet", tweet: reply %>
+        <% end %>
+      <% else %>
+        <li class="empty">No replies yet.</li>
+      <% end %>
+    </ul>
+  </section>
+
+  <aside class="col-right"></aside>
+</div>

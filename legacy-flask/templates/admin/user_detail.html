@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}@{{ u.username }} / Admin{% endblock %}
+{% block body %}
+<div class="admin-page">
+  <h1 class="admin-title">@{{ u.username }}</h1>
+  <p class="admin-sub">{{ u.display_name }} &middot; {{ u.email }} &middot; joined {{ u.created_at }}</p>
+  <p><a class="btn btn-mini" href="{{ url_for('profile', username=u.username) }}">View public profile</a>
+     <a class="btn btn-mini" href="{{ url_for('admin_users') }}">Back to users</a></p>
+  {% include "admin/_nav.html" %}
+
+  <div class="detail-grid">
+    <div class="panel">
+      <h3 class="panel-title">Account state</h3>
+      <p>Role: <span class="role-badge">{{ u.role_name }}</span> (rank {{ u.role_rank }})</p>
+      <p>Status: {% if u.is_banned %}<span class="pill pill-bad">banned</span>{% elif u.is_suspended %}<span class="pill pill-bad">suspended</span>{% else %}<span class="pill pill-ok">active</span>{% endif %}</p>
+      <p>Verified: {% if u.is_verified %}<span class="pill">yes</span>{% else %}<span class="pill">no</span>{% endif %}</p>
+      <p>Last login: <span class="muted">{{ u.last_login_at or 'never' }}</span></p>
+      <p>Permissions held: <strong>{{ held|length }}</strong></p>
+    </div>
+
+    <div class="panel">
+      <h3 class="panel-title">Followers</h3>
+      <p>Real follows: <strong>{{ real_followers }}</strong></p>
+      <p>Displayed total: <strong>{{ real_followers + (u.bonus_followers or 0) }}</strong></p>
+      {% if 'users.bot_followers' in my_permissions %}
+      <form method="post" action="{{ url_for('admin_set_followers', user_id=u.id) }}" class="stack">
+        <label>Extra followers
+          <input type="number" name="followers" min="0" step="1" value="{{ u.bonus_followers or 0 }}" required>
+        </label>
+        <button class="btn btn-primary" type="submit">Update follower count</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h3 class="panel-title">Ban</h3>
+      {% if u.is_banned %}
+      <p><strong>Reason:</strong> {{ u.ban_reason or 'none given' }}</p>
+      <p><strong>Duration:</strong>
+        {% if u.ban_permanent %}permanent
+        {% else %}{{ u.ban_expires_at }} ({{ humanize_until(u.ban_expires_at) }} from now){% endif %}</p>
+      {% if 'users.ban' in my_permissions %}
+      <form method="post" action="{{ url_for('admin_unban', user_id=u.id) }}">
+        <button class="btn btn-follow" type="submit">Unban user</button>
+      </form>
+      {% endif %}
+      {% else %}
+      <p class="muted">This account is not banned.</p>
+      {% if 'users.ban' in my_permissions and u.id != me.id %}
+      <form method="post" action="{{ url_for('admin_ban', user_id=u.id) }}" class="stack">
+        <label>Reason
+          <input type="text" name="reason" required placeholder="Why is this account being banned?">
+        </label>
+        <label>Duration
+          <select name="duration">
+            <option value="permanent">Permanent (no expiry)</option>
+            {% for value, label in ban_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <button class="btn btn-danger" type="submit">Ban user</button>
+      </form>
+      {% endif %}
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h3 class="panel-title">Actions</h3>
+      {% if 'users.roles' in my_permissions %}
+      <form method="post" action="{{ url_for('admin_set_role', user_id=u.id) }}" class="stack">
+        <label>Assign role
+          <select name="role">
+            {% for r in roles %}<option value="{{ r.name }}" {{ 'selected' if r.name == u.role_name }}>{{ r.name }} (rank {{ r.rank }})</option>{% endfor %}
+          </select>
+        </label>
+        <button class="btn btn-primary" type="submit">Update role</button>
+      </form>
+      {% endif %}
+      <div class="action-row">
+        {% if 'users.suspend' in my_permissions %}
+        <form method="post" action="{{ url_for('admin_suspend', user_id=u.id) }}">
+          <button class="btn {{ 'btn-follow' if u.is_suspended else 'btn-danger' }}" type="submit">
+            {{ 'Reinstate user' if u.is_suspended else 'Suspend user' }}</button>
+        </form>
+        {% endif %}
+        {% if 'users.verify' in my_permissions %}
+        <form method="post" action="{{ url_for('admin_verify', user_id=u.id) }}">
+          <button class="btn btn-follow" type="submit">{{ 'Remove verified badge' if u.is_verified else 'Grant verified badge' }}</button>
+        </form>
+        {% endif %}
+        {% if 'users.delete' in my_permissions %}
+        <form method="post" action="{{ url_for('admin_delete_user', user_id=u.id) }}" onsubmit="return confirm('Permanently delete this user and all their content?')">
+          <button class="btn btn-danger" type="submit">Delete account</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Permissions from role</h2>
+  <div class="perm-chips">
+    {% for p in perms %}
+      <span class="chip {{ 'chip-on' if p.key in held else 'chip-off' }}">{{ p.key }}</span>
+    {% endfor %}
+  </div>
+
+  <h2 class="section-title">Recent tweets</h2>
+  <table class="data-table">
+    <thead><tr><th>ID</th><th>Body</th><th>When</th><th></th></tr></thead>
+    <tbody>
+      {% for t in tweets %}
+      <tr><td class="muted">{{ t.id }}</td><td>{{ t.body or '(media)' }}</td><td class="muted">{{ t.created_at }}</td>
+        <td>{% if 'tweets.delete' in my_permissions %}
+          <form method="post" action="{{ url_for('admin_delete_tweet', tweet_id=t.id) }}">
+            <button class="btn btn-mini btn-danger" type="submit">Delete</button></form>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="4" class="muted">No tweets.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <h2 class="section-title">Audit trail for this user</h2>
+  <table class="data-table">
+    <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead>
+    <tbody>
+      {% for a in log %}
+      <tr><td class="muted">{{ a.created_at }}</td><td>{{ '@' ~ a.actor_username if a.actor_username else 'system' }}</td>
+        <td><code>{{ a.action }}</code></td><td>{{ a.detail }}</td></tr>
+      {% else %}<tr><td colspan="4" class="muted">No entries.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+<% content_for :title, "#{@user.display_name} (@#{@user.username}) / #{@active.capitalize} / #{@site_name}" %>
+
+<nav class="profile-nav">
+  <a class="profile-nav-back" href="<%= profile_path(@user.username) %>" title="Back to profile">&larr;</a>
+  <span class="profile-nav-title"><%= @user.display_name %></span>
+</nav>
+
+<div class="profile-statbar">
+  <div class="statbar-inner">
+    <div class="statbar-avatar"></div>
+    <ul class="statbar-metrics">
+      <li class="sm-item">
+        <a href="<%= profile_path(@user.username) %>">
+          <span class="sm-label">Tweets</span>
+        </a>
+      </li>
+      <li class="sm-item <%= 'is-active' if @active == 'following' %>">
+        <a href="<%= following_path(@user.username) %>">
+          <span class="sm-label">Following</span>
+        </a>
+      </li>
+      <li class="sm-item <%= 'is-active' if @active == 'followers' %>">
+        <a href="<%= followers_path(@user.username) %>">
+          <span class="sm-label">Followers</span>
+        </a>
+      </li>
+      <li class="sm-item">
+        <a href="<%= profile_path(@user.username, tab: 'favorites') %>">
+          <span class="sm-label">Favorites</span>
+        </a>
+      </li>
+    </ul>
+    <div class="statbar-actions"></div>
+  </div>
+</div>
+
+<div class="connections-head">
+  <h1 class="profile-name">
+    <%= @user.display_name %>
+    <% if @user.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
+  </h1>
+  <h2 class="profile-screenname">@<%= @user.username %></h2>
+</div>
+
+<% if @active == "followers" && @bonus_followers.to_i.positive? %>
+  <p class="list-note">
+    Showing <%= @people.size %> of <%= count_label(@user.follower_count) %> followers.
+    <%= @bonus_followers %> were granted by an administrator.
+  </p>
+<% end %>
+
+<ul class="user-list">
+  <% if @people.present? %>
+    <% @people.each do |person| %>
+      <li class="user-row">
+        <a class="user-row-avatar" href="<%= profile_path(person.username) %>"><%= pic(person.avatar_path, 48) %></a>
+        <div class="user-row-body">
+          <a class="user-row-name" href="<%= profile_path(person.username) %>"><%= person.display_name %></a>
+          <% if person.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
+          <span class="user-row-handle">@<%= person.username %></span>
+          <% if person.bio.present? %><p class="user-row-bio"><%= person.bio %></p><% end %>
+        </div>
+        <% if person.id != current_user.id %>
+          <% if current_user.following.exists?(id: person.id) %>
+            <%= form_with url: follow_user_path(person.username), method: :delete,
+                          class: "user-row-action inline" do %>
+              <button class="btn btn-following" type="submit">Following</button>
+            <% end %>
+          <% else %>
+            <%= form_with url: follow_user_path(person.username), method: :post,
+                          class: "user-row-action inline" do %>
+              <button class="btn btn-follow" type="submit">Follow</button>
+            <% end %>
+          <% end %>
+        <% end %>
+      </li>
+    <% end %>
+  <% else %>
+    <li class="empty">
+      <% if @active == "following" %>
+        @<%= @user.username %> isn't following anyone yet.
+      <% else %>
+        @<%= @user.username %> doesn't have any followers yet.
+      <% end %>
+    </li>
+  <% end %>
+</ul>

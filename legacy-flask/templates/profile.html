@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ u.display_name }} (@{{ u.username }}) / {{ site_name }}{% endblock %}
+{% block body %}
+<nav class="profile-nav">
+  <a class="profile-nav-back" href="{{ url_for('home') }}" title="Back to Home">&larr;</a>
+  <span class="profile-nav-title">{{ u.display_name }}</span>
+</nav>
+
+<div class="profile-canopy {{ 'has-banner' if u.banner_path else 'no-banner' }}"
+     {% if u.banner_path %}style="background-image:url('{{ url_for('static', filename='uploads/' ~ u.banner_path) }}')"{% endif %}>
+  <div class="canopy-inner">
+    <div class="canopy-avatar">{{ pic(u.avatar_path, 73) }}</div>
+    <div class="canopy-actions">
+      {% if is_me %}
+      <a class="btn btn-edit" href="{{ url_for('settings') }}">Edit profile</a>
+      {% else %}
+      <a class="btn btn-msg" href="{{ url_for('conversation', other_id=u.id) }}" title="Message">Message</a>
+      <form method="post" action="{{ url_for('follow', username=u.username) }}">
+        <button class="btn {{ 'btn-following' if is_following else 'btn-follow' }}" type="submit">{{ 'Following' if is_following else 'Follow' }}</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="profile-card">
+  <div class="profile-card-body">
+    <h1 class="profile-name">
+      {{ u.display_name }}
+      {% if u.is_verified %}<span class="verified-badge" title="Verified account">{{ icon('verified') }}</span>{% endif %}
+    </h1>
+    <h2 class="profile-screenname">@{{ u.username }}</h2>
+    {% if u.bio %}<p class="profile-bio">{{ u.bio|linkify|safe }}</p>{% endif %}
+    <div class="profile-fields">
+      {% if u.location %}<span>{{ icon('location-dot') }} {{ u.location }}</span>{% endif %}
+      {% if u.website %}<span>{{ icon('link') }} <a href="{{ u.website }}" target="_blank" rel="me nofollow noopener">{{ u.website|display_url }}</a></span>{% endif %}
+      <span>{{ icon('clock') }} Joined {{ u.created_at|joined }}</span>
+    </div>
+  </div>
+
+  <ul class="profile-nav-list">
+    <li class="pn-item {{ 'is-active' if active == 'tweets' }}">
+      <a href="{{ url_for('profile', username=u.username) }}">
+        <span class="pn-label">Tweets</span>
+        <span class="pn-value">{{ tweet_count }}</span>
+      </a>
+    </li>
+    <li class="pn-item {{ 'is-active' if active == 'following' }}">
+      <a href="{{ url_for('following_list', username=u.username) }}">
+        <span class="pn-label">Following</span>
+        <span class="pn-value">{{ following }}</span>
+      </a>
+    </li>
+    <li class="pn-item {{ 'is-active' if active == 'followers' }}">
+      <a href="{{ url_for('followers_list', username=u.username) }}">
+        <span class="pn-label">Followers</span>
+        <span class="pn-value">{{ followers }}</span>
+      </a>
+    </li>
+    <li class="pn-item {{ 'is-active' if active == 'favorites' }}">
+      <a href="{{ url_for('profile', username=u.username) }}?tab=favorites">
+        <span class="pn-label">Favorites</span>
+        <span class="pn-value">{{ favorites_count }}</span>
+      </a>
+    </li>
+    <li class="pn-item {{ 'is-active' if active == 'media' }}">
+      <a href="{{ url_for('profile', username=u.username) }}?tab=media">
+        <span class="pn-label">Photos &amp; videos</span>
+      </a>
+    </li>
+  </ul>
+</div>
+
+{% if active == 'media' %}
+  {% if media %}
+  <div class="media-rail">
+    {% for m in media %}
+    <a class="media-cell" href="{{ url_for('tweet_detail', tweet_id=m.id) }}">
+      <img src="{{ url_for('static', filename='uploads/' ~ m.media_path) }}" alt="">
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty">No photos or videos yet.</p>
+  {% endif %}
+{% else %}
+  {% set list = favorites if active == 'favorites' else tweets %}
+  <ul class="timeline">
+    {% for t in list %}
+    <li class="tweet" data-tweet="{{ t.id }}">
+      <div class="tweet-main">
+        {{ pic(t.avatar_path, 48) }}
+        <div class="tweet-body">
+          <div class="tweet-head">
+            <a class="tweet-name" href="{{ url_for('profile', username=t.username) }}">{{ t.display_name }}</a>
+            {% if t.is_verified %}<span class="verified-badge" title="Verified account">{{ icon('verified') }}</span>{% endif %}
+            <span class="tweet-handle">@{{ t.username }}</span>
+            <span class="tweet-dot">&middot;</span>
+            <span class="tweet-time">{{ t.created_at }}</span>
+          </div>
+          {% if t.body %}<p class="tweet-text">{{ t.body|linkify|safe }}</p>{% endif %}
+          {% if t.media_path %}<div class="tweet-media"><img src="{{ url_for('static', filename='uploads/' ~ t.media_path) }}" alt=""></div>{% endif %}
+          <div class="tweet-actions">
+            <a class="act act-reply" href="{{ url_for('tweet_detail', tweet_id=t.id) }}" title="Reply">{{ icon('reply') }}<span>Reply</span></a>
+            <span class="act act-rt" title="Retweet">{{ icon('retweet') }}<span>{{ t.rt_count }}</span></span>
+            <span class="act act-like {{ 'liked' if t.liked }}" title="Favorite">{{ icon('star-solid' if t.liked else 'star-regular') }}<span>{{ t.like_count }}</span></span>
+          </div>
+        </div>
+      </div>
+    </li>
+    {% else %}
+    <li class="empty">
+      {% if active == 'favorites' %}No favorites yet.
+      {% elif is_me %}You haven't tweeted yet.
+      {% else %}No tweets yet.{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+{% endblock %}

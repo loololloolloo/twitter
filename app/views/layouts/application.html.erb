@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<%# The theme rides on the root element so the palette variables resolve before
+    the first paint and the page never flashes light before turning dark. %>
+<html lang="en" data-theme="<%= signed_in? && current_user.dark_theme? ? 'dark' : 'light' %>">
+<head>
+<meta charset="utf-8">
+<title><%= content_for?(:title) ? yield(:title) : @site_name %></title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<%= stylesheet_link_tag "twitter" %>
+<link rel="icon" href="<%= asset_path('icons/twitter-bird.svg') %>">
+<%= csrf_meta_tags %>
+</head>
+<body class="<%= "logged-out" unless signed_in? %>">
+
+<% if signed_in? %>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="<%= home_path %>" title="<%= @site_name %>">
+      <%= bird %>
+    </a>
+    <nav class="topnav">
+      <a href="<%= home_path %>" class="<%= 'active' if controller_name == 'timelines' && action_name == 'home' %>"><%= icon('house') %><span>Home</span></a>
+      <a href="<%= notifications_path %>" class="<%= 'active' if controller_name == 'notifications' %>"><%= icon('bell') %><span>Notifications</span></a>
+      <a href="<%= messages_path %>" class="<%= 'active' if controller_name == 'messages' %>"><%= icon('envelope') %><span>Messages</span></a>
+    </nav>
+    <%= form_with url: explore_path, method: :get, class: "topsearch", local: true do %>
+      <%= icon('magnifying-glass') %>
+      <input type="text" name="q" placeholder="Search Twitter" value="<%= params[:q] %>">
+    <% end %>
+    <div class="topbar-right">
+      <div class="account-menu">
+        <a class="account-link" href="<%= profile_path(current_user.username) %>">
+          <%= pic(current_user.avatar_path, 32) %>
+          <span class="account-caret">&#9662;</span>
+        </a>
+        <div class="account-dropdown">
+          <a href="<%= profile_path(current_user.username) %>">View profile</a>
+          <a href="<%= settings_path %>">Settings</a>
+          <%# Shown for a single account too: the list is where a second account
+              gets added, so hiding it until there are two could never be the
+              way to get there. %>
+          <a href="<%= accounts_path %>">Accounts</a>
+          <% if can?('admin.access') %><a href="<%= admin_root_path %>">Admin</a><% end %>
+          <a href="<%= logout_path %>">Sign out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+<% end %>
+
+<% if @announcement.present? %>
+  <div class="announcement-banner">
+    <%= icon('bullhorn') %>
+    <span><%= @announcement %></span>
+  </div>
+<% end %>
+
+<div class="flash-wrap">
+  <% flash.each do |key, message| %>
+    <div class="flash <%= flash_class(key) %>"><%= message %></div>
+  <% end %>
+</div>
+
+<main class="page <%= 'page-wide' if controller_name == 'profiles' && action_name == 'show' %>">
+<%= yield %>
+</main>
+
+<footer class="site-footer">
+  <a href="<%= about_path %>">About</a>
+  <a href="<%= help_path %>">Help</a>
+  <a href="<%= tos_path %>">Terms</a>
+  <a href="<%= privacy_path %>">Privacy</a>
+  <span>&copy; <%= @site_name %></span>
+</footer>
+
+<%= javascript_include_tag "jquery.min" %>
+<%= javascript_include_tag "twitter" %>
+</body>
+</html>

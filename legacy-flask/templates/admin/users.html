@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Users / Admin{% endblock %}
+{% block body %}
+<div class="admin-page">
+  <h1 class="admin-title">Users</h1>
+  {% include "admin/_nav.html" %}
+  <form class="filter-bar" method="get">
+    <input type="text" name="q" placeholder="Search username, name, email" value="{{ search }}">
+    <select name="role">
+      <option value="">All roles</option>
+      {% for r in roles %}<option value="{{ r.name }}" {{ 'selected' if role_filter == r.name }}>{{ r.name }}</option>{% endfor %}
+    </select>
+    <select name="status">
+      <option value="">Any status</option>
+      <option value="active" {{ 'selected' if status == 'active' }}>Active</option>
+      <option value="suspended" {{ 'selected' if status == 'suspended' }}>Suspended</option>
+      <option value="banned" {{ 'selected' if status == 'banned' }}>Banned</option>
+    </select>
+    <button class="btn btn-primary" type="submit">Filter</button>
+  </form>
+  <table class="data-table">
+    <thead><tr><th>User</th><th>Role</th><th>Tweets</th><th>Followers</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr class="{{ 'row-suspended' if u.is_suspended }}">
+        <td><a href="{{ url_for('admin_user_detail', user_id=u.id) }}">{{ u.display_name }}</a>
+            <span class="muted">@{{ u.username }} &middot; {{ u.email }}</span></td>
+        <td><span class="role-badge">{{ u.role_name }}</span></td>
+        <td>{{ u.tweet_count }}</td><td>{{ u.follower_count }}</td>
+        <td>{% if u.is_suspended %}<span class="pill pill-bad">suspended</span>{% else %}<span class="pill pill-ok">active</span>{% endif %}
+            {% if u.is_verified %}<span class="pill">verified</span>{% endif %}</td>
+        <td class="muted">{{ u.created_at[:10] }}</td>
+        <td><a class="btn btn-mini" href="{{ url_for('admin_user_detail', user_id=u.id) }}">Manage</a></td>
+      </tr>
+      {% else %}<tr><td colspan="7" class="muted">No users match.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+<%# One timeline entry. Shared by the home timeline, explore, profile tabs
+    and the permalink page so the markup stays identical everywhere. %>
+<% tweet = local_assigns[:tweet] %>
+<%# A retweet is two different people: the account whose body is shown, and the
+    account that retweeted. The flag names the retweeter ("Retweeted by"), the
+    rest of the entry belongs to the original author. %>
+<% original = tweet.retweet_of %>
+<% author = original&.user || tweet.user %>
+<% retweeter = original ? tweet.user : nil %>
+<% show_body = original || tweet %>
+<li class="tweet" data-tweet="<%= show_body.id %>">
+  <%# Clicking anywhere on a row opens its permalink, as the web client did.
+      The overlay sits under the author links, mentions and the action bar so
+      those remain individually clickable. %>
+  <a class="tweet-open" href="<%= tweet_path(show_body) %>" aria-label="View tweet"></a>
+  <% if retweeter %>
+    <div class="rt-flag">
+      <%= icon('retweet') %>
+      <a href="<%= profile_path(retweeter.username) %>">Retweeted by <%= retweeter.display_name.presence || retweeter.username %></a>
+    </div>
+  <% end %>
+  <div class="tweet-main">
+    <%= pic(author.avatar_path, 48) %>
+    <div class="tweet-body">
+      <div class="tweet-head">
+        <a class="tweet-name" href="<%= profile_path(author.username) %>"><%= author.display_name.presence || author.username %></a>
+        <% if author.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
+        <span class="tweet-handle">@<%= author.username %></span>
+        <span class="tweet-dot">&middot;</span>
+        <span class="tweet-time" title="<%= show_body.created_at %>"><%= time_ago(show_body.created_at) %></span>
+      </div>
+
+      <% if show_body.body.present? %>
+        <p class="tweet-text"><%= linkify(show_body.body) %></p>
+      <% end %>
+
+      <% if show_body.media_path.present? %>
+        <div class="tweet-media"><img src="/uploads/<%= show_body.media_path %>" alt=""></div>
+      <% end %>
+
+      <%# The engagement figures ride alongside their own controls, as the web
+          client showed them: reply, retweet, favourite and like each carry
+          their own count. Counts are only printed when non-zero, so a fresh
+          post stays clean instead of reading "0 0 0". %>
+      <% replies = show_body.reply_count %>
+      <% retweets = show_body.retweet_count %>
+      <% favourites = show_body.favourite_count %>
+      <% likes = show_body.like_count %>
+      <% rt_active = signed_in? && show_body.retweeted_by?(current_user) %>
+      <% fav_active = signed_in? && show_body.favourited_by?(current_user) %>
+      <% like_active = signed_in? && show_body.liked_by?(current_user) %>
+      <div class="tweet-actions">
+        <a class="act act-reply" href="<%= tweet_path(show_body) %>" title="Reply">
+          <%= icon('reply') %>
+          <% if replies.positive? %><span class="act-count"><%= count_label(replies) %></span><% end %>
+        </a>
+
+        <%= form_with url: retweet_tweet_path(show_body), method: :post, class: "inline js-retweet" do %>
+          <button class="act act-rt <%= 'rt-active' if rt_active %>" type="submit"
+                  title="<%= rt_active ? 'Undo retweet' : 'Retweet' %>">
+            <%= icon('retweet') %>
+            <% if rt_active %>
+              <span class="act-count">Retweeted</span>
+            <% elsif retweets.positive? %>
+              <span class="act-count"><%= count_label(retweets) %></span>
+            <% end %>
+          </button>
+        <% end %>
+
+        <%# Favourite and like are separate reactions, as they were in 2015: the
+            star marks the post and turns gold, the heart is the newer "like"
+            and turns red. Starring does not like the post, and vice versa. %>
+        <%= form_with url: favorite_tweet_path(show_body), method: :post,
+                      class: "inline js-fav",
+                      data: { favourited: fav_active, fav_url: favorite_tweet_path(show_body),
+                              unfav_url: favorite_tweet_path(show_body) } do %>
+          <button class="act act-fav <%= 'faved' if fav_active %>" type="submit" title="Favorite">
+            <%= icon(fav_active ? 'star-solid' : 'star-regular') %>
+            <% if fav_active %>
+              <span class="act-count">Favorited</span>
+            <% elsif favourites.positive? %>
+              <span class="act-count"><%= count_label(favourites) %></span>
+            <% end %>
+          </button>
+        <% end %>
+
+        <%= form_with url: like_tweet_path(show_body), method: :post,
+                      class: "inline js-like",
+                      data: { liked: like_active, like_url: like_tweet_path(show_body),
+                              unlike_url: like_tweet_path(show_body) } do %>
+          <button class="act act-heart <%= 'hearted' if like_active %>" type="submit" title="Like">
+            <%= icon(like_active ? 'heart-twitter-solid' : 'heart-twitter') %>
+            <% if like_active %>
+              <span class="act-count">Liked</span>
+            <% elsif likes.positive? %>
+              <span class="act-count"><%= count_label(likes) %></span>
+            <% end %>
+          </button>
+        <% end %>
+
+        <% if signed_in? && (show_body.user_id == current_user.id || can?('tweets.delete')) %>
+          <%= form_with url: tweet_path(show_body), method: :delete, class: "inline",
+                        data: { turbo: false }, html: { onsubmit: "return confirm('Delete this tweet?')" } do %>
+            <button class="act act-del" type="submit" title="Delete">&#215;</button>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</li>

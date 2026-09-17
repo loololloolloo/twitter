@@ -1,0 +1,43 @@
+<% content_for :title, "Tweets / Admin / #{@site_name}" %>
+
+<h1 class="admin-title">Tweets</h1>
+
+<form class="filter-bar" method="get">
+  <input type="text" name="q" placeholder="Search tweet text" value="<%= @search %>">
+  <label class="check">
+    <input type="checkbox" name="deleted" value="1" <%= 'checked' if @include_deleted %>>
+    <span>Show deleted</span>
+  </label>
+  <button class="btn btn-primary" type="submit">Search</button>
+</form>
+
+<table class="data-table">
+  <thead>
+    <tr><th>ID</th><th>Author</th><th>Body</th><th>Likes</th><th>Replies</th><th>When</th><th></th></tr>
+  </thead>
+  <tbody>
+    <% if @tweets.present? %>
+      <% @tweets.each do |tweet| %>
+        <tr>
+          <td class="muted"><%= tweet.id %></td>
+          <td><a href="<%= profile_path(tweet.user.username) %>">@<%= tweet.user.username %></a></td>
+          <td><%= tweet.body.presence || '(media)' %></td>
+          <td><%= tweet.like_count %></td>
+          <td><%= tweet.reply_count %></td>
+          <td class="muted"><%= time_ago(tweet.created_at) %></td>
+          <td>
+            <a class="btn btn-mini" href="<%= tweet_path(tweet) %>">View</a>
+            <% if can?('tweets.delete') && !tweet.is_deleted %>
+              <%= form_with url: admin_tweet_path(tweet), method: :delete, class: "inline",
+                            html: { onsubmit: "return confirm('Remove this tweet?')" } do %>
+                <button class="btn btn-mini btn-danger" type="submit">Delete</button>
+              <% end %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    <% else %>
+      <tr><td colspan="7" class="muted">No tweets.</td></tr>
+    <% end %>
+  </tbody>
+</table>

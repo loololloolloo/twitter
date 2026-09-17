@@ -1,0 +1,38 @@
+<% content_for :title, "Notifications / #{@site_name}" %>
+
+<div class="layout">
+  <aside class="col-left"></aside>
+
+  <section class="col-main">
+    <h2 class="section-title">Notifications</h2>
+
+    <ul class="notif-list">
+      <% if @items.present? %>
+        <% @items.each do |note| %>
+          <li class="notif">
+            <%= pic(note.actor&.avatar_path, 32) %>
+            <div class="notif-body">
+              <% if note.actor %>
+                <a href="<%= profile_path(note.actor.username) %>">@<%= note.actor.username %></a>
+              <% end %>
+              <% if note.kind == "favourite" %>favorited your tweet
+              <% elsif note.kind == "like" %>liked your tweet
+              <% elsif note.kind == "retweet" %>retweeted your tweet
+              <% elsif note.kind == "reply" %>replied: <%= note.body %>
+              <% elsif note.kind == "follow" %>followed you
+              <% elsif note.kind == "mention" %>mentioned you: <%= note.body %>
+              <% else %><%= note.body %>
+              <% end %>
+              <span class="notif-time"><%= time_ago(note.created_at) %></span>
+            </div>
+            <% if note.tweet_id %><a class="notif-link" href="<%= tweet_path(note.tweet_id) %>">View</a><% end %>
+          </li>
+        <% end %>
+      <% else %>
+        <li class="empty">No notifications yet.</li>
+      <% end %>
+    </ul>
+  </section>
+
+  <aside class="col-right"></aside>
+</div>

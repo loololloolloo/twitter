@@ -1,0 +1,47 @@
+<% content_for :title, "Log in / #{@site_name}" %>
+
+<div id="page-outer">
+  <div id="page-container" class="wrapper wrapper-login login-responsive">
+    <div class="page-canvas">
+      <div class="signin-wrapper">
+        <h1>Log in to <%= @site_name %></h1>
+
+        <%= form_with url: login_path, method: :post, class: "t1-form signin", local: true do %>
+          <fieldset>
+            <legend class="visuallyhidden">Log in</legend>
+
+            <div class="clearfix field">
+              <input class="js-username-field email-input" type="text" name="identifier"
+                     id="signin-email" autocomplete="on" placeholder="Phone, email or username"
+                     value="<%= params[:identifier] %>" autofocus>
+            </div>
+
+            <div class="clearfix field">
+              <input class="js-password-field" type="password" name="password"
+                     id="signin-password" placeholder="Password" autocomplete="current-password">
+            </div>
+          </fieldset>
+
+          <div class="clearfix">
+            <button type="submit" class="submit btn primary-btn">Log in</button>
+            <div class="subchck">
+              <label class="t1-label remember">
+                <input type="checkbox" value="1" name="remember_me" checked="checked">
+                Remember me
+                <span class="separator">&middot;</span>
+                <a class="forgot" href="<%= login_path %>">Forgot password?</a>
+              </label>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="clearfix mobile has-sms">
+        <p class="signup-helper">
+          New to <%= @site_name %>?
+          <a id="login-signup-link" href="<%= signup_path %>">Sign up now &raquo;</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

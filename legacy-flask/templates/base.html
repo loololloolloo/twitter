@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{% block title %}{{ site_name }}{% endblock %}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/twitter.css') }}">
+<link rel="icon" href="{{ url_for('static', filename='assets/icons/twitter-bird.svg') }}">
+</head>
+<body class="{% if not me %}logged-out{% endif %}">
+
+{% if me %}
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{{ url_for('home') }}" title="{{ site_name }}">
+      <img src="{{ url_for('static', filename='assets/icons/twitter-bird.svg') }}" alt="{{ site_name }}">
+    </a>
+    <nav class="topnav">
+      <a href="{{ url_for('home') }}" class="{{ 'active' if request.endpoint == 'home' }}">{{ icon('house') }}<span>Home</span></a>
+      <a href="{{ url_for('notifications') }}" class="{{ 'active' if request.endpoint == 'notifications' }}">{{ icon('bell') }}<span>Notifications</span></a>
+      <a href="{{ url_for('messages') }}" class="{{ 'active' if request.endpoint in ['messages','conversation'] }}">{{ icon('envelope') }}<span>Messages</span></a>
+    </nav>
+    <form class="topsearch" action="{{ url_for('explore') }}" method="get">
+      {{ icon('magnifying-glass') }}
+      <input type="text" name="q" placeholder="Search Twitter" value="{{ request.args.get('q','') }}">
+    </form>
+    <div class="topbar-right">
+      <div class="account-menu">
+        <a class="account-link" href="{{ url_for('profile', username=me.username) }}">
+          {{ pic(me.avatar_path, 32) }}
+          <span class="account-caret">&#9662;</span>
+        </a>
+        <div class="account-dropdown">
+          <a href="{{ url_for('profile', username=me.username) }}">View profile</a>
+          <a href="{{ url_for('settings') }}">Settings</a>
+          {% if 'admin.access' in my_permissions %}<a href="{{ url_for('admin_panel') }}">Admin</a>{% endif %}
+          <a href="{{ url_for('logout') }}">Sign out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+{% endif %}
+
+<div class="flash-wrap">
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}">{{ msg }}</div>
+  {% endfor %}
+{% endwith %}
+</div>
+
+<main class="page">
+{% block body %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <a href="/about">About</a>
+  <a href="/help">Help</a>
+  <a href="/tos">Terms</a>
+  <a href="/privacy">Privacy</a>
+  <span>&copy; {{ site_name }}</span>
+</footer>
+
+<script src="{{ url_for('static', filename='js/twitter.js') }}"></script>
+</body>
+</html>

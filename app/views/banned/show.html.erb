@@ -1,0 +1,36 @@
+<% content_for :title, "Account suspended / #{@site_name}" %>
+
+<div class="banned-page">
+  <div class="banned-box">
+    <img class="banned-bird" src="<%= asset_path('icons/twitter-bird.svg') %>" alt="">
+    <h1>Your account is suspended</h1>
+    <p class="banned-lead">
+      Your account has been suspended. You can't use <%= @site_name %> until the suspension is lifted.
+    </p>
+
+    <dl class="banned-details">
+      <dt>Reason</dt>
+      <dd><%= @ban.ban_reason.presence || 'No reason was given.' %></dd>
+
+      <dt>Duration</dt>
+      <dd>
+        <% if @ban.ban_permanent? %>
+          Permanent
+        <% elsif @until.present? %>
+          <%= @until %> (<%= @ban.ban_expires_at.strftime('%Y-%m-%d %H:%M:%S') %>)
+        <% else %>
+          Temporary
+        <% end %>
+      </dd>
+
+      <dt>Account</dt>
+      <dd>@<%= @ban.username %></dd>
+    </dl>
+
+    <% unless @ban.ban_permanent? %>
+      <p class="banned-note">Access is restored automatically when the suspension ends.</p>
+    <% end %>
+
+    <a class="btn btn-primary banned-logout" href="<%= logout_path %>">Log out</a>
+  </div>
+</div>

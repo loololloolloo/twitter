@@ -1,0 +1,8 @@
+<nav class="admin-nav">
+  <a href="{{ url_for('admin_panel') }}">Dashboard</a>
+  <a href="{{ url_for('admin_users') }}">Users</a>
+  {% if 'users.permissions' in my_permissions %}<a href="{{ url_for('admin_permissions') }}">Roles &amp; Permissions</a>{% endif %}
+  <a href="{{ url_for('admin_tweets') }}">Tweets</a>
+  {% if 'audit.view' in my_permissions %}<a href="{{ url_for('admin_audit') }}">Audit log</a>{% endif %}
+  {% if 'settings.edit' in my_permissions %}<a href="{{ url_for('admin_settings') }}">Settings</a>{% endif %}
+</nav>

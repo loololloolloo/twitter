@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Notifications / {{ site_name }}{% endblock %}
+{% block body %}
+<div class="layout">
+  <aside class="col-left"></aside>
+  <section class="col-main">
+    <h2 class="section-title">Notifications</h2>
+    <ul class="notif-list">
+      {% for n in items %}
+      <li class="notif {{ 'unread' if not n.is_read }}">
+        {{ pic(n.actor_avatar, 32) }}
+        <div class="notif-body">
+          {% if n.actor_username %}<a href="{{ url_for('profile', username=n.actor_username) }}">@{{ n.actor_username }}</a>{% endif %}
+          {% if n.kind == 'like' %}favorited your tweet
+          {% elif n.kind == 'retweet' %}retweeted your tweet
+          {% elif n.kind == 'reply' %}replied: {{ n.body }}
+          {% elif n.kind == 'follow' %}followed you
+          {% elif n.kind == 'mention' %}mentioned you: {{ n.body }}
+          {% else %}{{ n.body }}{% endif %}
+          <span class="notif-time">{{ n.created_at }}</span>
+        </div>
+        {% if n.tweet_id %}<a class="notif-link" href="{{ url_for('tweet_detail', tweet_id=n.tweet_id) }}">View</a>{% endif %}
+      </li>
+      {% else %}
+      <li class="empty">No notifications yet.</li>
+      {% endfor %}
+    </ul>
+  </section>
+  <aside class="col-right"></aside>
+</div>
+{% endblock %}

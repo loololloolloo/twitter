@@ -1,0 +1,186 @@
+<% content_for :title, "Settings / #{@site_name}" %>
+
+<div class="layout">
+  <aside class="col-left"></aside>
+
+  <section class="col-main">
+    <div class="settings-header-bar">
+      <h1>Profile settings</h1>
+    </div>
+
+    <%= form_with url: settings_path, method: :patch, class: "form-horizontal settings-profile",
+                  html: { multipart: true } do %>
+
+      <div class="settings-avatar-row">
+        <div class="settings-avatar">
+          <%= pic(current_user.avatar_path, 73) %>
+        </div>
+        <div class="settings-avatar-controls">
+          <label class="settings-file">
+            <span class="btn">Change profile photo</span>
+            <input type="file" name="avatar" accept="image/*">
+          </label>
+          <p class="settings-hint">JPG, GIF or PNG. Square images look best.</p>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label" for="settings-name">Name</label>
+        <div class="controls">
+          <input id="settings-name" type="text" name="display_name" maxlength="50"
+                 value="<%= current_user.display_name %>">
+          <p class="settings-note">Your name as it appears on your profile and in search.</p>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label" for="settings-bio">Bio</label>
+        <div class="controls">
+          <textarea id="settings-bio" name="bio" maxlength="160"><%= current_user.bio %></textarea>
+          <p class="settings-note">Tell people a little about yourself. 160 characters max.</p>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label" for="settings-location">Location</label>
+        <div class="controls">
+          <input id="settings-location" type="text" name="location" maxlength="60"
+                 value="<%= current_user.location %>">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label" for="settings-website">Website</label>
+        <div class="controls">
+          <input id="settings-website" type="text" name="website" maxlength="200"
+                 value="<%= current_user.website %>">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label" for="settings-banner">Header</label>
+        <div class="controls">
+          <label class="settings-file">
+            <span class="btn">Change header</span>
+            <input id="settings-banner" type="file" name="banner" accept="image/*">
+          </label>
+          <p class="settings-note">Recommended 1500&times;500 for a header image.</p>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn primary-btn" type="submit">Save changes</button>
+      </div>
+    <% end %>
+
+    <div class="settings-section">
+      <h2 class="settings-header">Appearance</h2>
+      <p class="settings-note">
+        Choose how the site looks. Your choice is saved to your account, so it
+        follows you to other browsers.
+      </p>
+      <div class="settings-theme-choices">
+        <%= form_with url: theme_path, method: :patch, class: "inline" do %>
+          <input type="hidden" name="theme" value="light">
+          <button class="btn btn-theme <%= 'is-active' if !current_user.dark_theme? %>" type="submit">
+            <%= icon('sun') %> Light mode
+          </button>
+        <% end %>
+        <%= form_with url: theme_path, method: :patch, class: "inline" do %>
+          <input type="hidden" name="theme" value="dark">
+          <button class="btn btn-theme <%= 'is-active' if current_user.dark_theme? %>" type="submit">
+            <%= icon('moon') %> Dark mode
+          </button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h2 class="settings-header">Accounts on this browser</h2>
+      <p class="settings-note">
+        Switch between the accounts you have signed into here without retyping
+        a password. Removing one only forgets it in this browser.
+      </p>
+      <ul class="account-switch-list">
+        <% AccountsController.account_ids(session).each do |id| %>
+          <% account = User.find_by(id: id) %>
+          <% next unless account %>
+          <li class="account-switch-row <%= 'is-current' if account.id == current_user.id %>">
+            <span class="account-switch-pic"><%= pic(account.avatar_path, 32) %></span>
+            <span class="account-switch-body">
+              <span class="account-switch-name"><%= account.display_name %></span>
+              <span class="account-switch-handle">@<%= account.username %></span>
+            </span>
+            <% if account.id == current_user.id %>
+              <span class="account-switch-current">Current</span>
+            <% else %>
+              <%= form_with url: switch_account_path(account.id), method: :post, class: "inline" do %>
+                <button class="btn btn-mini" type="submit">Switch</button>
+              <% end %>
+            <% end %>
+            <%= form_with url: forget_account_path(account.id), method: :delete, class: "inline" do %>
+              <button class="btn btn-mini" type="submit">Remove</button>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+      <p><%= link_to "Add account", login_path(add: 1), class: "btn btn-mini" %></p>
+    </div>
+
+    <div class="settings-section danger-zone">
+      <h2 class="settings-header">Messages</h2>
+      <p class="settings-note">
+        Delete every direct message you have sent. Messages other people sent
+        you are kept. This cannot be undone.
+      </p>
+      <%= form_with url: clear_messages_path, method: :delete, class: "inline",
+                    html: { onsubmit: "return confirm('Delete every message you have sent? This cannot be undone.')" } do %>
+        <button class="btn btn-danger" type="submit">Delete all my messages</button>
+      <% end %>
+    </div>
+
+    <div class="settings-section danger-zone">
+      <h2 class="settings-header">Tweets</h2>
+      <p class="settings-note">
+        Delete every tweet you have posted. Replies and retweets other people
+        made stay on the site. This cannot be undone.
+      </p>
+      <%= form_with url: clear_tweets_path, method: :delete, class: "inline",
+                    html: { onsubmit: "return confirm('Delete every tweet you have posted? This cannot be undone.')" } do %>
+        <button class="btn btn-danger" type="submit">Delete all my tweets</button>
+      <% end %>
+    </div>
+
+    <div class="settings-section">
+      <h2 class="settings-header">Password</h2>
+      <%= form_with url: password_path, method: :patch, class: "form-horizontal" do %>
+        <div class="control-group">
+          <label class="control-label" for="settings-current-password">Current password</label>
+          <div class="controls">
+            <input id="settings-current-password" type="password" name="current_password"
+                   autocomplete="current-password">
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="settings-new-password">New password</label>
+          <div class="controls">
+            <input id="settings-new-password" type="password" name="password"
+                   autocomplete="new-password">
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="settings-confirm-password">Verify password</label>
+          <div class="controls">
+            <input id="settings-confirm-password" type="password" name="password_confirm"
+                   autocomplete="new-password">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn primary-btn" type="submit">Change password</button>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="col-right"></aside>
+</div>

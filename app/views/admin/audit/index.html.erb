@@ -1,0 +1,28 @@
+<% content_for :title, "Audit log / Admin / #{@site_name}" %>
+
+<h1 class="admin-title">Audit log</h1>
+
+<form class="filter-bar" method="get">
+  <input type="text" name="q" placeholder="Search action, target or detail" value="<%= @search %>">
+  <button class="btn btn-primary" type="submit">Search</button>
+</form>
+
+<table class="data-table">
+  <thead><tr><th>ID</th><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+  <tbody>
+    <% if @entries.present? %>
+      <% @entries.each do |entry| %>
+        <tr>
+          <td class="muted"><%= entry.id %></td>
+          <td class="muted"><%= time_ago(entry.created_at) %></td>
+          <td><%= entry.actor ? "@#{entry.actor.username}" : "system" %></td>
+          <td><code><%= entry.action %></code></td>
+          <td class="muted"><%= entry.target %></td>
+          <td><%= entry.detail %></td>
+        </tr>
+      <% end %>
+    <% else %>
+      <tr><td colspan="6" class="muted">Nothing logged yet.</td></tr>
+    <% end %>
+  </tbody>
+</table>

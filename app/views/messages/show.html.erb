@@ -1,0 +1,44 @@
+<% content_for :title, "Chat with @#{@other.username} / #{@site_name}" %>
+
+<div class="layout">
+  <aside class="col-left"></aside>
+
+  <section class="col-main">
+    <nav class="dm-header">
+      <a class="dm-back" href="<%= messages_path %>" title="Back to Messages">&larr;</a>
+      <h2 class="dm-title">
+        <a href="<%= profile_path(@other.username) %>"><%= pic(@other.avatar_path, 32) %></a>
+        <span><a href="<%= profile_path(@other.username) %>"><%= @other.display_name.presence || @other.username %></a>
+        <small>@<%= @other.username %></small></span>
+      </h2>
+    </nav>
+
+    <ul class="dm-thread">
+      <% if @messages.present? %>
+        <% @messages.each do |message| %>
+          <% mine = message.sender_id == current_user.id %>
+          <li class="dm-msg <%= mine ? 'dm-sent' : 'dm-received' %>">
+            <div class="dm-msg-row">
+              <span class="dm-msg-avatar"><%= pic(message.sender.avatar_path, 34) %></span>
+              <div class="dm-bubble">
+                <p><%= message.body %></p>
+                <span class="dm-msg-time"><%= time_ago(message.created_at) %></span>
+              </div>
+            </div>
+          </li>
+        <% end %>
+      <% else %>
+        <li class="empty">Say hello.</li>
+      <% end %>
+    </ul>
+
+    <div class="dm-composer">
+      <%= form_with url: conversation_path(@other), method: :post, class: "dm-form" do %>
+        <textarea name="body" placeholder="Start a new message" required></textarea>
+        <button class="btn primary-btn" type="submit">Send</button>
+      <% end %>
+    </div>
+  </section>
+
+  <aside class="col-right"></aside>
+</div>

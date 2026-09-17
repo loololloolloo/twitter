@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Tweet by @{{ tweet.username }} / {{ site_name }}{% endblock %}
+{% block body %}
+<div class="layout">
+  <aside class="col-left"></aside>
+  <section class="col-main">
+    <article class="tweet tweet-focus">
+      {{ pic(tweet.avatar_path, 48) }}
+      <div class="tweet-body">
+        <div class="tweet-head">
+          <a class="tweet-name" href="{{ url_for('profile', username=tweet.username) }}">{{ tweet.display_name }}</a>
+          {% if tweet.is_verified %}<span class="verified-badge" title="Verified account">{{ icon('verified') }}</span>{% endif %}
+          <span class="tweet-handle">@{{ tweet.username }}</span>
+        </div>
+        {% if tweet.body %}<p class="tweet-text">{{ tweet.body|linkify|safe }}</p>{% endif %}
+        {% if tweet.media_path %}<div class="tweet-media"><img src="{{ url_for('static', filename='uploads/' ~ tweet.media_path) }}" alt=""></div>{% endif %}
+        <span class="tweet-time">{{ tweet.created_at }}</span>
+        <div class="tweet-stats">{{ like_count }} favorites &middot; {{ rt_count }} retweets &middot; {{ replies|length }} replies</div>
+        <div class="tweet-actions">
+          <form method="post" action="{{ url_for('retweet', tweet_id=tweet.id) }}" class="inline">
+            <button class="act" type="submit">{{ icon('retweet') }}<span>Retweet</span></button>
+          </form>
+          <form method="post" action="{{ url_for('like_tweet', tweet_id=tweet.id) }}" class="inline">
+            <button class="act {{ 'liked' if liked }}" type="submit">{{ icon('star-solid' if liked else 'star-regular') }}<span>Favorite</span></button>
+          </form>
+        </div>
+      </div>
+    </article>
+    <div class="compose reply-compose">
+      {{ pic(me.avatar_path, 48) }}
+      <form method="post" action="{{ url_for('compose') }}" class="compose-form">
+        <input type="hidden" name="parent_id" value="{{ tweet.id }}">
+        <textarea name="body" maxlength="{{ max_len }}" placeholder="Reply to @{{ tweet.username }}" data-counter></textarea>
+        <div class="compose-bar"><span class="counter" data-counter-output>{{ max_len }}</span>
+          <button class="btn btn-primary" type="submit">Reply</button></div>
+      </form>
+    </div>
+    <ul class="timeline">
+      {% for r in replies %}
+      <li class="tweet">
+        {{ pic(r.avatar_path, 48) }}
+        <div class="tweet-body">
+          <div class="tweet-head">
+            <a class="tweet-name" href="{{ url_for('profile', username=r.username) }}">{{ r.display_name }}</a>
+            <span class="tweet-handle">@{{ r.username }}</span>
+            <span class="tweet-dot">&middot;</span><span class="tweet-time">{{ r.created_at }}</span>
+          </div>
+          <p class="tweet-text">{{ r.body|linkify|safe }}</p>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  <aside class="col-right"></aside>
+</div>
+{% endblock %}

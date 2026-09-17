@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }} / {{ site_name }}{% endblock %}
+{% block body %}
+<div class="layout">
+
+  <aside class="col-left">
+    <div class="panel profile-panel">
+      <div class="panel-profile">
+        <a class="panel-avatar" href="{{ url_for('profile', username=me.username) }}">{{ pic(me.avatar_path, 48) }}</a>
+        <a class="panel-name" href="{{ url_for('profile', username=me.username) }}">{{ me.display_name }}</a>
+        <span class="panel-handle">@{{ me.username }}</span>
+        <div class="panel-stats">
+          <a href="{{ url_for('profile', username=me.username) }}">
+            <strong>{{ my_counts.tweets }}</strong><span>Tweets</span>
+          </a>
+          <a href="{{ url_for('profile', username=me.username) }}">
+            <strong>{{ my_counts.following }}</strong><span>Following</span>
+          </a>
+          <a href="{{ url_for('profile', username=me.username) }}">
+            <strong>{{ my_counts.followers }}</strong><span>Followers</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% if suggestions %}
+    <div class="panel">
+      <h3 class="panel-title">Who to follow</h3>
+      {% for s in suggestions %}
+      <div class="suggestion">
+        {{ pic(s.avatar_path, 32) }}
+        <div class="suggestion-body">
+          <a href="{{ url_for('profile', username=s.username) }}">{{ s.display_name }}</a>
+          <span>@{{ s.username }}</span>
+        </div>
+        <form method="post" action="{{ url_for('follow', username=s.username) }}">
+          <button class="btn btn-follow" type="submit">Follow</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </aside>
+
+  <section class="col-main">
+    <div class="compose">
+      {{ pic(me.avatar_path, 48) }}
+      <form method="post" action="{{ url_for('compose') }}" enctype="multipart/form-data" class="compose-form">
+        <textarea name="body" maxlength="{{ max_len }}" placeholder="{{ site_tagline }}" data-counter></textarea>
+        <div class="compose-bar">
+          <label class="media-btn" title="Add a photo">
+            {{ icon('image') }}
+            <input type="file" name="media" accept="image/*">
+          </label>
+          <span class="counter" data-counter-output>{{ max_len }}</span>
+          <button class="btn btn-primary" type="submit">Tweet</button>
+        </div>
+      </form>
+    </div>
+
+    <ul class="timeline">
+      {% for t in tweets %}
+      <li class="tweet" data-tweet="{{ t.id }}">
+        {% if t.rt_username %}
+        <div class="rt-flag">{{ icon('retweet') }} <a href="{{ url_for('profile', username=t.rt_username) }}">Retweeted by {{ t.rt_display_name or t.rt_username }}</a></div>
+        {% endif %}
+        <div class="tweet-main">
+        {{ pic(t.avatar_path, 48) }}
+        <div class="tweet-body">
+          <div class="tweet-head">
+            <a class="tweet-name" href="{{ url_for('profile', username=t.username) }}">{{ t.display_name }}</a>
+            {% if t.is_verified %}<span class="verified-badge" title="Verified account">{{ icon('verified') }}</span>{% endif %}
+            <span class="tweet-handle">@{{ t.username }}</span>
+            <span class="tweet-dot">&middot;</span>
+            <span class="tweet-time">{{ t.created_at }}</span>
+          </div>
+          {% if t.body %}<p class="tweet-text">{{ t.body|linkify|safe }}</p>{% endif %}
+          {% if t.media_path %}
+          <div class="tweet-media"><img src="{{ url_for('static', filename='uploads/' ~ t.media_path) }}" alt=""></div>
+          {% endif %}
+          <div class="tweet-actions">
+            <a class="act act-reply" href="{{ url_for('tweet_detail', tweet_id=t.id) }}" title="Reply">{{ icon('reply') }}<span>Reply</span></a>
+            <form method="post" action="{{ url_for('retweet', tweet_id=t.id) }}" class="inline">
+              <button class="act act-rt" type="submit" title="Retweet">{{ icon('retweet') }}<span>Retweet</span></button>
+            </form>
+            <form method="post" action="{{ url_for('like_tweet', tweet_id=t.id) }}" class="inline js-like">
+              <button class="act act-like {{ 'liked' if t.liked }}" type="submit" title="Favorite">{{ icon('star-solid' if t.liked else 'star-regular') }}<span>Favorite</span></button>
+            </form>
+            {% if t.user_id == me.id or 'tweets.delete' in my_permissions %}
+            <form method="post" action="{{ url_for('delete_tweet', tweet_id=t.id) }}" class="inline" onsubmit="return confirm('Delete this tweet?')">
+              <button class="act act-del" type="submit" title="Delete">&#215;</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        </div>
+      </li>
+      {% else %}
+      <li class="empty">No tweets yet. Follow someone or post the first one.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <aside class="col-right">
+    {% if trends %}
+    <div class="panel">
+      <h3 class="panel-title">Trends</h3>
+      <ul class="trend-list">
+        {% for tag, count in trends %}
+        <li><a href="{{ url_for('explore', q=tag) }}">#{{ tag }}</a> <span class="trend-count">{{ count }} Tweet{{ '' if count == 1 else 's' }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <div class="panel">
+      <h3 class="panel-title">About</h3>
+      <p class="panel-note">A look at the classic Twitter web client.</p>
+    </div>
+  </aside>
+
+</div>
+{% endblock %}

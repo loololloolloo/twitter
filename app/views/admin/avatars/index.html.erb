@@ -1,0 +1,232 @@
+<% content_for :title, "Avatars / Admin / #{@site_name}" %>
+
+<h1 class="admin-title">Profile pictures</h1>
+<p class="admin-sub">
+  Import pictures for bot accounts from providers that license their images.
+  <strong><%= @missing_count %></strong> of <strong><%= @total_bots %></strong> bot account(s) have no picture.
+</p>
+
+<div class="panel">
+  <h3 class="panel-title">Fill in every account</h3>
+  <p class="muted">
+    Runs one picture per account across the whole population, in batches, from
+    your browser. Keep this tab open while it runs; progress below is live. Each
+    pass is safe to interrupt and safe to repeat.
+  </p>
+
+  <div class="action-row">
+    <button class="btn btn-primary" type="button" id="run-all"
+            data-url="<%= admin_avatars_batch_path %>"
+            data-scope="missing"
+            data-total="<%= @missing_count %>">
+      Give every account a picture
+    </button>
+    <button class="btn btn-follow" type="button" id="run-random"
+            data-url="<%= admin_avatars_batch_path %>"
+            data-scope="all"
+            data-total="<%= @total_bots %>">
+      Randomize every account
+    </button>
+  </div>
+
+  <p class="muted">
+    <strong>Randomize</strong> mixes all providers and styles and picks a fresh
+    look per account, so pressing it again reshuffles the whole population.
+  </p>
+
+  <div id="run-progress" class="stack" hidden>
+    <div class="progress-track">
+      <div class="progress-bar" id="run-bar" style="width: 0%"></div>
+    </div>
+    <p id="run-status" class="muted" aria-live="polite">Ready.</p>
+    <button class="btn btn-danger" type="button" id="run-stop" hidden>Stop</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">Bulk import (single batch)</h3>
+  <p class="muted">
+    Fetches one picture per account for up to <%= Admin::AvatarsController::BULK_LIMIT %>
+    accounts at a time. Run it again to fill in the next batch.
+  </p>
+
+  <%= form_with url: admin_avatars_path, method: :post, class: "stack" do %>
+    <label>Provider
+      <select name="provider">
+        <option value="<%= Admin::AvatarsController::RANDOM_PROVIDER %>" <%= 'selected' if @provider == Admin::AvatarsController::RANDOM_PROVIDER %>>Random mix</option>
+        <% @providers.each do |key, entry| %>
+          <option value="<%= key %>" <%= 'selected' if key == @provider %>><%= entry[:label] %></option>
+        <% end %>
+      </select>
+    </label>
+
+    <label>Style
+      <select name="style">
+        <% @providers.fetch(@provider, {}).fetch(:styles, []).each do |style| %>
+          <option value="<%= style %>" <%= 'selected' if style == @style %>><%= style %></option>
+        <% end %>
+      </select>
+    </label>
+
+    <label>Which accounts
+      <select name="scope">
+        <option value="missing" <%= 'selected' if @scope == 'missing' %>>Only accounts without a picture</option>
+        <option value="all" <%= 'selected' if @scope == 'all' %>>All bot accounts</option>
+      </select>
+    </label>
+
+    <button class="btn btn-primary" type="submit">Import one batch</button>
+  <% end %>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">Next in line</h3>
+  <% if @candidates.empty? %>
+    <p class="muted">Nothing to do for this selection.</p>
+  <% else %>
+    <table class="admin-table">
+      <thead>
+        <tr><th>Account</th><th>Current picture</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% @candidates.each do |user| %>
+          <tr>
+            <td><a href="<%= admin_user_avatars_path(user) %>">@<%= user.username %></a></td>
+            <td><%= pic(user.avatar_path, 32) %></td>
+            <td class="muted">
+              <%= user.avatar_path.present? ? 'has a picture' : 'default' %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">About these providers</h3>
+  <ul class="muted">
+    <li><strong>DiceBear</strong> &mdash; illustrated avatars in several styles. Free to use, no attribution required.</li>
+    <li><strong>Robohash</strong> &mdash; robots and monsters. Free to use for any purpose.</li>
+    <li><strong>Lorem Picsum</strong> &mdash; photographs from Unsplash, fetched through Picsum's own CDN.</li>
+    <li>Pinterest and similar sites are deliberately not used: their pictures are other people's copyrighted work, and scraping them is not a licensed source.</li>
+  </ul>
+  <p class="muted">
+    Every import is a server-side request, so the fetcher only contacts the
+    hosts listed above, refuses private and loopback addresses, checks that the
+    response really is an image before saving it, and caps both the download
+    size and the time it will wait.
+  </p>
+</div>
+
+<script>
+(function () {
+  var runAll = document.getElementById("run-all");
+  var runRandom = document.getElementById("run-random");
+  var progress = document.getElementById("run-progress");
+  var bar = document.getElementById("run-bar");
+  var status = document.getElementById("run-status");
+  var stop = document.getElementById("run-stop");
+  var url = runAll.dataset.url;
+
+  var token = document.querySelector('meta[name="csrf-token"]');
+  token = token ? token.getAttribute("content") : "";
+
+  var running = false;
+  var cancelled = false;
+  var total = 0;
+
+  function salt() {
+    return String(Date.now()) + "-" + Math.random().toString(36).slice(2, 10);
+  }
+
+  function setStatus(text) { status.textContent = text; }
+
+  // Walks the population by ascending id, one short request per batch, until
+  // the server reports the pass is finished or the operator stops it.
+  function step(provider, scope, afterId, runSalt, applied, failed, processed) {
+    if (cancelled) { finish(applied, failed, processed, true); return; }
+
+    var body = new FormData();
+    body.append("provider", provider);
+    body.append("scope", scope);
+    body.append("after_id", String(afterId));
+    body.append("salt", runSalt);
+    body.append("authenticity_token", token);
+
+    fetch(url, {
+      method: "POST",
+      body: body,
+      headers: { "X-Requested-With": "XMLHttpRequest", "Accept": "application/json" },
+      credentials: "same-origin"
+    }).then(function (response) {
+      if (!response.ok) { throw new Error("HTTP " + response.status); }
+      return response.json();
+    }).then(function (data) {
+      applied += data.applied;
+      failed += data.failed;
+      processed += data.processed;
+
+      var pct = total > 0 ? Math.min(100, Math.round(processed / total * 100)) : 0;
+      bar.style.width = pct + "%";
+      setStatus(processed + " of " + total + " examined (" + pct + "%) \u00b7 " +
+                applied + " picture(s) set \u00b7 " + failed + " failed");
+
+      if (data.done || data.processed === 0) {
+        finish(applied, failed, processed, false);
+      } else {
+        step(provider, scope, data.last_id, runSalt, applied, failed, processed);
+      }
+    }).catch(function (error) {
+      finish(applied, failed, processed, false, error.message);
+    });
+  }
+
+  // Leaves the summary on screen rather than reloading over it: the operator
+  // needs to read the result, and a reload would also drop them back to the
+  // top of the page mid-run.
+  function finish(applied, failed, processed, stopped, error) {
+    running = false;
+    runAll.disabled = false;
+    runRandom.disabled = false;
+    stop.hidden = true;
+
+    var message = applied + " picture(s) set out of " + processed + " examined";
+    if (failed > 0) { message += ", " + failed + " could not be fetched"; }
+    if (stopped) { message += " \u00b7 stopped early, run again to finish"; }
+    if (error) { message += " \u00b7 stopped after an error: " + error; }
+    setStatus(message + ".");
+
+    if (!stopped && !error) { bar.style.width = "100%"; }
+  }
+
+  function start(button, provider, label) {
+    if (running) { return; }
+
+    running = true;
+    cancelled = false;
+    total = parseInt(button.dataset.total || "0", 10);
+    runAll.disabled = true;
+    runRandom.disabled = true;
+    stop.hidden = false;
+    progress.hidden = false;
+    bar.style.width = "0%";
+    setStatus("Starting " + label + "\u2026");
+
+    step(provider, button.dataset.scope, 0, salt(), 0, 0, 0);
+  }
+
+  runAll.addEventListener("click", function () {
+    start(runAll, "dicebear", "a pass with DiceBear");
+  });
+
+  runRandom.addEventListener("click", function () {
+    start(runRandom, "random", "a randomized pass");
+  });
+
+  stop.addEventListener("click", function () {
+    cancelled = true;
+    setStatus("Stopping after the current batch\u2026");
+  });
+})();
+</script>

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Messages / {{ site_name }}{% endblock %}
+{% block body %}
+<div class="layout">
+  <aside class="col-left"></aside>
+  <section class="col-main">
+    <h2 class="section-title">Messages</h2>
+    <ul class="conv-list">
+      {% for p in people %}
+      <li class="conv">
+        {{ pic(p.user.avatar_path, 48) }}
+        <div class="conv-body">
+          <a href="{{ url_for('conversation', other_id=p.user.id) }}">{{ p.user.display_name }}</a>
+          <span>@{{ p.user.username }}</span>
+          <p>{{ p.conv.last_body or 'No messages yet' }}</p>
+        </div>
+      </li>
+      {% else %}
+      <li class="empty">No conversations. Visit someone's profile to send a message.</li>
+      {% endfor %}
+    </ul>
+    <div class="panel">
+      <h3 class="panel-title">Start a conversation</h3>
+      <form action="{{ url_for('people') }}" method="get">
+        <button class="btn btn-follow" type="submit">Browse people</button>
+      </form>
+    </div>
+  </section>
+  <aside class="col-right"></aside>
+</div>
+{% endblock %}

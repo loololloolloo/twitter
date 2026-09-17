@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Roles &amp; Permissions / Admin{% endblock %}
+{% block body %}
+<div class="admin-page">
+  <h1 class="admin-title">Roles &amp; permissions</h1>
+  <p class="admin-sub">Toggle which permissions each role holds. The owner role always holds every permission.</p>
+  {% include "admin/_nav.html" %}
+  <div class="perm-grid">
+    {% for r in roles %}
+    <div class="panel perm-panel">
+      <h3 class="panel-title">{{ r.name }} <span class="muted">rank {{ r.rank }}</span></h3>
+      {% if r.name == 'owner' %}
+        <p class="muted">Full control &mdash; all {{ perms|length }} permissions, not editable.</p>
+        <div class="perm-chips">{% for p in perms %}<span class="chip chip-on">{{ p.key }}</span>{% endfor %}</div>
+      {% else %}
+      <form method="post" action="{{ url_for('admin_permissions') }}">
+        <input type="hidden" name="role_id" value="{{ r.id }}">
+        {% for p in perms %}
+        <label class="check">
+          <input type="checkbox" name="perms" value="{{ p.key }}" {{ 'checked' if p.key in matrix[r.id] }}>
+          <span>{{ p.label }} <code>{{ p.key }}</code></span>
+        </label>
+        {% endfor %}
+        <button class="btn btn-primary" type="submit">Save {{ r.name }}</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

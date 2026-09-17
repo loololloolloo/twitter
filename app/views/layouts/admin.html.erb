@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title><%= content_for?(:title) ? yield(:title) : "Admin / #{@site_name}" %></title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<%= stylesheet_link_tag "twitter" %>
+<link rel="icon" href="<%= asset_path('icons/twitter-bird.svg') %>">
+<%= csrf_meta_tags %>
+</head>
+<body class="admin-body">
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="<%= admin_root_path %>" title="Admin / <%= @site_name %>"><%= bird %></a>
+    <nav class="topnav">
+      <a href="<%= admin_root_path %>" class="<%= 'active' if controller_name == 'dashboard' %>">Dashboard</a>
+      <% if can?('users.view') %><a href="<%= admin_users_path %>" class="<%= 'active' if controller_name == 'users' %>">Users</a><% end %>
+      <% if can?('users.permissions') %><a href="<%= admin_permissions_path %>" class="<%= 'active' if controller_name == 'permissions' %>">Roles</a><% end %>
+      <% if can?('tweets.view') %><a href="<%= admin_tweets_path %>" class="<%= 'active' if controller_name == 'tweets' %>">Tweets</a><% end %>
+      <% if can?('users.avatar') %><a href="<%= admin_avatars_path %>" class="<%= 'active' if controller_name == 'avatars' %>">Avatars</a><% end %>
+      <% if can?('audit.view') %><a href="<%= admin_audit_path %>" class="<%= 'active' if controller_name == 'audit' %>">Audit log</a><% end %>
+      <% if can?('settings.edit') %><a href="<%= admin_settings_path %>" class="<%= 'active' if controller_name == 'settings' %>">Settings</a><% end %>
+    </nav>
+    <div class="topbar-right">
+      <%= link_to "Back to site", home_path, class: "account-link" %>
+    </div>
+  </div>
+</header>
+
+<div class="admin-shell">
+  <% grants = current_user.permission_keys %>
+  <% total_permissions = Permission.count %>
+  <aside class="admin-rail">
+    <section class="operator-card">
+      <div class="operator-identity">
+        <%= pic(current_user.avatar_path, 48) %>
+        <div class="operator-names">
+          <span class="operator-name"><%= current_user.display_name %></span>
+          <span class="operator-handle">@<%= current_user.username %></span>
+        </div>
+      </div>
+
+      <dl class="operator-facts">
+        <div class="operator-fact">
+          <dt>Role</dt>
+          <dd><span class="pill pill-role"><%= current_user.role.name %></span></dd>
+        </div>
+        <div class="operator-fact">
+          <dt>Permissions</dt>
+          <dd>
+            <div class="operator-meter">
+              <span><strong><%= grants.size %></strong> <span class="muted">of <%= total_permissions %></span></span>
+              <div class="meter" title="<%= grants.size %> of <%= total_permissions %> permissions">
+                <span class="meter-fill" style="width: <%= total_permissions.zero? ? 0 : (grants.size * 100.0 / total_permissions).round %>%"></span>
+              </div>
+            </div>
+          </dd>
+        </div>
+        <div class="operator-fact">
+          <dt>Account</dt>
+          <dd>
+            <% if current_user.owner? %><span class="pill pill-ok">owner</span><% end %>
+            <span class="muted">since <%= joined(current_user.created_at) %></span>
+          </dd>
+        </div>
+      </dl>
+
+      <a class="btn operator-profile" href="<%= profile_path(current_user.username) %>">View profile</a>
+    </section>
+
+    <%= render "admin/shared/sidebar" %>
+  </aside>
+
+  <main class="admin-main">
+    <div class="flash-wrap">
+      <% flash.each do |key, message| %>
+        <div class="flash <%= flash_class(key) %>"><%= message %></div>
+      <% end %>
+    </div>
+
+    <%= yield %>
+  </main>
+</div>
+
+<%= javascript_include_tag "jquery.min" %>
+<%= javascript_include_tag "twitter" %>
+</body>
+</html>

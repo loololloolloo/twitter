@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Settings / {{ site_name }}{% endblock %}
+{% block body %}
+<div class="layout">
+  <aside class="col-left"></aside>
+  <section class="col-main">
+    <h2 class="section-title">Profile settings</h2>
+    <form method="post" enctype="multipart/form-data" class="settings-form">
+      <label>Display name<input type="text" name="display_name" value="{{ me.display_name }}"></label>
+      <label>Bio<textarea name="bio" maxlength="160">{{ me.bio }}</textarea></label>
+      <label>Location<input type="text" name="location" value="{{ me.location }}"></label>
+      <label>Website<input type="text" name="website" value="{{ me.website }}"></label>
+      <label>Profile photo<input type="file" name="avatar" accept="image/*"></label>
+      <label>Header photo<input type="file" name="banner" accept="image/*"></label>
+      <button class="btn btn-primary" type="submit">Save changes</button>
+    </form>
+  </section>
+  <aside class="col-right"></aside>
+</div>
+{% endblock %}

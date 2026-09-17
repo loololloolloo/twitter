@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Sign in / {{ site_name }}{% endblock %}
+{% block body %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-bird">{{ bird() }}</div>
+    <h1>Sign in to {{ site_name }}</h1>
+    <form method="post" class="auth-form">
+      <label>Username or email
+        <input type="text" name="identifier" value="{{ form.identifier or '' }}" required autofocus>
+      </label>
+      <label>Password
+        <input type="password" name="password" required>
+      </label>
+      <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+    </form>
+    <p class="auth-alt">New to {{ site_name }}? <a href="{{ url_for('signup') }}">Create an account</a></p>
+  </div>
+</div>
+{% endblock %}

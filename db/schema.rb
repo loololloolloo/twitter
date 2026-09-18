@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_19_000001) do
   create_table "audit_logs", force: :cascade do |t|
     t.string "action", null: false
     t.integer "actor_id"
@@ -19,6 +19,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000003) do
     t.string "target", default: "", null: false
     t.datetime "updated_at", null: false
     t.index ["actor_id"], name: "index_audit_logs_on_actor_id"
+  end
+
+  create_table "blocks", force: :cascade do |t|
+    t.integer "blocked_id", null: false
+    t.integer "blocker_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["blocked_id"], name: "index_blocks_on_blocked_id"
+    t.index ["blocker_id", "blocked_id"], name: "index_blocks_on_blocker_id_and_blocked_id", unique: true
+    t.index ["blocker_id"], name: "index_blocks_on_blocker_id"
+  end
+
+  create_table "bookmarks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "tweet_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["tweet_id"], name: "index_bookmarks_on_tweet_id"
+    t.index ["user_id", "created_at"], name: "index_bookmarks_on_user_id_and_created_at"
+    t.index ["user_id", "tweet_id"], name: "index_bookmarks_on_user_id_and_tweet_id", unique: true
+    t.index ["user_id"], name: "index_bookmarks_on_user_id"
   end
 
   create_table "dm_conversations", force: :cascade do |t|
@@ -42,6 +63,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000003) do
     t.index ["sender_id"], name: "index_dm_messages_on_sender_id"
   end
 
+  create_table "follow_requests", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "requester_id", null: false
+    t.string "state", default: "pending", null: false
+    t.integer "target_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["requester_id", "target_id"], name: "index_follow_requests_on_requester_id_and_target_id", unique: true
+    t.index ["requester_id"], name: "index_follow_requests_on_requester_id"
+    t.index ["target_id", "state"], name: "index_follow_requests_on_target_id_and_state"
+    t.index ["target_id"], name: "index_follow_requests_on_target_id"
+  end
+
   create_table "follows", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "followee_id", null: false
@@ -61,6 +94,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000003) do
     t.index ["tweet_id"], name: "index_likes_on_tweet_id"
     t.index ["user_id", "tweet_id", "kind"], name: "index_likes_on_user_id_and_tweet_id_and_kind", unique: true
     t.index ["user_id"], name: "index_likes_on_user_id"
+  end
+
+  create_table "list_memberships", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "list_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["list_id", "user_id"], name: "index_list_memberships_on_list_id_and_user_id", unique: true
+    t.index ["list_id"], name: "index_list_memberships_on_list_id"
+    t.index ["user_id"], name: "index_list_memberships_on_user_id"
+  end
+
+  create_table "lists", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description", default: "", null: false
+    t.boolean "is_private", default: false, null: false
+    t.string "name", default: "", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["user_id", "name"], name: "index_lists_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_lists_on_user_id"
+  end
+
+  create_table "mutes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "muted_id", null: false
+    t.integer "muter_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["muted_id"], name: "index_mutes_on_muted_id"
+    t.index ["muter_id", "muted_id"], name: "index_mutes_on_muter_id_and_muted_id", unique: true
+    t.index ["muter_id"], name: "index_mutes_on_muter_id"
   end
 
   create_table "notifications", force: :cascade do |t|
@@ -158,6 +222,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000003) do
   end
 
   create_table "tweets", force: :cascade do |t|
+    t.string "alt_text"
     t.text "body", default: "", null: false
     t.integer "bonus_favourites", default: 0, null: false
     t.integer "bonus_likes", default: 0, null: false
@@ -168,18 +233,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000003) do
     t.string "media_path"
     t.integer "parent_id"
     t.datetime "pinned_at"
+    t.integer "quote_of_id"
+    t.datetime "reply_hidden_at"
     t.integer "retweet_of_id"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.index ["created_at"], name: "index_tweets_on_created_at"
     t.index ["parent_id"], name: "index_tweets_on_parent_id"
+    t.index ["quote_of_id"], name: "index_tweets_on_quote_of_id"
+    t.index ["reply_hidden_at"], name: "index_tweets_on_reply_hidden_at"
     t.index ["retweet_of_id"], name: "index_tweets_on_retweet_of_id"
     t.index ["user_id", "created_at"], name: "index_tweets_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_tweets_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
-    t.integer "actions_performed", default: 0, null: false
     t.string "avatar_path"
     t.datetime "ban_expires_at"
     t.boolean "ban_permanent", default: false, null: false
@@ -188,22 +256,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000003) do
     t.text "bio", default: "", null: false
     t.integer "bonus_followers", default: 0, null: false
     t.datetime "created_at", null: false
+    t.string "design", default: "2019", null: false
     t.string "display_name", null: false
     t.boolean "do_not_amplify", default: false, null: false
     t.string "email", null: false
     t.boolean "is_banned", default: false, null: false
-    t.boolean "is_bot", default: false, null: false
     t.boolean "is_compromised", default: false, null: false
     t.boolean "is_high_profile", default: false, null: false
     t.boolean "is_suspended", default: false, null: false
     t.boolean "is_verified", default: false, null: false
-    t.datetime "last_action_at"
     t.datetime "last_login_at"
     t.string "location", default: "", null: false
-    t.text "mind", default: "{}", null: false
-    t.datetime "next_action_at"
     t.string "password_hash", null: false
-    t.text "persona", default: "{}", null: false
+    t.boolean "protected", default: false, null: false
     t.boolean "requires_review", default: false, null: false
     t.integer "role_id", null: false
     t.boolean "search_blacklist", default: false, null: false
@@ -214,21 +279,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000003) do
     t.string "username", null: false
     t.string "website", default: "", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
-    t.index ["is_bot", "next_action_at"], name: "index_users_on_is_bot_and_next_action_at"
-    t.index ["next_action_at"], name: "index_users_on_next_action_at"
     t.index ["role_id"], name: "index_users_on_role_id"
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 
   add_foreign_key "audit_logs", "users", column: "actor_id"
+  add_foreign_key "blocks", "users", column: "blocked_id"
+  add_foreign_key "blocks", "users", column: "blocker_id"
+  add_foreign_key "bookmarks", "tweets"
+  add_foreign_key "bookmarks", "users"
   add_foreign_key "dm_conversations", "users", column: "user_a_id"
   add_foreign_key "dm_conversations", "users", column: "user_b_id"
   add_foreign_key "dm_messages", "dm_conversations"
   add_foreign_key "dm_messages", "users", column: "sender_id"
+  add_foreign_key "follow_requests", "users", column: "requester_id"
+  add_foreign_key "follow_requests", "users", column: "target_id"
   add_foreign_key "follows", "users", column: "followee_id"
   add_foreign_key "follows", "users", column: "follower_id"
   add_foreign_key "likes", "tweets"
   add_foreign_key "likes", "users"
+  add_foreign_key "list_memberships", "lists"
+  add_foreign_key "list_memberships", "users"
+  add_foreign_key "lists", "users"
+  add_foreign_key "mutes", "users", column: "muted_id"
+  add_foreign_key "mutes", "users", column: "muter_id"
   add_foreign_key "notifications", "tweets"
   add_foreign_key "notifications", "users"
   add_foreign_key "notifications", "users", column: "actor_id"

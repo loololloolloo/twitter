@@ -9,6 +9,12 @@ module Maintenance
   # Rows that carry no meaning without the accounts and posts they point at,
   # in the order they must be removed. The operator's own account is never in
   # scope; `clear_accounts` and `reset_database` preserve it explicitly.
+  #
+  # Order matters and is enforced by SQLite's foreign keys: a row is listed
+  # after everything it points at. Blocks, mutes, bookmarks, list membership,
+  # list ownership and follow requests all reference accounts (and some
+  # reference posts), so leaving any of them out makes the final `users` delete
+  # fail and the whole transaction roll back.
   CONTENT_TABLES = %w[
     DmMessage
     DmConversation
@@ -16,9 +22,38 @@ module Maintenance
     Like
     TweetView
     ProfileView
+    Bookmark
     Report
+    FollowRequest
     Follow
+    Block
+    Mute
+    ListMembership
     Tweet
+    List
+  ].freeze
+
+  # The tables that reference a post. Used where a sweep removes posts but
+  # keeps the accounts, so the rows pointing at those posts go first.
+  POST_REFERENCING_TABLES = %w[Like TweetView Notification Bookmark Report].freeze
+
+  # The tables that reference an account, other than the posts it authored.
+  ACCOUNT_REFERENCING_TABLES = %w[
+    DmMessage
+    DmConversation
+    Notification
+    Like
+    TweetView
+    ProfileView
+    Bookmark
+    Report
+    FollowRequest
+    Follow
+    Block
+    Mute
+    ListMembership
+    List
+    Session
   ].freeze
 
   # Counted for the confirmation copy so an operator sees the blast radius
@@ -26,7 +61,6 @@ module Maintenance
   def self.inventory
     {
       users: User.count,
-      bots: User.where(is_bot: true).count,
       tweets: Tweet.count,
       follows: Follow.count,
       granted_followers: User.sum(:bonus_followers),
@@ -38,39 +72,13 @@ module Maintenance
     }
   end
 
-  # Deletes every simulated account and everything they posted. Real members
-  # and their content are left alone.
-  def self.clear_bot_accounts
-    bots = User.where(is_bot: true)
-    ids = bots.pluck(:id)
-    return 0 if ids.empty?
-
-    transaction do
-      clear_authored_content(ids)
-      Follow.where(follower_id: ids).or(Follow.where(followee_id: ids)).delete_all
-      Like.where(user_id: ids).delete_all
-      Notification.where(user_id: ids).or(Notification.where(actor_id: ids)).delete_all
-      TweetView.where(user_id: ids).delete_all
-      ProfileView.where(user_id: ids).or(ProfileView.where(viewer_id: ids)).delete_all
-      Report.where(user_id: ids).or(Report.where(reporter_id: ids)).delete_all
-      DmMessage.where(sender_id: ids).delete_all
-      DmConversation.where(user_a_id: ids).or(DmConversation.where(user_b_id: ids)).delete_all
-      AuditLog.where(actor_id: ids).delete_all
-      Session.where(user_id: ids).delete_all
-      User.where(id: ids).delete_all
-    end
-
-    ids.size
-  end
-
   # Unfollows everyone from everyone. Accounts and posts survive; the graph
   # does not.
   #
   # Granted followers are cleared too. They are not rows in the follow graph -
-  # the bot engine adds them directly once every simulated account already
-  # follows, and an administrator can grant them by hand - so deleting the
-  # follows alone left every profile still advertising the followers it had been
-  # given, which read as the sweep not having worked.
+  # an administrator can grant them by hand - so deleting the follows alone
+  # left every profile still advertising the followers it had been given,
+  # which read as the sweep not having worked.
   def self.clear_follows
     follows = Follow.count
     granted = User.sum(:bonus_followers)
@@ -82,13 +90,15 @@ module Maintenance
   end
 
   # Deletes every post, including replies and retweets, along with the likes,
-  # views and notifications that pointed at them.
+  # views, notifications, bookmarks and reports that pointed at them. Those
+  # pointing rows must go first: they carry a foreign key to the post.
   def self.purge_tweets
     count = Tweet.count
     transaction do
       Like.delete_all
       TweetView.delete_all
       Notification.delete_all
+      Bookmark.delete_all
       Report.delete_all
       Tweet.delete_all
     end
@@ -141,20 +151,37 @@ module Maintenance
   # Removes rows left pointing at records that no longer exist. Bulk deletes
   # and a restored dump can both strand references, and a stranded like or
   # notification shows up as a broken entry in someone's timeline.
+  #
+  # Returns the number of rows removed. It used to return the user count, so
+  # the panel reported success with a figure that had nothing to do with the
+  # sweep.
   def self.prune_orphans
+    removed = 0
     transaction do
-      Tweet.where.not(parent_id: nil).where.not(parent_id: Tweet.select(:id)).delete_all
-      Tweet.where.not(retweet_of_id: nil).where.not(retweet_of_id: Tweet.select(:id)).delete_all
-      Like.where.not(tweet_id: Tweet.select(:id)).delete_all
-      TweetView.where.not(tweet_id: Tweet.select(:id)).delete_all
-      Notification.where.not(tweet_id: nil).where.not(tweet_id: Tweet.select(:id)).delete_all
-      Report.where.not(tweet_id: nil).where.not(tweet_id: Tweet.select(:id)).delete_all
-      Follow.where.not(follower_id: User.select(:id)).delete_all
-      Follow.where.not(followee_id: User.select(:id)).delete_all
-      DmMessage.where.not(sender_id: User.select(:id)).delete_all
-      DmMessage.where.not(dm_conversation_id: DmConversation.select(:id)).delete_all
+      removed += Tweet.where.not(parent_id: nil).where.not(parent_id: Tweet.select(:id)).delete_all
+      removed += Tweet.where.not(retweet_of_id: nil).where.not(retweet_of_id: Tweet.select(:id)).delete_all
+      removed += Like.where.not(tweet_id: Tweet.select(:id)).delete_all
+      removed += TweetView.where.not(tweet_id: Tweet.select(:id)).delete_all
+      removed += Bookmark.where.not(tweet_id: Tweet.select(:id)).delete_all
+      removed += Notification.where.not(tweet_id: nil).where.not(tweet_id: Tweet.select(:id)).delete_all
+      removed += Report.where.not(tweet_id: nil).where.not(tweet_id: Tweet.select(:id)).delete_all
+      removed += Follow.where.not(follower_id: User.select(:id)).delete_all
+      removed += Follow.where.not(followee_id: User.select(:id)).delete_all
+      removed += FollowRequest.where.not(requester_id: User.select(:id)).delete_all
+      removed += FollowRequest.where.not(target_id: User.select(:id)).delete_all
+      removed += Block.where.not(blocker_id: User.select(:id)).delete_all
+      removed += Block.where.not(blocked_id: User.select(:id)).delete_all
+      removed += Mute.where.not(muter_id: User.select(:id)).delete_all
+      removed += Mute.where.not(muted_id: User.select(:id)).delete_all
+      removed += ListMembership.where.not(user_id: User.select(:id)).delete_all
+      removed += ListMembership.where.not(list_id: List.select(:id)).delete_all
+      removed += List.where.not(user_id: User.select(:id)).delete_all
+      removed += ProfileView.where.not(user_id: User.select(:id)).delete_all
+      removed += ProfileView.where.not(viewer_id: User.select(:id)).delete_all
+      removed += DmMessage.where.not(sender_id: User.select(:id)).delete_all
+      removed += DmMessage.where.not(dm_conversation_id: DmConversation.select(:id)).delete_all
     end
-    User.count
+    removed
   end
 
   # Empties the notification inbox for everyone. The posts they point at stay,

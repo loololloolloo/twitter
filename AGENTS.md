@@ -13,8 +13,7 @@ the owner and holds every permission.
 - Rails app at the repository root. Ruby 3.3, Rails 8.1, vendored bundle.
 - Dev server: `http://localhost:12000`.
 - App code lives under `app/`; DB under `storage/`.
-- Seeded population is 5,000 bot accounts plus whatever humans sign up.
-- Generated bot avatars are written to `public/uploads/avatars/bot_<seed>.svg`.
+- Uploaded avatars are written to `public/uploads/avatars/`.
 
 ## Commands
 
@@ -24,6 +23,43 @@ the owner and holds every permission.
   - Put the script in a file. Inline `runner` strings with quotes or `#{}` are
     fragile in this shell and often fail to parse.
 - Console: `./bin/bundle exec rails console`
+- Serve both ports: `./bin/serve`
+  - This is the command to reach for. Both forwarded hosts (`work-1` on 12000,
+    `work-2` on 12001) must be listening or the platform reports "Bad Gateway"
+    on whichever one is down, so one port is not enough.
+  - The script reinstalls Ruby if the reset removed it, then starts each port
+    that is not already answering and waits until it responds.
+
+## Ruby install can vanish on a session reset
+
+A session reset removes the system Ruby: `env: 'ruby': No such file or
+directory`, with `/usr/bin/ruby` and `/usr/lib/ruby` both gone. It has happened
+more than once. The app's vendored gems (`vendor/bundle/ruby/3.3.0`) survive,
+so only the interpreter needs reinstalling. `openhands` has passwordless sudo.
+
+`./bin/serve` handles this automatically. To do it by hand:
+
+```
+sudo mkdir -p /var/lib/apt/lists/partial
+sudo apt-get update -qq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ruby3.3 ruby3.3-dev
+```
+
+The `mkdir` matters: the reset also removes `/var/lib/apt/lists/partial`, and
+without it `apt-get update` fails with "List directory ... is missing".
+
+Debian trixie ships 3.3.8, which matches the vendored bundle, and `bundler`
+2.5.22 comes with it - the same version `bin/bundle` loads. After install,
+`./bin/bundle check` should report the dependencies are satisfied and no
+`bundle install` is needed.
+
+## Parallel tests share files on disk, not just the database
+
+`parallelize_setup` in `test/test_helper.rb` gives each worker its own database
+and upload root. Two workers writing one file overwrite each other, and the
+assertion then fails intermittently rather than always, which makes it easy to
+dismiss as flake. Any new shared on-disk path a test writes to has to be
+namespaced per worker there.
 
 ## Things that bite
 
@@ -44,23 +80,8 @@ the owner and holds every permission.
   - `tweets.parent_id` and `tweets.retweet_of_id` are self-referencing, so
     tweets must be deleted leaves-first. `find_each` ignores `order`, so peel
     childless rows in a loop instead.
-- **Bot avatars are intentionally partial.** `AvatarGenerator.generate` returns
-  nil for roughly a third of accounts (rng > 0.68) so the population looks
-  real; ~3,400 of 5,000 bots have a picture. Nil `avatar_path` is expected and
-  renders the default egg, not a bug.
-- **Remote avatar import.** `RemoteAvatar` fetches pictures from DiceBear,
-  Robohash, or Picsum for accounts that have none. It is the only place the app
-  makes an outbound request driven by admin input, so it resolves the host and
-  refuses private/loopback/link-local addresses, only follows one redirect to a
-  pre-declared host, caps size and time, and sniffs the leading bytes before
-  saving (SVG is rejected because it can carry script). Do not add a provider
-  by interpolating a URL from user input; add it to `RemoteAvatar::PROVIDERS`
-  with a `build` lambda and an explicit host allowlist.
-  - Admin UI is gated on the `users.avatar` permission; `bots:avatars` is the
-    bulk equivalent for a shell. Both default to accounts with no picture, so
-    re-running is safe and idempotent.
-  - Assigning a picture removes the file it replaced via `Uploads.remove`,
-    which refuses any path that resolves outside `public/uploads`.
+- **Assigning a picture removes the file it replaced.** `Uploads.remove` refuses
+  any path that resolves outside `public/uploads`.
 
 ## Domain invariants
 
@@ -74,7 +95,11 @@ the owner and holds every permission.
 - The home feed shows original posts from everyone but retweets only from
   accounts the viewer follows. Retweets carry a "Retweeted by" flag naming the
   retweeter while the body stays credited to the original author.
-- Bots act on their own schedule (`BotEngine.tick`) and may follow, reply to,
-  like, and retweet humans. A human account must never be driven to act by the
-  engine, and signing up must not auto-follow anyone.
-- Seed data should never give a human account follows it did not perform.
+- Signing up must not auto-follow anyone, and no account is ever driven to act
+  on another's behalf.
+- The owner account answers to nobody. `may_manage?` (in `AdminController`) is
+  the single rule: an account with the owner role may only be changed by itself.
+  Every mutating action in `Admin::UsersController` runs `require_may_manage!`,
+  and the user page renders only the read-only card when it fails. Rank is not
+  sufficient on its own — an admin outranks a plain member, so a rank-only role
+  guard would let them demote the owner to `user` and take the instance.

@@ -46,7 +46,25 @@
           <% end %>
 
           <% if @tweet.media_path.present? %>
-            <div class="tweet-media permalink-media"><img src="/uploads/<%= @tweet.media_path %>" alt=""></div>
+            <div class="tweet-media permalink-media">
+              <img src="/uploads/<%= @tweet.media_path %>" alt="<%= @tweet.alt_text.to_s %>">
+            </div>
+          <% end %>
+
+          <%# A quoted post, shown as a card beneath the quoting body. %>
+          <% if @tweet.quote_of %>
+            <a class="quote-card" href="<%= tweet_path(@tweet.quote_of) %>">
+              <div class="quote-head">
+                <%= pic(@tweet.quote_of.user.avatar_path, 20) %>
+                <span class="quote-name"><%= @tweet.quote_of.user.display_name.presence || @tweet.quote_of.user.username %></span>
+                <% if @tweet.quote_of.user.is_verified %><span class="verified-badge"><%= icon('verified') %></span><% end %>
+                <span class="quote-handle">@<%= @tweet.quote_of.user.username %></span>
+              </div>
+              <p class="quote-text"><%= linkify(@tweet.quote_of.body) %></p>
+              <% if @tweet.quote_of.media_path.present? %>
+                <div class="tweet-media"><img src="/uploads/<%= @tweet.quote_of.media_path %>" alt="<%= @tweet.quote_of.alt_text.to_s %>"></div>
+              <% end %>
+            </a>
           <% end %>
 
           <span class="permalink-time"><%= @tweet.created_at.strftime('%-I:%M %p - %-d %b %Y') %></span>
@@ -106,23 +124,70 @@
                 <% end %>
               </button>
             <% end %>
+            <%# Saving and the overflow menu, matching the timeline's row. %>
+            <% saved = @tweet.bookmarked_by?(current_user) %>
+            <%= form_with url: bookmark_tweet_path(@tweet), method: :post,
+                          class: "inline js-bookmark",
+                          data: { bookmarked: saved, save_url: bookmark_tweet_path(@tweet),
+                                  unsave_url: bookmark_tweet_path(@tweet) } do %>
+              <button class="act act-save <%= 'saved' if saved %>" type="submit"
+                      title="<%= saved ? 'Remove from saved posts' : 'Save post' %>">
+                <%= icon(saved ? 'bookmark-solid' : 'bookmark-regular') %>
+              </button>
+            <% end %>
             <% if @tweet.user_id == current_user.id || can?('tweets.delete') %>
               <%= form_with url: tweet_path(@tweet), method: :delete, class: "inline",
                             html: { onsubmit: "return confirm('Delete this tweet?')" } do %>
                 <button class="act act-del" type="submit" title="Delete">&#215;</button>
               <% end %>
             <% end %>
+            <details class="tweet-menu tweet-menu-inline">
+              <summary aria-label="More options"><%= icon('ellipsis') %></summary>
+              <div class="tweet-menu-list">
+                <% if @tweet.user_id != current_user.id && !@tweet.retweet_of_id %>
+                  <a href="<%= tweet_path(@tweet, quote: 1) %>">Quote Tweet</a>
+                <% end %>
+                <% if @tweet.user_id == current_user.id %>
+                  <a href="<%= tweet_activity_path(@tweet) %>">View Tweet activity</a>
+                <% end %>
+                <a href="<%= tweet_path(@tweet) %>" data-copy-link="<%= tweet_url(@tweet) %>">Copy link to Tweet</a>
+                <% if @tweet.user_id != current_user.id %>
+                  <a href="<%= new_report_path(tweet_id: @tweet.id) %>">Report Tweet</a>
+                <% end %>
+              </div>
+            </details>
           </div>
         </div>
       </article>
     </div>
 
-    <%= render "tweets/composer", parent_id: @tweet.id, placeholder: "Reply to @#{@tweet.user.username}" %>
+    <%= render "tweets/composer", parent_id: @tweet.id, quote_of: @quote_of,
+                                  placeholder: @quote_of ? "Add a comment" : "Reply to @#{@tweet.user.username}" %>
+
+    <%# Hidden replies are the author's own moderation. The author sees the
+        count and can put them back; everyone else simply does not see them. %>
+    <% if @hidden_count.to_i.positive? && @tweet.user_id == current_user.id %>
+      <div class="hidden-note">
+        <%= @hidden_count %> <%= 'reply'.pluralize(@hidden_count) %> hidden from the conversation.
+      </div>
+    <% end %>
 
     <ul class="timeline permalink-replies">
       <% if @replies.present? %>
         <% @replies.each do |reply| %>
           <%= render "tweets/tweet", tweet: reply %>
+          <%# Hiding is the original author's decision, so the control is only
+              rendered for them and only on somebody else's reply. %>
+          <% if reply.parent.user_id == current_user.id && reply.user_id != current_user.id %>
+            <li class="reply-moderation">
+              <%= form_with url: hide_reply_path(reply),
+                            method: reply.reply_hidden? ? :delete : :post, class: "inline" do %>
+                <button class="btn btn-quiet btn-tiny" type="submit">
+                  <%= reply.reply_hidden? ? "Unhide reply" : "Hide reply" %>
+                </button>
+              <% end %>
+            </li>
+          <% end %>
         <% end %>
       <% else %>
         <li class="empty">No replies yet.</li>

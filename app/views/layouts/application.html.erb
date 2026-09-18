@@ -1,126 +1,45 @@
 <!DOCTYPE html>
-<%# The theme rides on the root element so the palette variables resolve before
-    the first paint and the page never flashes light before turning dark. %>
-<html lang="en" data-theme="<%= signed_in? && current_user.dark_theme? ? 'dark' : 'light' %>">
+<%# Two independent choices ride on the root element, because neither can be
+    resolved after paint without a flash: `data-theme` is the light/dark
+    palette and `data-design` is which era of the client the account is on.
+    Both are read from the account, so a signed-out visitor gets the current
+    design in light. %>
+<% design = signed_in? ? current_user.design : User::DEFAULT_DESIGN %>
+<html lang="en"
+      data-theme="<%= signed_in? && current_user.dark_theme? ? 'dark' : 'light' %>"
+      data-design="<%= design %>">
 <head>
 <meta charset="utf-8">
 <title><%= content_for?(:title) ? yield(:title) : @site_name %></title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <%= stylesheet_link_tag "twitter" %>
+<%# Each recovered design ships its own sheet over the top of the current one:
+    the classic palettes and metrics, applied without restyling the 2019 rules
+    that every page still uses. Loading it only for the active design keeps the
+    two from fighting. %>
+<% if design == "2015" %>
+  <%= stylesheet_link_tag "twitter-2015" %>
+<% elsif design == "prototype" %>
+  <%= stylesheet_link_tag "twitter-prototype" %>
+<% end %>
 <link rel="icon" href="<%= asset_path('icons/twitter-bird.svg') %>">
 <%= csrf_meta_tags %>
 </head>
-<body class="<%= "logged-out" unless signed_in? %>">
+<body class="<%= "logged-out" unless signed_in? %> design-<%= design %>">
 
-<% if signed_in? %>
+<% if signed_in? && !current_user.legacy_design? %>
 <%# The 2019 redesign moves navigation out of a global top bar and into a left
     sidebar: icon plus label, a primary action button, and the account switcher
     pinned to the bottom. The grid is three columns - the rail, the stream and
     the right rail - so the shell owns the horizontal structure rather than each
     page rebuilding it. %>
 <div class="app-shell">
-  <nav class="side-nav" aria-label="Primary">
-    <a class="side-brand" href="<%= home_path %>" title="<%= @site_name %>"><%= bird %></a>
-
-    <ul class="side-menu">
-      <li>
-        <a href="<%= home_path %>" class="side-link <%= 'is-active' if controller_name == 'timelines' && action_name == 'home' %>">
-          <%= icon('house') %><span class="side-label">Home</span>
-        </a>
-      </li>
-      <li>
-        <a href="<%= explore_path %>" class="side-link <%= 'is-active' if controller_name == 'timelines' && action_name == 'explore' %>">
-          <%= icon('magnifying-glass') %><span class="side-label">Explore</span>
-        </a>
-      </li>
-      <li>
-        <a href="<%= notifications_path %>" class="side-link <%= 'is-active' if controller_name == 'notifications' %>">
-          <%= icon('bell') %><span class="side-label">Notifications</span>
-        </a>
-      </li>
-      <li>
-        <a href="<%= messages_path %>" class="side-link <%= 'is-active' if controller_name == 'messages' %>">
-          <%= icon('chat') %><span class="side-label">Messages</span>
-        </a>
-      </li>
-      <li>
-        <a href="<%= profile_path(current_user.username) %>" class="side-link <%= 'is-active' if controller_name == 'profiles' && @user == current_user %>">
-          <%= icon('user') %><span class="side-label">Profile</span>
-        </a>
-      </li>
-      <li>
-        <a href="<%= users_path %>" class="side-link <%= 'is-active' if controller_name == 'people' %>">
-          <%= icon('user') %><span class="side-label">People</span>
-        </a>
-      </li>
-      <% if can?('admin.access') %>
-        <li>
-          <a href="<%= admin_root_path %>" class="side-link"><%= icon('shield-halved') %><span class="side-label">Admin</span></a>
-        </li>
-      <% end %>
-    </ul>
-
-    <a class="side-compose" href="<%= home_path %>#reply"><%= icon('compose') %><span class="side-label">Tweet</span></a>
-
-    <div class="side-account">
-      <%# The 2019 account menu is a popover, not a page. Clicking the account
-          row opens it; it lists the accounts this browser is signed into with
-          the active one checked, offers Add account / Log out of all accounts,
-          and keeps only Settings and Sign out below them. %>
-      <div class="account-menu" data-account-menu>
-        <button class="account-link" type="button" aria-haspopup="true" aria-expanded="false">
-          <%= pic(current_user.avatar_path, 40) %>
-          <span class="account-names">
-            <span class="account-name"><%= current_user.display_name %></span>
-            <span class="account-handle">@<%= current_user.username %></span>
-          </span>
-          <span class="account-caret"><%= icon('ellipsis') %></span>
-        </button>
-
-        <div class="account-popover" role="menu" aria-label="Account menu">
-          <% others = connected_accounts.reject { |account| account.id == current_user.id } %>
-          <% if others.any? %>
-            <% others.each do |account| %>
-              <%= button_to switch_account_path(account.id), method: :post,
-                            class: "account-popover-account" do %>
-                <%= pic(account.avatar_path, 40) %>
-                <span class="account-popover-names">
-                  <span class="account-popover-name"><%= account.display_name %></span>
-                  <span class="account-popover-handle">@<%= account.username %></span>
-                </span>
-              <% end %>
-            <% end %>
-          <% end %>
-
-          <%# The active account is listed last with a check, the way the
-              switcher showed which one is live. %>
-          <div class="account-popover-row is-current">
-            <%= pic(current_user.avatar_path, 40) %>
-            <span class="account-popover-names">
-              <span class="account-popover-name"><%= current_user.display_name %></span>
-              <span class="account-popover-handle">@<%= current_user.username %></span>
-            </span>
-            <span class="account-popover-check"><%= icon('verified') %></span>
-          </div>
-
-          <a class="account-popover-row" href="<%= login_path(add: 1) %>">
-            <%= icon('user') %><span>Add an existing account</span>
-          </a>
-
-          <div class="account-popover-divider"></div>
-
-          <a class="account-popover-row" href="<%= settings_path %>">
-            <%= icon('gear') %><span>Settings and privacy</span>
-          </a>
-          <a class="account-popover-row" href="<%= logout_path %>">
-            <%= icon('right-from-bracket') %><span>Sign out</span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </nav>
-
+  <%= render "shared/side_nav" %>
   <div class="app-main">
+    <div class="page <%= 'page-wide' if controller_name == 'profiles' && action_name == 'show' %>">
+<% elsif signed_in? %>
+  <%= render "shared/top_bar" %>
+  <div class="app-main app-main-legacy">
     <div class="page <%= 'page-wide' if controller_name == 'profiles' && action_name == 'show' %>">
 <% else %>
   <div class="app-main app-main-public">
@@ -142,17 +61,31 @@
 
 <%= yield %>
 
-<% if signed_in? %>
+<%# Close whichever shell was opened above. The 2019 branch opened three
+    elements (shell, main, page); the legacy and signed-out branches opened two,
+    and the legacy one adds its footer inside the main column. %>
+<% if signed_in? && !current_user.legacy_design? %>
     </div>
   </div>
 </div>
+<% elsif signed_in? %>
+    </div>
+  </div>
+<footer class="site-footer">
+  <a href="<%= about_path %>">About</a>
+  <a href="<%= help_path %>">Help</a>
+  <a href="<%= tos_path %>">Terms</a>
+  <a href="<%= privacy_path %>">Privacy</a>
+  <span>&copy; <%= @site_name %></span>
+</footer>
 <% else %>
     </div>
   </div>
 <% end %>
 
-<%# The rail already carries these links and the copyright on signed-in pages,
-    so the global footer is only for the signed-out screens. %>
+<%# On the 2019 design the rail carries these links and the copyright on
+    signed-in pages, so the global footer is only for signed-out screens. The
+    recovered designs render their own footer above. %>
 <% unless signed_in? %>
 <footer class="site-footer">
   <a href="<%= about_path %>">About</a>

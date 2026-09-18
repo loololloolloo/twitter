@@ -1,0 +1,49 @@
+<% content_for :title, "Follow requests / #{@site_name}" %>
+
+<div class="layout">
+  <section class="col-main">
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Follow requests</h1>
+        <span class="stream-sub">@<%= current_user.username %></span>
+      </div>
+    </div>
+
+    <p class="stream-note">
+      Your account is protected, so people have to ask before they can follow you.
+    </p>
+
+    <ul class="row-list">
+      <% if @pending.present? %>
+        <% @pending.each do |request| %>
+          <li class="row-item">
+            <a class="row-avatar" href="<%= profile_path(request.requester.username) %>">
+              <%= pic(request.requester.avatar_path, 48) %>
+            </a>
+            <div class="row-body">
+              <div class="row-title">
+                <a class="row-name" href="<%= profile_path(request.requester.username) %>">
+                  <%= request.requester.display_name.presence || request.requester.username %>
+                </a>
+              </div>
+              <p class="row-note">@<%= request.requester.username %> wants to follow you</p>
+              <span class="row-meta"><%= time_ago(request.created_at) %></span>
+            </div>
+            <div class="row-action row-action-pair">
+              <%= button_to "Accept", approve_follow_request_path(request), method: :post,
+                            class: "btn btn-primary btn-pill" %>
+              <%= button_to "Decline", reject_follow_request_path(request), method: :post,
+                            class: "btn btn-pill" %>
+            </div>
+          </li>
+        <% end %>
+      <% else %>
+        <li class="empty-note">No pending follow requests.</li>
+      <% end %>
+    </ul>
+  </section>
+
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
+</div>

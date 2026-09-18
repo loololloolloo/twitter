@@ -69,4 +69,59 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'class="rail-block"'
     assert_no_match(/class="admin-nav"/, response.body)
   end
+
+  # The 2019 rail ordered its destinations Home, Explore, Notifications,
+  # Messages, Bookmarks, Lists, Profile, More. A different sequence reads as a
+  # different era, so the order is asserted rather than just the presence.
+  test "the sidebar follows the 2019 order and keeps the rest behind More" do
+    me = create_user(username: "order_me")
+    sign_in(me)
+
+    get home_path
+    assert_response :success
+
+    menu = response.body[/<ul class="side-menu">.*?<\/ul>/m].to_s
+    labels = menu.scan(/class="side-label">([^<]+)</).flatten
+    assert_equal %w[Home Explore Notifications Messages Bookmarks Lists Profile More], labels
+
+    # The non-primary destinations are not top-level links any more; they live
+    # inside the More disclosure.
+    assert_includes response.body, "side-more"
+    assert_includes response.body, "Settings and privacy"
+    assert_includes response.body, "Help Center"
+  end
+
+  # A Top-ranked stream and a latest-first one are the same entries under two
+  # orderings, so the header offers the swap and the page records which mode it
+  # is in. The poll then knows not to queue arrivals out of rank.
+  test "the home header offers the Top and latest orderings" do
+    me = create_user(username: "sparkle_me")
+    other = create_user(username: "sparkle_other")
+    me.active_follows.create!(followee: other)
+
+    quiet = Tweet.create!(user: other, body: "quiet post")
+    loud = Tweet.create!(user: other, body: "loud post")
+    Like.create!(user: me, tweet: loud, kind: "like")
+
+    sign_in(me)
+
+    get home_path
+    assert_response :success
+    assert_includes response.body, "stream-head-toggle"
+    assert_includes response.body, "Latest Tweets"
+    assert_includes response.body, 'data-show="top"'
+    # The control names the mode it switches to, so the link must point at the
+    # other one - pointing at the current mode would make it a no-op.
+    assert_includes response.body, "show=latest"
+    assert_not_includes response.body, 'href="/home?show=top"'
+    # Top puts the reacted-to post first.
+    assert_operator response.body.index(loud.body), :<, response.body.index(quiet.body)
+
+    get home_path(show: "latest")
+    assert_response :success
+    assert_includes response.body, "Top Tweets"
+    assert_includes response.body, 'data-show="latest"'
+    assert_includes response.body, "show=top"
+    assert_not_includes response.body, 'href="/home?show=latest"'
+  end
 end

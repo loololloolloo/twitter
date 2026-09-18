@@ -1,0 +1,64 @@
+<%# The report form. What is being reported is named by exactly one parameter -
+    a tweet id or a username - and the heading follows from which it is. %>
+<% tweet = @subject.is_a?(Tweet) ? @subject : nil %>
+<% account = tweet ? tweet.user : @subject %>
+
+<% content_for :title, "Report / #{@site_name}" %>
+
+<div class="layout">
+  <section class="col-main">
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Report <%= tweet ? "Tweet" : "@#{account.username}" %></h1>
+      </div>
+    </div>
+
+    <%# The thing being reported, shown so the reporter can confirm they picked
+        the right one before submitting. %>
+    <div class="panel-section">
+      <div class="suggestion">
+        <%= pic(account.avatar_path, 48) %>
+        <div class="suggestion-body">
+          <span class="report-name"><%= account.display_name.presence || account.username %></span>
+          <span>@<%= account.username %></span>
+        </div>
+      </div>
+      <% if tweet && tweet.body.present? %>
+        <p class="tweet-text report-quoted"><%= linkify(tweet.body) %></p>
+      <% end %>
+    </div>
+
+    <%= form_with url: report_path, method: :post, class: "settings-form" do %>
+      <% if tweet %>
+        <%= hidden_field_tag :tweet_id, tweet.id %>
+      <% else %>
+        <%= hidden_field_tag :username, account.username %>
+      <% end %>
+
+      <fieldset class="report-reasons">
+        <legend>What is the issue?</legend>
+        <% @categories.each do |category| %>
+          <label class="report-reason" for="report-category-<%= category %>">
+            <input id="report-category-<%= category %>" type="radio" name="category"
+                   value="<%= category %>" <%= "checked" if category == @categories.first %>>
+            <span><%= Report::CATEGORIES.fetch(category, category) %></span>
+          </label>
+        <% end %>
+      </fieldset>
+
+      <div class="settings-field">
+        <label for="report-detail">Additional details (optional)</label>
+        <textarea id="report-detail" name="detail" rows="3" maxlength="500"></textarea>
+      </div>
+
+      <div class="settings-actions">
+        <button class="btn btn-primary" type="submit">Submit report</button>
+        <a class="btn btn-quiet" href="<%= tweet ? tweet_path(tweet) : profile_path(account.username) %>">Cancel</a>
+      </div>
+    <% end %>
+  </section>
+
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
+</div>

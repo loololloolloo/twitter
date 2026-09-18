@@ -8,7 +8,25 @@
       </div>
     </div>
 
-    <% if @query.present? && @people.present? %>
+    <%# The 2019 search screen split its results across tabs. They are views of
+        the same query rather than separate pages, so each one is a link back to
+        this screen with a different `tab`. The tabs only appear once there is a
+        query, since there is nothing to narrow before that. %>
+    <% if @query.present? %>
+      <ul class="profile-tabs">
+        <% { "top" => "Top", "latest" => "Latest", "people" => "People", "photos" => "Photos" }.each do |key, label| %>
+          <li class="pt-item <%= 'is-active' if @tab == key %>">
+            <% if @tab == key %>
+              <span><%= label %></span>
+            <% else %>
+              <a href="<%= explore_path(q: @query, tab: key) %>"><%= label %></a>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+
+    <% if @query.present? && @people.present? && %w[top people].include?(@tab) %>
       <div class="section-card">
         <h2>People</h2>
         <ul class="row-list">

@@ -58,16 +58,6 @@ class AdminImpersonationTest < ActionDispatch::IntegrationTest
     assert_match(/at or above your own level/, flash[:alert].to_s)
   end
 
-  test "simulated accounts cannot be signed into" do
-    owner = create_user(username: "king", role: "owner")
-    bot = create_user(username: "robot", is_bot: true)
-
-    sign_in(owner)
-    post admin_user_impersonate_path(bot)
-    assert_redirected_to admin_user_path(bot)
-    assert_match(/Simulated accounts/, flash[:alert].to_s)
-  end
-
   test "stopping when not impersonating does nothing harmful" do
     owner = create_user(username: "king", role: "owner")
 

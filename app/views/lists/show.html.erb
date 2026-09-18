@@ -1,0 +1,58 @@
+<% content_for :title, "#{@list.name} / Lists / #{@site_name}" %>
+
+<div class="layout">
+  <section class="col-main">
+    <div class="stream-head stream-head-stacked">
+      <div class="stream-head-title">
+        <h1><%= @list.name %></h1>
+        <span class="stream-sub">
+          @<%= @list.user.username %>
+          &middot; <%= @list.member_count %> <%= 'member'.pluralize(@list.member_count) %>
+          <% if @list.is_private %> &middot; Private<% end %>
+        </span>
+      </div>
+      <% if @is_owner %>
+        <div class="stream-head-actions">
+          <a class="btn btn-pill" href="<%= list_members_path(@list) %>">Edit members</a>
+          <a class="btn btn-pill" href="<%= edit_list_path(@list) %>">Edit list</a>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @list.description.present? %>
+      <p class="stream-note"><%= @list.description %></p>
+    <% end %>
+
+    <ul class="tweet-list">
+      <% if @tweets.present? %>
+        <%= render partial: "tweets/tweet", collection: @tweets, as: :tweet %>
+      <% else %>
+        <li class="empty-note">
+          Nothing here yet. Posts from the accounts on this list appear here.
+        </li>
+      <% end %>
+    </ul>
+  </section>
+
+  <aside class="col-right">
+    <div class="rail-card">
+      <h3 class="rail-heading">Members</h3>
+      <% if @members.present? %>
+        <% @members.first(8).each do |member| %>
+          <div class="suggestion">
+            <a href="<%= profile_path(member.username) %>"><%= pic(member.avatar_path, 40) %></a>
+            <div class="suggestion-body">
+              <a href="<%= profile_path(member.username) %>"><%= member.display_name %></a>
+              <span>@<%= member.username %></span>
+            </div>
+          </div>
+        <% end %>
+        <% if @members.size > 8 %>
+          <a class="rail-more" href="<%= list_members_path(@list) %>">Show all</a>
+        <% end %>
+      <% else %>
+        <p class="rail-note">No members yet.</p>
+      <% end %>
+    </div>
+  </aside>
+</div>

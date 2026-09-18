@@ -6,7 +6,7 @@ module RoleBootstrapper
     "owner" => Permission::KEYS.keys,
     "admin" => %w[
       admin.access users.view users.suspend users.ban users.delete users.verify
-      users.bot_followers bots.runner users.avatar users.email users.tags
+      users.followers users.email users.tags
       tweets.view tweets.delete tweets.pin reports.view
       reports.resolve audit.view backup.export maintenance.run
     ],
@@ -24,7 +24,7 @@ module RoleBootstrapper
   SITE_SETTINGS = {
     "site_name" => "Twitter",
     "site_tagline" => "What's happening?",
-    "max_tweet_length" => "140",
+    "max_tweet_length" => "280",
     "registration_open" => "1",
     "maintenance_message" => ""
   }.freeze
@@ -39,6 +39,11 @@ module RoleBootstrapper
       permission = Permission.find_or_initialize_by(key: key)
       permission.update!(label: label)
     end
+
+    # A key that is no longer registered is dropped, along with the grants
+    # pointing at it. Without this a retired permission lingers in the admin
+    # editor as a checkbox that grants nothing.
+    Permission.where.not(key: Permission::KEYS.keys).destroy_all
 
     ROLE_GRANTS.each do |role_name, keys|
       role = Role.find_by!(name: role_name)

@@ -20,7 +20,6 @@
       <%= @user.is_banned ? 'banned' : (@user.is_suspended ? 'suspended' : 'active') %>
     </span>
     <span class="tag tag-quiet"><%= @user.role.name %></span>
-    <% if @user.is_bot %><span class="tag tag-info">simulated</span><% end %>
     <% if @user.is_verified %><span class="tag tag-info">verified</span><% end %>
     <%= account_tag_chips(@user) %>
     <% if @open_reports.positive? %>
@@ -32,14 +31,14 @@
     <span>Email <strong><%= @user.email.presence || 'none' %></strong></span>
     <span>Joined <strong><%= @user.created_at.strftime('%d %b %Y') %></strong></span>
     <span>Last login <strong><%= @user.last_login_at ? time_ago(@user.last_login_at) : 'never' %></strong></span>
-    <span>Followers <strong><%= count_label(@real_followers + @user.bonus_followers.to_i) %></strong></span>
+    <span>Followers <strong><%= count_label(@user.follower_count) %></strong></span>
     <span>Tweets <strong><%= @user.tweet_count %></strong></span>
     <span>Permission set <strong><%= @held.size %> / <%= @permissions.size %></strong></span>
   </p>
 
   <p class="admin-user-links">
     <a class="btn btn-mini" href="<%= profile_path(@user.username) %>">View public profile</a>
-    <% if can?('users.impersonate') && !@user.is_bot && @user.id != current_user.id && outranks?(@user) %>
+    <% if may_manage?(@user) && can?('users.impersonate') && @user.id != current_user.id && outranks?(@user) %>
       <%= form_with url: admin_user_impersonate_path(@user), method: :post, class: "inline" do %>
         <button class="btn btn-mini" type="submit">Sign in as @<%= @user.username %></button>
       <% end %>
@@ -53,6 +52,12 @@
   </p>
 </div>
 
+<%# Everything below this point writes to the account. When the viewer cannot
+    manage it - which is the case for every account but the owner looking at
+    itself - none of it is rendered: no tag editor, no email or follower forms,
+    no ban, suspend, role, verify or delete controls. What is left is the plain
+    read-only card, so there is nothing on the page to alter the account with. %>
+<% if may_manage?(@user) %>
 <section class="admin-section">
   <h2 class="section-title">Account tags</h2>
   <p class="section-note">
@@ -142,8 +147,8 @@
   <div class="panel">
     <h3 class="panel-title">Followers</h3>
     <p>Real follows: <strong><%= @real_followers %></strong></p>
-    <p>Displayed total: <strong><%= count_label(@real_followers + @user.bonus_followers.to_i) %></strong></p>
-    <% if can?('users.bot_followers') %>
+    <p>Displayed total: <strong><%= count_label(@user.follower_count) %></strong></p>
+    <% if can?('users.followers') %>
       <%= form_with url: admin_user_followers_path(@user), method: :post, class: "stack" do %>
         <label>Extra followers
           <input type="number" name="followers" min="0" step="1" value="<%= @user.bonus_followers.to_i %>" required>
@@ -194,11 +199,7 @@
   <div class="panel">
     <h3 class="panel-title">Profile picture</h3>
     <p><%= pic(@user.avatar_path, 48) %></p>
-    <% if can?('users.avatar') %>
-      <p><a class="btn btn-mini" href="<%= admin_user_avatars_path(@user) %>">Import a picture</a></p>
-    <% else %>
-      <p class="muted"><%= @user.avatar_path.present? ? 'Has a picture.' : 'Using the default.' %></p>
-    <% end %>
+    <p class="muted"><%= @user.avatar_path.present? ? 'Has a picture.' : 'Using the default.' %></p>
   </div>
 
   <div class="panel">
@@ -293,3 +294,35 @@
     <% end %>
   </tbody>
 </table>
+
+<% else %>
+<%# The read-only card. It is the same account facts the editable screen shows,
+    with none of the controls: an operator who cannot manage this account still
+    sees who it is, what it is, and how it is doing, and nothing more. %>
+<div class="detail-grid">
+  <div class="panel">
+    <h3 class="panel-title">Account state</h3>
+    <p>Role: <span class="role-badge"><%= @user.role.name %></span> (rank <%= @user.role.rank %>)</p>
+    <p>Status:
+      <% if @user.is_banned %><span class="pill pill-bad">banned</span>
+      <% elsif @user.is_suspended %><span class="pill pill-bad">suspended</span>
+      <% else %><span class="pill pill-ok">active</span><% end %>
+    </p>
+    <p>Verified: <% if @user.is_verified %><span class="pill">yes</span><% else %><span class="pill">no</span><% end %></p>
+    <p>Last login: <span class="muted"><%= @user.last_login_at.presence || 'never' %></span></p>
+    <p>Followers: <strong><%= count_label(@user.follower_count) %></strong></p>
+    <p>Tweets: <strong><%= @user.tweet_count %></strong></p>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Identity</h3>
+    <p>Username: <strong>@<%= @user.username %></strong></p>
+    <p>Display name: <strong><%= @user.display_name %></strong></p>
+    <p>Joined: <strong><%= @user.created_at.strftime('%d %b %Y') %></strong></p>
+    <p>Email: <span class="muted">private</span></p>
+    <p class="panel-note">
+      This account can only be changed by signing in as it.
+    </p>
+  </div>
+</div>
+<% end %>

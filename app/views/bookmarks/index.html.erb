@@ -1,0 +1,33 @@
+<% content_for :title, "Bookmarks / #{@site_name}" %>
+
+<div class="layout">
+  <section class="col-main">
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Bookmarks</h1>
+        <span class="stream-sub">@<%= current_user.username %></span>
+      </div>
+      <% if @tweets.present? %>
+        <%= button_to "Clear all", clear_bookmarks_path, method: :delete,
+                      class: "btn btn-quiet",
+                      form: { onsubmit: "return confirm('Remove every saved post?')" } %>
+      <% end %>
+    </div>
+
+    <p class="stream-note">Only you can see your saved posts.</p>
+
+    <ul class="tweet-list">
+      <% if @tweets.present? %>
+        <%= render partial: "tweets/tweet", collection: @tweets, as: :tweet %>
+      <% else %>
+        <li class="empty-note">
+          Nothing saved yet. Tap the bookmark icon on a post to keep it here.
+        </li>
+      <% end %>
+    </ul>
+  </section>
+
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
+</div>

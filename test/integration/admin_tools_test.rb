@@ -8,7 +8,6 @@ class AdminToolsTest < ActionDispatch::IntegrationTest
     RoleBootstrapper.run
     @owner = create_user(username: "tools_owner", role: "owner")
     @member = create_user(username: "tools_member", role: "user")
-    @bot = create_user(username: "tools_bot", role: "user", is_bot: true)
     sign_in(@owner)
   end
 
@@ -19,7 +18,6 @@ class AdminToolsTest < ActionDispatch::IntegrationTest
     assert_match(/Danger zone/, response.body)
     assert_match(/Backup &amp; restore/, response.body)
     assert_match(/Announcement/, response.body)
-    assert_match(/Simulated accounts/, response.body)
   end
 
   test "the panel rail is a sidebar that does not repeat the top bar" do
@@ -59,30 +57,13 @@ class AdminToolsTest < ActionDispatch::IntegrationTest
 
   test "clearing the follow graph leaves accounts and posts alone" do
     Follow.create!(follower: @member, followee: @owner)
-    Follow.create!(follower: @bot, followee: @member)
     Tweet.create!(user: @member, body: "still here")
 
     post admin_tools_clear_follows_path, params: { confirm: "CONFIRM" }
 
     assert_equal 0, Follow.count
-    assert_equal 3, User.count
+    assert_equal 2, User.count
     assert_equal 1, Tweet.count
-  end
-
-  test "clearing simulated accounts removes only the bots and their content" do
-    Follow.create!(follower: @bot, followee: @member)
-    Follow.create!(follower: @member, followee: @owner)
-    bot_tweet = Tweet.create!(user: @bot, body: "bot noise")
-    Like.create!(user: @bot, tweet: bot_tweet, kind: "like")
-    Tweet.create!(user: @member, body: "human post")
-
-    post admin_tools_clear_bots_path, params: { confirm: "confirm" }
-
-    assert_nil User.find_by(username: "tools_bot")
-    assert User.find_by(username: "tools_member")
-    assert_equal 1, Tweet.count
-    assert_equal "human post", Tweet.first.body
-    assert_equal 1, Follow.count
   end
 
   test "clearing sessions signs everyone else out and keeps the operator" do
@@ -171,7 +152,7 @@ class AdminToolsTest < ActionDispatch::IntegrationTest
 
   test "clearing granted followers empties the padding but keeps real follows" do
     @member.update!(bonus_followers: 5_000)
-    @bot.update!(bonus_followers: 250)
+    @owner.update!(bonus_followers: 250)
     Follow.create!(follower: @owner, followee: @member)
 
     post admin_tools_clear_granted_followers_path, params: { confirm: "CONFIRM" }
@@ -210,7 +191,7 @@ class AdminToolsTest < ActionDispatch::IntegrationTest
 
     assert_equal 0, DmMessage.count
     assert_equal 0, DmConversation.count
-    assert_equal 3, User.count
+    assert_equal 2, User.count
   end
 
   test "clearing reports empties the queue without touching accounts or posts" do
@@ -221,7 +202,7 @@ class AdminToolsTest < ActionDispatch::IntegrationTest
 
     assert_equal 0, Report.count
     assert_equal 1, Tweet.count
-    assert_equal 3, User.count
+    assert_equal 2, User.count
   end
 
   test "clearing every session signs the operator out too" do

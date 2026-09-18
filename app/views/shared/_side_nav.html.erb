@@ -1,0 +1,90 @@
+<%# The 2019 primary navigation. It lives in the shell rather than on each page
+    so every screen gets the same rail, active states and account switcher. %>
+<nav class="side-nav" aria-label="Primary">
+  <a class="side-brand" href="<%= home_path %>" title="<%= @site_name %>"><%= bird %></a>
+
+  <ul class="side-menu">
+    <li>
+      <a href="<%= home_path %>" class="side-link <%= 'is-active' if controller_name == 'timelines' && action_name == 'home' %>">
+        <%= icon('house') %><span class="side-label">Home</span>
+      </a>
+    </li>
+    <li>
+      <a href="<%= explore_path %>" class="side-link <%= 'is-active' if controller_name == 'timelines' && action_name == 'explore' %>">
+        <%= icon('magnifying-glass') %><span class="side-label">Explore</span>
+      </a>
+    </li>
+    <li>
+      <a href="<%= notifications_path %>" class="side-link <%= 'is-active' if controller_name == 'notifications' %>">
+        <%= icon('bell') %><span class="side-label">Notifications</span>
+      </a>
+    </li>
+    <li>
+      <a href="<%= messages_path %>" class="side-link <%= 'is-active' if controller_name == 'messages' %>">
+        <%= icon('envelope') %><span class="side-label">Messages</span>
+      </a>
+    </li>
+    <%# The 2019 rail orders the saved and curated sections above the account's
+        own profile, which is what this sequence follows: Bookmarks and Lists,
+        then Profile, then More. %>
+    <li>
+      <a href="<%= bookmarks_path %>" class="side-link <%= 'is-active' if controller_name == 'bookmarks' %>">
+        <%= icon('bookmark-regular') %><span class="side-label">Bookmarks</span>
+      </a>
+    </li>
+    <li>
+      <a href="<%= lists_path %>" class="side-link <%= 'is-active' if controller_name == 'lists' %>">
+        <%= icon('list') %><span class="side-label">Lists</span>
+      </a>
+    </li>
+    <li>
+      <a href="<%= profile_path(current_user.username) %>" class="side-link <%= 'is-active' if controller_name == 'profiles' && @user == current_user %>">
+        <%= icon('user') %><span class="side-label">Profile</span>
+      </a>
+    </li>
+    <% pending_requests = current_user.received_follow_requests.pending.count %>
+    <% if pending_requests.positive? %>
+      <li>
+        <a href="<%= follow_requests_path %>" class="side-link <%= 'is-active' if controller_name == 'follow_requests' %>">
+          <%= icon('lock') %><span class="side-label">Follow requests</span>
+          <span class="side-badge"><%= pending_requests %></span>
+        </a>
+      </li>
+    <% end %>
+
+    <%# "More" is where the 2019 rail keeps everything that is not a primary
+        destination: the people directory, the account's settings, and the
+        policy pages. It is a disclosure rather than a link because the client
+        opened it in place. %>
+    <li>
+      <details class="side-more" <%= 'open' if controller_name.in?(%w[people settings pages]) %>>
+        <summary class="side-link" aria-haspopup="true">
+          <%= icon('ellipsis') %><span class="side-label">More</span>
+        </summary>
+        <div class="side-more-list">
+          <a href="<%= users_path %>" class="side-more-item <%= 'is-active' if controller_name == 'people' %>">
+            <%= icon('users') %><span>People</span>
+          </a>
+          <% if can?('admin.access') %>
+            <a href="<%= admin_root_path %>" class="side-more-item">
+              <%= icon('shield-halved') %><span>Admin panel</span>
+            </a>
+          <% end %>
+          <a href="<%= settings_path %>" class="side-more-item <%= 'is-active' if controller_name == 'settings' %>">
+            <%= icon('gear') %><span>Settings and privacy</span>
+          </a>
+          <a href="<%= help_path %>" class="side-more-item"><%= icon('comment') %><span>Help Center</span></a>
+          <a href="<%= about_path %>" class="side-more-item"><%= icon('globe') %><span>About</span></a>
+          <a href="<%= tos_path %>" class="side-more-item"><%= icon('flag') %><span>Terms of Service</span></a>
+          <a href="<%= privacy_path %>" class="side-more-item"><%= icon('lock') %><span>Privacy Policy</span></a>
+        </div>
+      </details>
+    </li>
+  </ul>
+
+  <a class="side-compose" href="<%= home_path %>#reply"><%= icon('compose') %><span class="side-label">Tweet</span></a>
+
+  <div class="side-account">
+    <%= render "shared/account_menu" %>
+  </div>
+</nav>

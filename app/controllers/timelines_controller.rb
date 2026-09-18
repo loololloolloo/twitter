@@ -6,10 +6,29 @@ class TimelinesController < ApplicationController
   def home
     require_login! || return
 
-    @tweets = home_feed
+    # The 2019 home header could order the same timeline two ways: Top Tweets,
+    # ranked by engagement, or the latest first. Both are the same stream, so
+    # the mode only changes the ordering.
+    @show = params[:show].presence_in(%w[top latest]) || "top"
 
+    @tweets =
+      if @show == "top"
+        # "Top" ranks the same entries by engagement, which is what the header
+        # advertised. The scope is capped before sorting so a busy site does not
+        # pull every post into memory to rank it.
+        home_feed.limit(200).to_a
+                 .sort_by { |t| -(t.like_count + t.favourite_count + t.retweet_count + t.reply_count) }
+                 .first(120)
+      else
+        home_feed
+      end
+
+    # Suggestions exclude accounts already followed, blocked either way, and
+    # muted, so the panel never proposes somebody the reader has silenced.
     @suggestions = User.visible
                        .where.not(id: current_user.id)
+                       .where.not(id: current_user.following.select(:id))
+                       .where.not(id: current_user.silenced_account_ids)
                        .order(Arel.sql("RANDOM()"))
                        .limit(3)
 
@@ -52,25 +71,42 @@ class TimelinesController < ApplicationController
 
     @query = params[:q].to_s.strip
     @trends = Tweet.top_trends
+    # The 2019 search screen had tabs: Top, Latest, People, Photos and Videos.
+    # `top` and `latest` differ in ordering rather than in what they match.
+    @tab = params[:tab].presence_in(%w[top latest people photos]) || "top"
 
-    scope = Tweet.visible.includes(:user, retweet_of: :user).recent
+    scope = Tweet.visible.readable_by(current_user).includes(:user, retweet_of: :user, quote_of: :user)
 
     if @query.present?
       # A leading # narrows to hashtags; an @ narrows to accounts. Both are
       # matched against the stored text, which is how the classic search worked.
-      scope = scope.where("body LIKE ?", "%#{@query}%")
+      term = @query.delete_prefix("@").delete_prefix("#")
+      scope = scope.where("tweets.body LIKE ?", "%#{term}%")
+      scope = scope.where("tweets.body LIKE ?", "%##{term}%") if @query.start_with?("#")
     end
 
-    @tweets = scope.limit(60)
+    @tweets =
+      case @tab
+      when "latest" then scope.recent.limit(60)
+      when "photos" then scope.where.not(media_path: [ nil, "" ]).recent.limit(60)
+      else
+        # "Top" ranks by engagement rather than recency, which is what the tab
+        # advertised: the posts people reacted to, not merely the newest.
+        scope.recent.limit(200).to_a
+             .sort_by { |t| -(t.like_count + t.favourite_count + t.retweet_count + t.reply_count) }
+             .first(60)
+      end
 
     @people =
       if @query.present?
         term = @query.delete_prefix("@").delete_prefix("#")
         User.visible
+            .where.not(id: current_user.silenced_account_ids)
             .where("username LIKE ? OR display_name LIKE ?", "%#{term}%", "%#{term}%")
             .limit(20)
       else
         User.visible.where.not(id: current_user.id)
+            .where.not(id: current_user.silenced_account_ids)
             .order(Arel.sql("RANDOM()")).limit(10)
       end
   end
@@ -92,10 +128,11 @@ class TimelinesController < ApplicationController
     followed_ids = current_user.active_follows.select(:followee_id)
 
     Tweet.visible
+         .readable_by(current_user)
          .where(retweet_of_id: nil)
-         .or(Tweet.visible.where(user_id: followed_ids))
-         .or(Tweet.visible.where(user_id: current_user.id))
-         .includes(:user, retweet_of: :user)
+         .or(Tweet.visible.readable_by(current_user).where(user_id: followed_ids))
+         .or(Tweet.visible.readable_by(current_user).where(user_id: current_user.id))
+         .includes(:user, retweet_of: :user, quote_of: :user)
          .recent
          .limit(120)
   end

@@ -18,6 +18,31 @@ class User < ApplicationRecord
   has_many :profile_viewers, class_name: "ProfileView", foreign_key: :viewer_id,
            dependent: :destroy, inverse_of: :viewer
 
+  # Saved posts. Private to the account, so nothing but the owner's own list
+  # ever reads them.
+  has_many :bookmarks, dependent: :destroy
+  has_many :bookmarked_tweets, through: :bookmarks, source: :tweet
+
+  # Blocks. `blocking` is who this account has blocked; `blocked_by` is who has
+  # blocked it. The two read different columns, so both directions exist.
+  has_many :blocks, class_name: "Block", foreign_key: :blocker_id,
+           dependent: :destroy, inverse_of: :blocker
+  has_many :blocked_by, class_name: "Block", foreign_key: :blocked_id,
+           dependent: :destroy, inverse_of: :blocked
+
+  # Mutes are one-way and private, so only the muter's own list exists.
+  has_many :mutes, class_name: "Mute", foreign_key: :muter_id,
+           dependent: :destroy, inverse_of: :muter
+
+  has_many :lists, dependent: :destroy
+  has_many :list_memberships, dependent: :destroy
+
+  # Follow requests this account has made, and the ones waiting on it.
+  has_many :sent_follow_requests, class_name: "FollowRequest", foreign_key: :requester_id,
+           dependent: :destroy, inverse_of: :requester
+  has_many :received_follow_requests, class_name: "FollowRequest", foreign_key: :target_id,
+           dependent: :destroy, inverse_of: :target
+
   USERNAME_FORMAT = /\A[A-Za-z0-9_]{2,15}\z/
 
   validates :username, presence: true, format: { with: USERNAME_FORMAT },
@@ -30,8 +55,6 @@ class User < ApplicationRecord
   validates :bonus_followers, numericality: { greater_than_or_equal_to: 0 }
 
   scope :not_suspended, -> { where(is_suspended: false) }
-  scope :humans, -> { where(is_bot: false) }
-  scope :bots, -> { where(is_bot: true) }
 
   THEMES = %w[light dark].freeze
 
@@ -43,11 +66,32 @@ class User < ApplicationRecord
     super(THEMES.include?(value.to_s) ? value.to_s : "light")
   end
 
+  # The whole-client designs an account can be put on, oldest last. These are
+  # separate from THEMES: `design` is the shell and layout, `theme` is the
+  # light/dark palette painted inside it, so a member can run the 2015 client
+  # in dim mode.
+  DESIGNS = %w[2019 2015 prototype].freeze
+
+  # The design every account sees unless it has chosen otherwise.
+  DEFAULT_DESIGN = "2019".freeze
+
+  # The two recovered designs share a shell: a global top bar and a footer
+  # instead of the 2019 left sidebar. Everything that switches on the shape of
+  # the chrome asks this rather than naming the designs individually.
+  LEGACY_DESIGNS = %w[2015 prototype].freeze
+
+  def design=(value)
+    super(DESIGNS.include?(value.to_s) ? value.to_s : DEFAULT_DESIGN)
+  end
+
+  def legacy_design?
+    LEGACY_DESIGNS.include?(design)
+  end
+
   # The population as visitors are allowed to see it: suspended accounts are
-  # already excluded, and the simulated accounts drop out while the operator has
-  # them hidden. Directories use this so hiding bots also empties the "who to
-  # follow" lists, which would otherwise keep recommending invisible accounts.
-  scope :visible, -> { SiteSetting.hide_bots? ? not_suspended.humans : not_suspended }
+  # excluded. Directories use this so the "who to follow" lists never recommend
+  # an account that cannot be opened.
+  scope :visible, -> { not_suspended }
 
   # The operational flags the internal tool shows as tags. They do not remove an
   # account; they record how it should be treated, and the admin user page
@@ -79,19 +123,8 @@ class User < ApplicationRecord
     tweets.where.not(pinned_at: nil).order(pinned_at: :desc).first
   end
 
-  # Decoded persona for a simulated account; empty for real members.
-  def persona_hash
-    @persona_hash ||= JSON.parse(persona.presence || "{}")
-  rescue JSON::ParserError
-    @persona_hash = {}
-  end
-
   # Accepts either a username or an email address so a member can sign in with
   # whichever they remember. Lookups are case-insensitive.
-  #
-  # Simulated accounts are excluded: they exist to populate the timeline, not
-  # to be signed into, and refusing them here means a bot can never be used as
-  # a way into the admin panel.
   def email_domain
     email.to_s.split("@").last.to_s.downcase
   end
@@ -145,7 +178,7 @@ class User < ApplicationRecord
     ident = identifier.to_s.strip
     return nil if ident.blank?
 
-    user = humans.find_by("username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE", ident, ident)
+    user = find_by("username = ? COLLATE NOCASE OR email = ? COLLATE NOCASE", ident, ident)
     return nil unless user&.password_matches?(password)
 
     user
@@ -161,8 +194,9 @@ class User < ApplicationRecord
     self.password_hash = PasswordDigest.hash(plain) if plain.present?
   end
 
-  # Follower totals include any administrator-granted bonus so the number shown
-  # on a profile matches every other list in the app.
+  # Follower totals count every follow aimed at this account. Administrator-
+  # granted bonus is added on top so the number shown on a profile matches every
+  # other list in the app.
   def follower_count
     followers.count + bonus_followers.to_i
   end
@@ -195,6 +229,119 @@ class User < ApplicationRecord
 
   def owner?
     role.name == Role::OWNER
+  end
+
+  # ------------------------------------------------------- blocks and mutes
+  # These answer the questions the timeline and profile ask before showing
+  # anything about another account. They are all read-only and safe on a nil
+  # viewer, so a signed-out page can ask them without a guard.
+
+  def blocking?(other)
+    return false if other.nil?
+
+    blocks.exists?(blocked_id: other.id)
+  end
+
+  def blocked_by?(other)
+    return false if other.nil?
+
+    blocks_as_blocked = Block.where(blocker_id: other.id, blocked_id: id)
+    blocks_as_blocked.exists?
+  end
+
+  # True when either direction of a block exists, which is the condition the
+  # timeline and profile actually care about: a block hides both accounts from
+  # each other regardless of who placed it.
+  def blocked_with?(other)
+    return false if other.nil? || other.id == id
+
+    blocking?(other) || blocked_by?(other)
+  end
+
+  def muting?(other)
+    return false if other.nil?
+
+    mutes.exists?(muted_id: other.id)
+  end
+
+  # Creates the block and removes any follow in either direction, which is what
+  # the client did: a block ends the relationship in both directions so neither
+  # account is left following someone who can no longer see them.
+  def block!(other)
+    transaction do
+      blocks.find_or_create_by!(blocked_id: other.id)
+      Follow.where(follower_id: id, followee_id: other.id).delete_all
+      Follow.where(follower_id: other.id, followee_id: id).delete_all
+      FollowRequest.where(requester_id: id, target_id: other.id).delete_all
+      FollowRequest.where(requester_id: other.id, target_id: id).delete_all
+    end
+  end
+
+  def unblock!(other)
+    blocks.where(blocked_id: other.id).delete_all
+  end
+
+  def mute!(other)
+    mutes.find_or_create_by!(muted_id: other.id)
+  end
+
+  def unmute!(other)
+    mutes.where(muted_id: other.id).delete_all
+  end
+
+  # The ids this account must not see, in either direction of a block. Used by
+  # the timeline, search and suggestions so all three apply one rule instead of
+  # each writing its own filter.
+  def hidden_account_ids
+    Block.where(blocker_id: id).or(Block.where(blocked_id: id))
+         .pluck(:blocker_id, :blocked_id)
+         .flatten
+         .uniq - [ id ]
+  end
+
+  # Accounts this account has muted. Separate from blocks because a mute only
+  # hides the muted account from the muter, never the other way round.
+  def muted_account_ids
+    mutes.pluck(:muted_id)
+  end
+
+  def follower_ids
+    Follow.where(followee_id: id).pluck(:follower_id)
+  end
+
+  # Accounts that should not appear in this account's timelines: blocked either
+  # way, or muted.
+  def silenced_account_ids
+    (hidden_account_ids + muted_account_ids).uniq
+  end
+
+  # ------------------------------------------------------ protected accounts
+
+  def protected?
+    protected
+  end
+
+  # Whether this account's posts may be read by the viewer. A public account is
+  # readable by anyone; a protected one only by itself and its approved
+  # followers, which is the rule the 2019 client enforced.
+  def readable_by?(viewer)
+    return true unless protected?
+    return false if viewer.nil?
+    return true if viewer.id == id
+
+    Follow.exists?(follower_id: viewer.id, followee_id: id)
+  end
+
+  def pending_request_from?(account)
+    return false if account.nil?
+
+    received_follow_requests.pending.exists?(requester_id: account.id)
+  end
+
+  def requested_follow_of?(account)
+    return false if account.nil?
+
+    sent_follow_requests.pending.exists?(target_id: account.id)
   end
 
   # ---------------------------------------------------------------- bans

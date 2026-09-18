@@ -26,7 +26,9 @@
       <div class="section-card">
         <p class="settings-note">
           Showing <%= @people.size %> of <%= count_label(@user.follower_count) %> followers.
-          <%= @bonus_followers %> were granted by an administrator.
+          <% if @bonus_followers.to_i.positive? %>
+            <%= @bonus_followers %> were granted by an administrator.
+          <% end %>
         </p>
       </div>
     <% end %>

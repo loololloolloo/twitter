@@ -27,8 +27,6 @@
       <% end %>
       <% if can?('users.permissions') %><a href="<%= admin_permissions_path %>" class="<%= 'active' if controller_name == 'permissions' %>">Roles</a><% end %>
       <% if can?('tweets.view') %><a href="<%= admin_tweets_path %>" class="<%= 'active' if controller_name == 'tweets' %>">Tweets</a><% end %>
-      <% if can?('users.avatar') %><a href="<%= admin_avatars_path %>" class="<%= 'active' if controller_name == 'avatars' %>">Avatars</a><% end %>
-      <% if can?('bots.runner') %><a href="<%= admin_bots_path %>" class="<%= 'active' if controller_name == 'bots' %>">Bots</a><% end %>
       <% if can?('audit.view') %><a href="<%= admin_audit_path %>" class="<%= 'active' if controller_name == 'audit' %>">Audit log</a><% end %>
       <% if can?('admin.access') %><a href="<%= admin_insights_path %>" class="<%= 'active' if controller_name == 'insights' %>">Insights</a><% end %>
       <% if can?('maintenance.run') %><a href="<%= admin_tools_path %>" class="<%= 'active' if controller_name == 'tools' %>">Tools</a><% end %>
@@ -90,9 +88,6 @@
           <% end %>
           <% if can?('tweets.view') %>
             <li><a href="<%= admin_tweets_path %>"><strong><%= count_label(Tweet.count) %></strong> posts</a></li>
-          <% end %>
-          <% if can?('bots.runner') %>
-            <li><a href="<%= admin_bots_path %>"><strong><%= count_label(User.bots.count) %></strong> simulated</a></li>
           <% end %>
         </ul>
       </section>

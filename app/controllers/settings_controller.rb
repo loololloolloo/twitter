@@ -1,7 +1,7 @@
 class SettingsController < ApplicationController
   before_action :require_login!
 
-  SECTIONS = %w[account security privacy notifications accessibility data].freeze
+  SECTIONS = %w[account security privacy notifications preferences accessibility data].freeze
 
   def edit
     @section = params[:panel].presence_in(SECTIONS) || "account"
@@ -75,6 +75,35 @@ class SettingsController < ApplicationController
     current_user.update!(theme: theme)
 
     redirect_to settings_redirect_path, notice: "Appearance updated."
+  end
+
+  # Which era of the client the account sees. Like `theme` this reads a value
+  # from a set rather than storing what was sent, so the parameter can neither
+  # invent a design nor put markup into the root element.
+  def design
+    design = User::DESIGNS.include?(params[:design].to_s) ? params[:design].to_s : User::DEFAULT_DESIGN
+    current_user.update!(design: design)
+
+    redirect_to settings_redirect_path, notice: "Design updated."
+  end
+
+  # Protecting an account is a privacy setting, not a moderation one, so it
+  # lives here. Turning it on does not remove the followers already approved;
+  # turning it off does not approve anyone who is waiting, which is the same
+  # behaviour the client had.
+  def privacy
+    current_user.update!(protected: params[:protected].to_s == "1")
+
+    audit!("user.privacy", target: "user:#{current_user.id}",
+                           detail: current_user.protected? ? "protected account" : "public account")
+
+    notice = if current_user.protected?
+      "Your Tweets are now protected. New followers must be approved by you."
+    else
+      "Your Tweets are now public."
+    end
+
+    redirect_to settings_redirect_path, notice: notice
   end
 
   # Deletes the messages the signed-in member sent. This is not an admin power -

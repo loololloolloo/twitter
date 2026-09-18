@@ -1,0 +1,55 @@
+<%# The global top bar shared by the two recovered designs. Both the 2015 client
+    and the first prototype navigated this way: a fixed white bar carrying the
+    bird, the primary links, a search field and the account menu, with no
+    sidebar. Which bar an account sees is decided by the shell in the layout.
+    The right-hand side differs slightly between the two, so the design name
+    picks the label set. %>
+<% prototype = current_user.design == "prototype" %>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="<%= home_path %>" title="<%= @site_name %>">
+      <%= bird %>
+    </a>
+
+    <nav class="topnav">
+      <a href="<%= home_path %>" class="<%= 'active' if controller_name == 'timelines' && action_name == 'home' %>">
+        <%= icon('house') %><span>Home</span>
+      </a>
+      <a href="<%= explore_path %>" class="<%= 'active' if controller_name == 'timelines' && action_name == 'explore' %>">
+        <%= icon('magnifying-glass') %><span>Explore</span>
+      </a>
+      <a href="<%= notifications_path %>" class="<%= 'active' if controller_name == 'notifications' %>">
+        <%= icon('bell') %><span>Notifications</span>
+      </a>
+      <a href="<%= messages_path %>" class="<%= 'active' if controller_name == 'messages' %>">
+        <%= icon('envelope') %><span>Messages</span>
+      </a>
+      <%# The prototype bar is the shorter one and never carried the later
+          destinations; the 2015 client grew to include them, so only it shows
+          the extra links. %>
+      <% unless prototype %>
+        <a href="<%= bookmarks_path %>" class="<%= 'active' if controller_name == 'bookmarks' %>">
+          <%= icon('bookmark-solid') %><span>Bookmarks</span>
+        </a>
+        <a href="<%= lists_path %>" class="<%= 'active' if controller_name == 'lists' %>">
+          <%= icon('list') %><span>Lists</span>
+        </a>
+        <a href="<%= profile_path(current_user.username) %>" class="<%= 'active' if controller_name == 'profiles' && @user == current_user %>">
+          <%= icon('user') %><span>Profile</span>
+        </a>
+      <% end %>
+      <% if can?('admin.access') %>
+        <a href="<%= admin_root_path %>"><%= icon('shield-halved') %><span>Admin</span></a>
+      <% end %>
+    </nav>
+
+    <%= form_with url: explore_path, method: :get, class: "topsearch", local: true do %>
+      <%= icon('magnifying-glass') %>
+      <input type="text" name="q" placeholder="Search Twitter" value="<%= params[:q] %>" aria-label="Search Twitter">
+    <% end %>
+
+    <div class="topbar-right">
+      <%= render "shared/account_menu" %>
+    </div>
+  </div>
+</header>

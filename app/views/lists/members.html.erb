@@ -1,0 +1,89 @@
+<% content_for :title, "Members of #{@list.name} / #{@site_name}" %>
+
+<div class="layout">
+  <section class="col-main">
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Manage members</h1>
+        <span class="stream-sub"><%= @list.name %></span>
+      </div>
+      <a class="btn btn-pill" href="<%= list_path(@list) %>">Done</a>
+    </div>
+
+    <%# Adding by handle. The form posts the username and the controller
+        resolves it, so a typo is reported rather than silently ignored. %>
+    <div class="panel-section">
+      <h2 class="panel-title">Add a member</h2>
+      <%= form_with url: list_members_path(@list), method: :post, class: "inline-form" do %>
+        <input type="text" name="username" placeholder="@username" aria-label="Username"
+               autocomplete="off" maxlength="15">
+        <button class="btn btn-primary" type="submit">Add</button>
+      <% end %>
+    </div>
+
+    <div class="panel-section">
+      <h2 class="panel-title">
+        Members <span class="panel-count"><%= @members.size %></span>
+      </h2>
+      <ul class="row-list">
+        <% if @members.present? %>
+          <% @members.each do |member| %>
+            <li class="row-item">
+              <a class="row-avatar" href="<%= profile_path(member.username) %>">
+                <%= pic(member.avatar_path, 48) %>
+              </a>
+              <div class="row-body">
+                <div class="row-title">
+                  <a class="row-name" href="<%= profile_path(member.username) %>">
+                    <%= member.display_name.presence || member.username %>
+                  </a>
+                </div>
+                <p class="row-note">@<%= member.username %></p>
+              </div>
+              <div class="row-action">
+                <%= button_to "Remove", list_member_path(@list, member.id), method: :delete,
+                              class: "btn btn-pill" %>
+              </div>
+            </li>
+          <% end %>
+        <% else %>
+          <li class="empty-note">This list has no members yet.</li>
+        <% end %>
+      </ul>
+    </div>
+
+    <div class="panel-section">
+      <h2 class="panel-title">Suggested</h2>
+      <ul class="row-list">
+        <% if @candidates.present? %>
+          <% @candidates.each do |person| %>
+            <li class="row-item">
+              <a class="row-avatar" href="<%= profile_path(person.username) %>">
+                <%= pic(person.avatar_path, 48) %>
+              </a>
+              <div class="row-body">
+                <div class="row-title">
+                  <a class="row-name" href="<%= profile_path(person.username) %>">
+                    <%= person.display_name.presence || person.username %>
+                  </a>
+                </div>
+                <p class="row-note">@<%= person.username %></p>
+              </div>
+              <div class="row-action">
+                <%= button_to "Add", list_members_path(@list), method: :post,
+                              class: "btn btn-pill",
+                              params: { username: person.username } %>
+              </div>
+            </li>
+          <% end %>
+        <% else %>
+          <li class="empty-note">No accounts left to suggest.</li>
+        <% end %>
+      </ul>
+    </div>
+  </section>
+
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
+</div>

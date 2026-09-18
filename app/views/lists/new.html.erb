@@ -1,0 +1,19 @@
+<% content_for :title, "Create a list / #{@site_name}" %>
+
+<div class="layout">
+  <section class="col-main">
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Create a list</h1>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <%= render "form" %>
+    </div>
+  </section>
+
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
+</div>

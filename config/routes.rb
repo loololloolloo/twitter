@@ -27,6 +27,43 @@ Rails.application.routes.draw do
 
   patch "settings/theme", to: "settings#theme", as: :theme
 
+  # Which era of the client to run. Separate from the light/dark theme.
+  patch "settings/design", to: "settings#design", as: :design
+
+  # Protecting an account is a privacy setting rather than a moderation one.
+  patch "settings/privacy", to: "settings#privacy", as: :privacy_settings
+
+  # Saved posts. Private to the signed-in account, so the index is only ever
+  # its own list.
+  get    "bookmarks",            to: "bookmarks#index",   as: :bookmarks
+  delete "bookmarks",            to: "bookmarks#clear",   as: :clear_bookmarks
+  post   "tweet/:tweet_id/bookmark",   to: "bookmarks#create",  as: :bookmark_tweet
+  delete "tweet/:tweet_id/bookmark",   to: "bookmarks#destroy"
+
+  # Blocks and mutes. Both are relationships from the signed-in account to
+  # another, so they share a controller.
+  post   "u/:username/block",   to: "relationships#block",   as: :block_user
+  delete "u/:username/block",   to: "relationships#unblock"
+  post   "u/:username/mute",    to: "relationships#mute",    as: :mute_user
+  delete "u/:username/mute",    to: "relationships#unmute"
+
+  # Lists: curated timelines read without following the accounts in them.
+  resources :lists, only: [ :index, :show, :new, :create, :edit, :update, :destroy ] do
+    get    "members", to: "lists#members", as: :members
+    post   "members", to: "lists#add_member"
+    delete "members/:user_id", to: "lists#remove_member", as: :member
+  end
+
+  # Asks to follow a protected account, which the account approves or declines.
+  get  "follow_requests",              to: "follow_requests#index",   as: :follow_requests
+  post "follow_requests/:id/approve",  to: "follow_requests#approve", as: :approve_follow_request
+  post "follow_requests/:id/reject",   to: "follow_requests#reject",  as: :reject_follow_request
+
+  # Reporting from the client. A post or an account can be reported; both land
+  # in the moderation queue the admin screen already reads.
+  get  "report",              to: "reports#new",    as: :new_report
+  post "report",              to: "reports#create", as: :report
+
   # Accounts connected to this browser. There is no account list page: the
   # switcher lives in the sidebar popover, so these two endpoints are all the
   # server needs to offer.
@@ -65,6 +102,12 @@ Rails.application.routes.draw do
   post   "tweet/:id/favorite",   to: "likes#create",  as: :favorite_tweet, defaults: { kind: "favourite" }
   delete "tweet/:id/favorite",   to: "likes#destroy", defaults: { kind: "favourite" }
   post   "tweet/:id/retweet", to: "tweets#retweet", as: :retweet_tweet
+  # Hiding a reply is the parent's author's decision, so it is addressed by the
+  # reply's own id.
+  post   "tweet/:id/hide",    to: "tweets#hide_reply",   as: :hide_reply
+  delete "tweet/:id/hide",    to: "tweets#unhide_reply"
+  # The per-post analytics screen ("View Tweet activity").
+  get    "tweet/:id/activity", to: "tweets#activity", as: :tweet_activity
   # Engagement for the open permalink, polled so its counts keep moving.
   get    "tweet/:id/stats",   to: "tweets#stats",   as: :tweet_stats
   post   "tweet/:id/delete",  to: "tweets#destroy"
@@ -85,12 +128,6 @@ Rails.application.routes.draw do
     post   "users/:id/email",     to: "users#update_email",    as: :user_email
     post   "users/:id/tags",      to: "users#update_tags",     as: :user_tags
     post   "users/:id/impersonate", to: "users#impersonate",   as: :user_impersonate
-
-    get  "avatars",             to: "avatars#index", as: :avatars
-    post "avatars",             to: "avatars#bulk"
-    post "avatars/batch",       to: "avatars#batch"
-    get  "users/:user_id/avatars", to: "avatars#show",  as: :user_avatars
-    post "users/:user_id/avatars", to: "avatars#apply", as: :user_avatar_apply
 
     get  "permissions", to: "permissions#index", as: :permissions
     post "permissions", to: "permissions#update"
@@ -118,7 +155,6 @@ Rails.application.routes.draw do
     # Maintenance. Every destructive action is a POST so it cannot be reached
     # by following a link, and each is confirmed and audited by the controller.
     get  "tools",                   to: "tools#show",              as: :tools
-    post "tools/clear-bot-accounts", to: "tools#clear_bot_accounts", as: :tools_clear_bots
     post "tools/clear-follows",      to: "tools#clear_follows",      as: :tools_clear_follows
     post "tools/purge-tweets",       to: "tools#purge_tweets",       as: :tools_purge_tweets
     post "tools/clear-sessions",     to: "tools#clear_sessions",     as: :tools_clear_sessions
@@ -136,13 +172,6 @@ Rails.application.routes.draw do
     post "tools/vacuum",              to: "tools#vacuum",              as: :tools_vacuum
 
     post "sidebar/announcement", to: "sidebar#update_announcement", as: :sidebar_announcement
-    post "sidebar/bots",         to: "sidebar#toggle_bots",         as: :sidebar_bots
-
-    # The bot runner is a separate process; these control it.
-    get  "bots",         to: "bots#show",    as: :bots
-    post "bots/start",   to: "bots#start",   as: :start_bots
-    post "bots/stop",    to: "bots#stop",    as: :stop_bots
-    post "bots/restart", to: "bots#restart", as: :restart_bots
 
     root to: "dashboard#index"
   end

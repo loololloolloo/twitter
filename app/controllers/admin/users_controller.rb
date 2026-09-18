@@ -4,6 +4,13 @@ module Admin
     before_action :load_user, only: [ :show, :ban, :unban, :suspend, :destroy,
                                        :update_role, :toggle_verified, :set_followers,
                                        :update_email, :update_tags, :impersonate ]
+    # Every action that writes to the target account has to clear the owner
+    # check. `show` is not in this list: the owner account is still viewable,
+    # it just has nothing on it that can change it.
+    before_action :require_may_manage!, only: [ :ban, :unban, :suspend, :destroy,
+                                                :update_role, :toggle_verified,
+                                                :set_followers, :update_email,
+                                                :update_tags, :impersonate ]
 
     def index
       @search = params[:q].to_s.strip
@@ -94,10 +101,6 @@ module Admin
       unless outranks?(@user)
         return redirect_to(admin_user_path(@user),
                            alert: "You cannot impersonate a user at or above your own level.")
-      end
-
-      if @user.is_bot
-        return redirect_to(admin_user_path(@user), alert: "Simulated accounts cannot be signed into.")
       end
 
       audit!("users.impersonate", target: "user:#{@user.id}", detail: "started as @#{@user.username}")
@@ -201,10 +204,18 @@ module Admin
         return redirect_to(admin_user_path(@user), alert: "Unknown role.")
       end
 
-      # Only the owner may hand out a role at or above their own level.
+      # Only the owner may hand out a role at or above their own level, and
+      # nobody may demote the owner: the owner's role is the top of the ladder,
+      # so every other role would be a demotion and would hand the instance to
+      # whoever did it.
       if !current_user.owner? && role.rank >= rank_of(current_user)
         return redirect_to(admin_user_path(@user),
                            alert: "You cannot assign a role at or above your own level.")
+      end
+
+      if @user.owner? && !role.owner?
+        return redirect_to(admin_user_path(@user),
+                           alert: "The owner account cannot be moved to another role.")
       end
 
       @user.update!(role: role)
@@ -233,7 +244,7 @@ module Admin
 
       value = raw.to_i
       @user.update!(bonus_followers: value)
-      audit!("users.bot_followers", target: "user:#{@user.id}",
+      audit!("users.followers", target: "user:#{@user.id}",
                                     detail: "set follower count to #{value}")
       redirect_to admin_user_path(@user), notice: "Follower count set to #{value}."
     end
@@ -288,7 +299,7 @@ module Admin
       "suspend" => "users.suspend", "destroy" => "users.delete",
       "toggle_verified" => "users.verify", "update_role" => "users.roles",
       "ban" => "users.ban", "unban" => "users.ban",
-      "set_followers" => "users.bot_followers",
+      "set_followers" => "users.followers",
       "update_email" => "users.email"
     }.freeze
 
@@ -301,7 +312,7 @@ module Admin
       @user = User.includes(:role).find_by(id: params[:id])
       return if @user
 
-      render(plain: "Not found", status: :not_found) and return
+      render_not_found
     end
   end
 end

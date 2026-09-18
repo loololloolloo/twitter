@@ -33,6 +33,31 @@
     </div>
   </div>
 <% else %>
+<%# A block hides both accounts from each other. The page still resolves so the
+    relationship can be undone from here, but no content is shown. %>
+<% if @blocked %>
+  <div class="layout">
+    <section class="col-main">
+      <div class="stream-head">
+        <a class="head-back" href="<%= home_path %>" title="Back">&#8592;</a>
+        <div class="stream-head-title"><h1>@<%= @user.username %></h1></div>
+      </div>
+      <div class="block-notice">
+        <h2>You blocked @<%= @user.username %></h2>
+        <p class="muted">
+          You cannot follow each other, see each other's posts, or message each
+          other while the block is in place.
+        </p>
+        <%= form_with url: block_user_path(@user.username), method: :delete, class: "inline" do %>
+          <button class="btn btn-primary" type="submit">Unblock</button>
+        <% end %>
+      </div>
+    </section>
+    <aside class="col-right">
+      <%= render "shared/rail" %>
+    </aside>
+  </div>
+<% else %>
 <%# The 2019 profile. It is one card in the centre column:
       - a sticky header naming the account and its tweet count,
       - a full-bleed 199.5px banner with the 134px picture anchored inside it,
@@ -66,15 +91,42 @@
               <a class="btn btn-edit" href="<%= settings_path %>">Edit profile</a>
             <% else %>
               <a class="btn btn-msg" href="<%= conversation_path(@user.id) %>" title="Message">Message</a>
+              <%# A protected account's follow is a request, so the button says
+                  so and reflects whether one is already waiting. %>
               <% if @is_following %>
                 <%= form_with url: follow_user_path(@user.username), method: :delete, class: "inline" do %>
                   <button class="btn btn-following" type="submit">Following</button>
                 <% end %>
+              <% elsif @request_pending %>
+                <%= form_with url: follow_user_path(@user.username), method: :delete, class: "inline" do %>
+                  <button class="btn btn-following" type="submit">Requested</button>
+                <% end %>
               <% else %>
                 <%= form_with url: follow_user_path(@user.username), method: :post, class: "inline" do %>
-                  <button class="btn btn-follow" type="submit">Follow</button>
+                  <button class="btn btn-follow" type="submit">
+                    <%= @user.protected? ? "Request to follow" : "Follow" %>
+                  </button>
                 <% end %>
               <% end %>
+
+              <%# The overflow menu carries the actions that are not primary:
+                  muting, blocking and reporting. %>
+              <details class="tweet-menu tweet-menu-inline">
+                <summary aria-label="More options"><%= icon('ellipsis') %></summary>
+                <div class="tweet-menu-list">
+                  <% if @muted %>
+                    <%= button_to "Unmute @#{@user.username}", mute_user_path(@user.username),
+                                  method: :delete, class: "menu-button" %>
+                  <% else %>
+                    <%= button_to "Mute @#{@user.username}", mute_user_path(@user.username),
+                                  method: :post, class: "menu-button" %>
+                  <% end %>
+                  <%= button_to "Block @#{@user.username}", block_user_path(@user.username),
+                                method: :post, class: "menu-button",
+                                form: { onsubmit: "return confirm('Block @#{@user.username}?')" } %>
+                  <a href="<%= new_report_path(username: @user.username) %>">Report @<%= @user.username %></a>
+                </div>
+              </details>
             <% end %>
           </div>
         </div>
@@ -83,6 +135,7 @@
           <h1 class="profile-name">
             <%= @user.display_name %>
             <% if @user.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
+            <% if @user.protected? %><span class="lock-badge" title="Protected account"><%= icon('lock') %></span><% end %>
           </h1>
           <div class="profile-screenname">@<%= @user.username %></div>
         </div>
@@ -100,15 +153,13 @@
             <span><%= icon('clock') %> Joined <%= joined(@user.created_at) %></span>
           </div>
 
-          <%# The 2019 profile repeats the follow counts as plain text under the
-              bio, so they are readable without opening a tab. Likes is the total
-              the account's posts have received, which is the figure the client
-              showed here; the Likes tab itself lists the posts the account
-              reacted to, which is a different thing and stays as it was. %>
+          <%# The 2019 profile shows the follow counts as plain text under the
+              bio. The Likes total that the earlier client carried here was
+              dropped in the redesign, and the Likes tab lists the posts the
+              account reacted to, which is a different thing entirely. %>
           <p class="profile-follow-counts">
             <a href="<%= following_path(@user.username) %>"><strong><%= @following_count %></strong> Following</a>
             <a href="<%= followers_path(@user.username) %>"><strong><%= count_label(@follower_count) %></strong> Followers</a>
-            <span><strong><%= count_label(@likes_received_count) %></strong> Likes</span>
           </p>
         </div>
       </div>
@@ -133,12 +184,22 @@
       </ul>
     </div>
 
-    <% if @active == "media" %>
+    <% if @locked %>
+      <%# A protected account the viewer does not follow: header and counts are
+          shown, the stream is replaced by an explanation. %>
+      <div class="lock-notice">
+        <p><%= icon('lock') %> @<%= @user.username %>'s Tweets are protected.</p>
+        <p class="muted">
+          Only approved followers can see @<%= @user.username %>'s Tweets. Once
+          they accept your request, you will be able to see them.
+        </p>
+      </div>
+    <% elsif @active == "media" %>
       <% if @media.present? %>
         <div class="media-rail">
           <% @media.each do |tweet| %>
             <a class="media-cell" href="<%= tweet_path(tweet) %>">
-              <img src="/uploads/<%= tweet.media_path %>" alt="">
+              <img src="/uploads/<%= tweet.media_path %>" alt="<%= tweet.alt_text.to_s %>">
             </a>
           <% end %>
         </div>
@@ -177,4 +238,5 @@
     <%= render "shared/rail", suggestions: @suggestions, trends_title: "Trends for you" %>
   </aside>
 </div>
+<% end %>
 <% end %>

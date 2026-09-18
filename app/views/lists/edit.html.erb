@@ -1,0 +1,31 @@
+<% content_for :title, "Edit #{@list.name} / #{@site_name}" %>
+
+<div class="layout">
+  <section class="col-main">
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Edit list</h1>
+        <span class="stream-sub"><%= @list.name %></span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <%= render "form" %>
+    </div>
+
+    <div class="panel-section">
+      <h2 class="panel-title">Delete list</h2>
+      <p class="settings-panel-note">
+        Deleting a list removes it for everyone it was shared with. The accounts
+        on it are not unfollowed.
+      </p>
+      <%= button_to "Delete list", list_path(@list), method: :delete,
+                    class: "btn btn-danger",
+                    form: { onsubmit: "return confirm('Delete this list?')" } %>
+    </div>
+  </section>
+
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
+</div>

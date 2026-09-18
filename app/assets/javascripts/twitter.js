@@ -1,27 +1,47 @@
 // Front-end behaviour for the classic client. Deliberately jQuery, matching
 // the library the original web client used in this era.
 $(function () {
-  // Account menu in the sidebar opens on click and closes on an outside click.
-  // It is a popover rather than a page, so the account rows inside it submit
-  // their own switch forms and the menu never has to navigate by itself.
-  $('.account-menu > .account-link').on('click', function (e) {
-    e.stopPropagation();
-    var $menu = $(this).closest('.account-menu');
-    var open = !$menu.hasClass('open');
+  // Account menu in the sidebar opens on hover, as it did on the web client:
+  // the popover is a menu, not a page, so pointing at the account row is enough
+  // to reveal the switcher, settings and sign out. CSS does the showing; this
+  // only keeps aria-expanded honest for screen readers, and mirrors the same
+  // state for keyboard users, who get the menu through :focus-within.
+  $('.account-menu').each(function () {
+    var $menu = $(this);
+    var $link = $menu.children('.account-link');
 
-    $('.account-menu').removeClass('open').find('.account-link').attr('aria-expanded', 'false');
-    $menu.toggleClass('open', open);
-    $(this).attr('aria-expanded', open ? 'true' : 'false');
-  });
+    $menu.on('mouseenter focusin', function () {
+      $link.attr('aria-expanded', 'true');
+    }).on('mouseleave focusout', function () {
+      $link.attr('aria-expanded', 'false');
+    });
 
-  $('body').on('click', function () {
-    $('.account-menu').removeClass('open').find('.account-link').attr('aria-expanded', 'false');
-  });
+    // Escape still dismisses it, which matters for the keyboard path.
+    $menu.on('keydown', function (e) {
+      if (e.key === 'Escape') {
+        $menu.removeClass('open');
+        $link.attr('aria-expanded', 'false').trigger('blur');
+      }
+    });
 
-  // Escape closes the popover, as it did on the web client.
-  $(document).on('keydown', function (e) {
-    if (e.key === 'Escape') {
-      $('.account-menu').removeClass('open').find('.account-link').attr('aria-expanded', 'false');
+    // Touch devices get no hover, so tapping the row toggles the menu there.
+    // The media query keeps this from fighting the hover behaviour on desktop,
+    // where the click would otherwise close what the pointer just opened.
+    if (!window.matchMedia || !window.matchMedia('(hover: hover)').matches) {
+      $link.on('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var open = !$menu.hasClass('open');
+
+        $('.account-menu').removeClass('open');
+        $menu.toggleClass('open', open);
+        $link.attr('aria-expanded', open ? 'true' : 'false');
+      });
+
+      $('body').on('click', function () {
+        $menu.removeClass('open');
+        $link.attr('aria-expanded', 'false');
+      });
     }
   });
 
@@ -49,6 +69,39 @@ $(function () {
     });
   }
 
+  // Alt text belongs with an image, so the field only appears once one is
+  // chosen. Hiding it again when the picker is cleared keeps the composer from
+  // asking for a description of nothing.
+  $(document).on('change', '[data-media-input]', function () {
+    var chosen = this.files && this.files.length > 0;
+    $(this).closest('form').find('[data-alt-wrap]').prop('hidden', !chosen).toggle(!!chosen);
+  });
+
+  // Copying a permalink. The link is read from the data attribute rather than
+  // built in the script, so the address is always the one the server renders.
+  $(document).on('click', '[data-copy-link]', function (e) {
+    e.preventDefault();
+    var url = $(this).data('copy-link');
+    if (!url) return;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () {
+        flash('Copied to clipboard', 'ok');
+      }, function () {
+        flash(url, 'ok');
+      });
+    } else {
+      flash(url, 'ok');
+    }
+  });
+
+  // The per-post overflow menu closes when a click lands outside it, which is
+  // what <details> does not do on its own.
+  $(document).on('click', function (e) {
+    if ($(e.target).closest('.tweet-menu').length) return;
+    $('.tweet-menu[open]').removeAttr('open');
+  });
+
   // Clicking a reply link focuses the reply box on a tweet page.
   $('.open-reply').on('click', function (e) {
     e.preventDefault();
@@ -59,16 +112,16 @@ $(function () {
   // instead of reloading the page and throwing the reader back to the top of
   // the timeline. The form is still submitted normally if the script is
   // unavailable, which is why the buttons live inside real forms.
-  $(document).on('submit', 'form.js-like, form.js-fav, form.js-retweet', function (e) {
+  $(document).on('submit', 'form.js-like, form.js-fav, form.js-retweet, form.js-bookmark', function (e) {
     var $form = $(this);
     if ($form.data('busy')) return false;
 
     e.preventDefault();
     $form.data('busy', true);
 
-    // All three controls are toggles. The retweet route flips state on a single
-    // POST; likes and favourites add on POST and remove on DELETE, so the
-    // request is built from the form's own state.
+    // All four controls are toggles. The retweet route flips state on a single
+    // POST; likes, favourites and bookmarks add on POST and remove on DELETE,
+    // so the request is built from the form's own state.
     var url = $form.attr('action');
     var method = 'post';
 
@@ -80,6 +133,10 @@ $(function () {
       var favourited = !!$form.data('favourited');
       url = favourited ? $form.data('unfav-url') : $form.data('fav-url');
       method = favourited ? 'delete' : 'post';
+    } else if ($form.hasClass('js-bookmark')) {
+      var bookmarked = !!$form.data('bookmarked');
+      url = bookmarked ? $form.data('unsave-url') : $form.data('save-url');
+      method = bookmarked ? 'delete' : 'post';
     }
 
     $.ajax({
@@ -117,15 +174,32 @@ $(function () {
 
     $('[data-tweet="' + data.id + '"]').each(function () {
       var $row = $(this);
-      paintCount($row.find('.act-fav'), data.favourite_count_label, data.favourited, 'Favorited');
-      paintCount($row.find('.act-heart'), data.like_count_label, data.liked, 'Liked');
-      paintCount($row.find('.act-rt'), data.retweet_count_label, data.retweeted, 'Retweeted');
-      paintCount($row.find('.act-reply'), data.reply_count_label, false, null);
 
-      // The forms carry the state too, so the next click on either control
-      // toggles in the right direction rather than repeating the last request.
-      $row.find('form.js-like').data('liked', !!data.liked);
-      $row.find('form.js-fav').data('favourited', !!data.favourited);
+      // Each control is painted only when the answer actually carried its
+      // figures. A bookmark toggle answers with the saved state alone, and
+      // painting counts from that would blank the other controls.
+      if (data.favourite_count_label !== undefined) {
+        paintCount($row.find('.act-fav'), data.favourite_count_label, data.favourited, 'Favorited');
+        $row.find('form.js-fav').data('favourited', !!data.favourited);
+      }
+      if (data.like_count_label !== undefined) {
+        paintCount($row.find('.act-heart'), data.like_count_label, data.liked, 'Liked');
+        $row.find('form.js-like').data('liked', !!data.liked);
+      }
+      if (data.retweet_count_label !== undefined) {
+        paintCount($row.find('.act-rt'), data.retweet_count_label, data.retweeted, 'Retweeted');
+      }
+      if (data.reply_count_label !== undefined) {
+        paintCount($row.find('.act-reply'), data.reply_count_label, false, null);
+      }
+
+      // Bookmarking has no count, only a state, so it is painted separately.
+      if (data.bookmarked !== undefined) {
+        var $save = $row.find('.act-save');
+        $save.toggleClass('saved', !!data.bookmarked);
+        $save.attr('title', data.bookmarked ? 'Remove from saved posts' : 'Save post');
+        $row.find('form.js-bookmark').data('bookmarked', !!data.bookmarked);
+      }
     });
 
     // Writes refreshed engagement onto every row for the given tweets, keyed by
@@ -239,6 +313,9 @@ $(function () {
   if ($timeline.length && $timeline.data('feed-url')) {
     var feedUrl = $timeline.data('feed-url');
     var newest = $timeline.data('newest') || '';
+    // A Top-ranked stream still polls, but only so its counters stay current;
+    // queuing arriving entries there would put them out of rank order.
+    var queuesNew = $timeline.data('show') !== 'top';
     var pending = {};
     var pendingCount = 0;
 
@@ -265,6 +342,7 @@ $(function () {
 
           paintCounts(data.counts);
 
+          if (!queuesNew) return;
           if (!data.count || !data.html) return;
 
           var $rows = $('<div>').html(data.html).children();

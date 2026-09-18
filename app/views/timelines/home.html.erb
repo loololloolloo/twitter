@@ -10,6 +10,17 @@
       <div class="stream-head-title">
         <h1>Home</h1>
       </div>
+      <%# The 2019 home header carried the sparkle control that swapped the
+          timeline between Top Tweets and the latest first. It is a toggle
+          rather than a tab: the two are the same stream under a different
+          order, so the label names the mode that is one click away. %>
+      <%# The label names the ordering one click away, so the link has to point
+          at the other mode - not the one already on screen. %>
+      <% other = @show == "top" ? "latest" : "top" %>
+      <a class="stream-head-toggle" href="<%= home_path(show: other) %>"
+         title="<%= other == "latest" ? "See latest Tweets instead" : "See Top Tweets instead" %>">
+        <%= icon('sparkle') %><span><%= other == "latest" ? "Latest Tweets" : "Top Tweets" %></span>
+      </a>
     </div>
 
     <%= render "tweets/composer" %>
@@ -18,8 +29,13 @@
       <a href="#" id="new-tweets-link">New tweets</a>
     </div>
 
+    <%# Both orderings poll, but only the latest-first stream queues arriving
+        entries: a Top-ranked list would have to be re-sorted to stay correct, so
+        there the poll refreshes engagement counts alone. The 2019 client only
+        showed the "New Tweets" bar on the latest view. %>
     <ul class="timeline"
         id="timeline"
+        data-show="<%= @show %>"
         data-feed-url="<%= home_feed_path %>"
         data-newest="<%= @tweets.map(&:created_at).max&.iso8601(6) %>">
       <% if @tweets.any? %>

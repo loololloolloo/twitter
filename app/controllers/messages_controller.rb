@@ -7,7 +7,7 @@ class MessagesController < ApplicationController
 
   def show
     @other = User.find_by(id: params[:id])
-    return render(plain: "Not found", status: :not_found) unless @other
+    return render_not_found unless @other
 
     # The list stays visible beside the open thread, so it is built here too.
     # Only a recent window is rendered: an account can hold thousands of
@@ -19,7 +19,7 @@ class MessagesController < ApplicationController
 
   def create
     @other = User.find_by(id: params[:id])
-    return render(plain: "Not found", status: :not_found) unless @other
+    return render_not_found unless @other
 
     body = params[:body].to_s.strip
     conversation = DmConversation.between(current_user, @other)

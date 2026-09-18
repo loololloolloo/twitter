@@ -19,7 +19,7 @@ class SignupOwnershipTest < ActionDispatch::IntegrationTest
     assert_equal Permission.count, founder.permission_keys.size
     assert founder.owner?
     assert founder.can?("admin.access")
-    assert founder.can?("users.bot_followers")
+    assert founder.can?("users.followers")
   end
 
   test "later signups become regular members" do

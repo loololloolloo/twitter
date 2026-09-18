@@ -74,8 +74,30 @@ class ApplicationController < ActionController::Base
     return false unless require_login!
     return true if can?(key)
 
-    render plain: "Forbidden", status: :forbidden
+    render_forbidden
     false
+  end
+
+  # A missing record or an unreadable one answers with the app's own error
+  # screen rather than a bare line of text. Anything that is not a browser gets
+  # the short plain form, which is what an API client can actually use.
+  def render_not_found(message = "That page does not exist.")
+    render_error_page(404, message)
+  end
+
+  def render_forbidden(message = "You do not have permission to view this page.")
+    render_error_page(403, message)
+  end
+
+  def render_error_page(code, message)
+    @code = code
+    @message = message
+    @back_path = signed_in? ? home_path : login_path
+
+    respond_to do |format|
+      format.html { render "errors/show", status: code }
+      format.any  { render plain: "#{code} #{message}", status: code }
+    end
   end
 
   def site_name

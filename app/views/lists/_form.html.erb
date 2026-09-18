@@ -1,0 +1,33 @@
+<%# The list form, shared by the create and edit screens so the fields cannot
+    drift apart between them. %>
+<%= form_with model: @list, class: "settings-form" do |form| %>
+  <% if @list.errors.any? %>
+    <p class="form-error"><%= @list.errors.full_messages.to_sentence %></p>
+  <% end %>
+
+  <div class="settings-field">
+    <%= form.label :name, "Name" %>
+    <%= form.text_field :name, maxlength: 25, required: true, autocomplete: "off" %>
+    <span class="field-hint">Up to 25 characters.</span>
+  </div>
+
+  <div class="settings-field">
+    <%= form.label :description, "Description" %>
+    <%= form.text_area :description, maxlength: 100, rows: 3 %>
+    <span class="field-hint">Up to 100 characters.</span>
+  </div>
+
+  <div class="settings-field">
+    <label class="checkbox-row" for="list-private">
+      <input id="list-private" type="checkbox" name="list[is_private]" value="1"
+             <%= "checked" if @list.is_private %>>
+      <span>Make this list private</span>
+    </label>
+    <span class="field-hint">A private list is only visible to you.</span>
+  </div>
+
+  <div class="settings-actions">
+    <%= form.submit(@list.persisted? ? "Save" : "Create", class: "btn btn-primary") %>
+    <a class="btn btn-quiet" href="<%= @list.persisted? ? list_path(@list) : lists_path %>">Cancel</a>
+  </div>
+<% end %>

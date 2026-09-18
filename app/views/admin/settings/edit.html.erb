@@ -21,31 +21,6 @@
   <button class="btn btn-primary" type="submit">Save settings</button>
 <% end %>
 
-<div class="panel">
-  <h3 class="panel-title">Simulated audience</h3>
-  <p class="muted">
-    The watched account is the member the simulated population reacts to. When
-    it posts, the whole population answers within seconds, and its follower
-    count keeps climbing while the post is recent. Growth has no ceiling: once
-    every simulated account follows, the rest is granted directly.
-  </p>
-  <%= form_with url: admin_settings_path, method: :post, class: "settings-form" do %>
-    <label>Watched account
-      <input type="text" name="spotlight_username"
-             value="<%= @settings['spotlight_username'].presence || BotEngine::SPOTLIGHT_DEFAULT %>">
-    </label>
-    <label>Followers gained per post
-      <input type="number" name="followers_per_post" min="0" step="1"
-             value="<%= @settings['followers_per_post'].presence || BotEngine::GROWTH_PER_POST %>">
-    </label>
-    <label>Followers gained per tick
-      <input type="number" name="followers_per_tick" min="0" step="1"
-             value="<%= @settings['followers_per_tick'].presence || BotEngine::GROWTH_PER_TICK %>">
-    </label>
-    <button class="btn btn-primary" type="submit">Save settings</button>
-  <% end %>
-</div>
-
 <% if can?('backup.export') %>
   <div class="panel">
     <h3 class="panel-title">Backup</h3>

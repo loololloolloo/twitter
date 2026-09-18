@@ -12,10 +12,8 @@ class RegistrationsController < ApplicationController
     end
 
     # The very first account created owns the instance and holds every
-    # permission; everyone after that starts as a regular member. Simulated
-    # accounts are ignored, so seeding bots cannot cost the first real person
-    # their ownership of the site.
-    is_first = User.humans.none?
+    # permission; everyone after that starts as a regular member.
+    is_first = User.none?
     role = Role.find_by!(name: is_first ? Role::OWNER : "user")
 
     @user = User.new(

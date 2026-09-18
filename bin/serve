@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Bring the site up on both forwarded ports.
+#
+# The runtime wipes the system Ruby on a session reset, so the interpreter is
+# reinstalled here if it is missing. The app's vendored gems survive the reset,
+# so no `bundle install` is needed once Ruby is back.
+#
+# Both ports must serve: the two work-* forwarded hosts map to 12000 and 12001,
+# and the platform reports "Bad Gateway" on whichever one is not listening.
+set -u
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+PORTS=(12000 12001)
+
+install_ruby_if_missing() {
+  if command -v ruby >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "Ruby is missing (a session reset removes it); reinstalling..."
+  sudo mkdir -p /var/lib/apt/lists/partial
+  sudo apt-get update -qq
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ruby3.3 ruby3.3-dev
+}
+
+start_port() {
+  local port="$1"
+
+  if curl -s -o /dev/null --max-time 5 "http://localhost:$port/"; then
+    echo "port $port already serving"
+    return 0
+  fi
+
+  local pidfile="tmp/pids/server$port.pid"
+  rm -f "$pidfile"
+  nohup env PIDFILE="$pidfile" ./bin/bundle exec rails server \
+    -b 0.0.0.0 -p "$port" -e development -P "$pidfile" \
+    > "/tmp/server$port.log" 2>&1 &
+  echo "port $port starting (pid $!)"
+}
+
+install_ruby_if_missing
+./bin/bundle check >/dev/null 2>&1 || ./bin/bundle install
+
+for port in "${PORTS[@]}"; do
+  start_port "$port"
+done
+
+# Booting takes a few seconds; wait for each port to answer before reporting.
+for port in "${PORTS[@]}"; do
+  for _ in $(seq 1 30); do
+    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://localhost:$port/" || true)"
+    if [ -n "$code" ] && [ "$code" != "000" ]; then
+      echo "port $port up (HTTP $code)"
+      break
+    fi
+    sleep 1
+  done
+done

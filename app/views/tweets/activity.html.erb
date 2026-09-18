@@ -1,0 +1,80 @@
+<% content_for :title, "Tweet activity / #{@site_name}" %>
+
+<div class="layout">
+  <section class="col-main">
+    <div class="stream-head">
+      <a class="head-back" href="<%= tweet_path(@tweet) %>" title="Back">&#8592;</a>
+      <div class="stream-head-title">
+        <h1>Tweet activity</h1>
+      </div>
+    </div>
+
+    <%# The post being measured, shown at the top so the figures below are
+        unambiguous about what they describe. %>
+    <article class="tweet permalink-tweet">
+      <div class="tweet-main">
+        <%= pic(@tweet.user.avatar_path, 48) %>
+        <div class="tweet-body">
+          <div class="tweet-head">
+            <span class="tweet-name"><%= @tweet.user.display_name.presence || @tweet.user.username %></span>
+            <span class="tweet-handle">@<%= @tweet.user.username %></span>
+            <span class="tweet-dot">&middot;</span>
+            <span class="tweet-time"><%= time_ago(@tweet.created_at) %></span>
+          </div>
+          <% if @tweet.body.present? %>
+            <p class="tweet-text"><%= linkify(@tweet.body) %></p>
+          <% end %>
+        </div>
+      </div>
+    </article>
+
+    <div class="panel-section">
+      <h2 class="panel-title">Impressions</h2>
+      <p class="activity-figure"><%= count_label(@impressions) %></p>
+      <p class="settings-panel-note">Times this post was seen.</p>
+    </div>
+
+    <div class="panel-section">
+      <h2 class="panel-title">Engagements</h2>
+      <p class="activity-figure"><%= count_label(@engagement) %></p>
+      <p class="settings-panel-note">
+        <%= @rate %>% of people who saw this post interacted with it.
+      </p>
+
+      <%# The breakdown, one line per kind of reaction. Kept as a table so the
+          figures line up the way the client's analytics screen showed them. %>
+      <table class="activity-table">
+        <tbody>
+          <tr>
+            <th scope="row">Detail expands</th>
+            <td><%= count_label(@detail_impressions) %></td>
+          </tr>
+          <tr>
+            <th scope="row">Likes</th>
+            <td><%= count_label(@tweet.like_count) %></td>
+          </tr>
+          <tr>
+            <th scope="row">Favorites</th>
+            <td><%= count_label(@tweet.favourite_count) %></td>
+          </tr>
+          <tr>
+            <th scope="row">Retweets</th>
+            <td><%= count_label(@tweet.retweet_count) %></td>
+          </tr>
+          <tr>
+            <th scope="row">Replies</th>
+            <td><%= count_label(@tweet.reply_count) %></td>
+          </tr>
+          <tr>
+            <th scope="row">Profile visits</th>
+            <td><%= count_label(@profile_visits) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
+</div>

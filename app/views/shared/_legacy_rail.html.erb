@@ -1,0 +1,73 @@
+<%# The rail the two recovered designs used. Where the 2019 client puts rounded
+    cards in a right rail, these designs put flat panels in the right column:
+    the account card first, then who to follow, then trends. Pages render
+    `shared/rail`, which picks this or the 2019 rail, so a page never has to
+    know which design is active. %>
+<% people = local_assigns.fetch(:suggestions, nil) || @suggestions %>
+<% heading = local_assigns.fetch(:trends_title, "Trends") %>
+
+<%# The signed-in account's own card: picture, name, handle and the three
+    counts, exactly as the classic dashboard rail opened. %>
+<div class="panel profile-panel">
+  <div class="panel-profile">
+    <a class="panel-avatar" href="<%= profile_path(current_user.username) %>"><%= pic(current_user.avatar_path, 48) %></a>
+    <a class="panel-name" href="<%= profile_path(current_user.username) %>"><%= current_user.display_name %></a>
+    <span class="panel-handle">@<%= current_user.username %></span>
+    <div class="panel-stats">
+      <a href="<%= profile_path(current_user.username) %>">
+        <strong><%= current_user.tweet_count %></strong><span>Tweets</span>
+      </a>
+      <a href="<%= following_path(current_user.username) %>">
+        <strong><%= current_user.following_count %></strong><span>Following</span>
+      </a>
+      <a href="<%= followers_path(current_user.username) %>">
+        <strong><%= count_label(current_user.follower_count) %></strong><span>Followers</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<% if people.present? %>
+  <div class="panel">
+    <h3 class="panel-title">Who to follow</h3>
+    <% people.first(3).each do |person| %>
+      <div class="suggestion">
+        <a href="<%= profile_path(person.username) %>"><%= pic(person.avatar_path, 32) %></a>
+        <div class="suggestion-body">
+          <a href="<%= profile_path(person.username) %>"><%= person.display_name %></a>
+          <span>@<%= person.username %></span>
+        </div>
+        <%= form_with url: follow_user_path(person.username), method: :post, class: "inline" do %>
+          <button class="btn btn-follow" type="submit">Follow</button>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<% if @trends.present? %>
+  <div class="panel">
+    <h3 class="panel-title"><%= heading %></h3>
+    <ul class="trend-list">
+      <% @trends.first(5).each do |tag, count, authors| %>
+        <li>
+          <a href="<%= explore_path(q: "##{tag}") %>">
+            <span class="trend-tag">#<%= tag %></span>
+            <span class="trend-count">
+              <%= count %> <%= 'Tweet'.pluralize(count) %>
+              &middot; <%= authors %> <%= 'account'.pluralize(authors) %>
+            </span>
+          </a>
+        </li>
+      <% end %>
+    </ul>
+    <% if @trends.size > 5 %>
+      <a class="rail-more" href="<%= explore_path %>">Show more</a>
+    <% end %>
+  </div>
+<% end %>
+
+<div class="panel">
+  <h3 class="panel-title">About</h3>
+  <p class="panel-note">A look at the classic Twitter web client.</p>
+</div>

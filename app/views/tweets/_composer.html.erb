@@ -1,7 +1,9 @@
 <%# Composer box. Used on the home timeline and on tweet permalinks for replies.
     The 2019 composer: the author's picture, a borderless prompt, and a bar with
-    the media button, the character counter and a pill Tweet button. %>
+    the media button, the character counter and a pill Tweet button.
+    `quote_of` attaches another post beneath whatever is written here. %>
 <% parent_id = local_assigns[:parent_id] %>
+<% quote_of = local_assigns[:quote_of] %>
 <% placeholder = local_assigns[:placeholder] || @site_tagline %>
 
 <div class="compose timeline-tweet-box" id="reply">
@@ -11,13 +13,38 @@
     <% if parent_id %>
       <input type="hidden" name="parent_id" value="<%= parent_id %>">
     <% end %>
+    <% if quote_of %>
+      <input type="hidden" name="quote_of_id" value="<%= quote_of.id %>">
+    <% end %>
     <div class="tweet-content">
       <textarea class="tweet-box" name="body" maxlength="<%= @max_len %>"
                 placeholder="<%= placeholder %>" data-counter></textarea>
+
+      <%# A quote shows the post being attached, so the writer can see what they
+          are quoting while they write. %>
+      <% if quote_of %>
+        <div class="compose-quote">
+          <div class="quote-head">
+            <%= pic(quote_of.user.avatar_path, 20) %>
+            <span class="quote-name"><%= quote_of.user.display_name.presence || quote_of.user.username %></span>
+            <span class="quote-handle">@<%= quote_of.user.username %></span>
+          </div>
+          <p class="quote-text"><%= truncate(quote_of.body.to_s, length: 200) %></p>
+        </div>
+      <% end %>
+
+      <%# Alt text is only meaningful alongside an image, so the field is shown
+          next to the media button and is optional. %>
+      <div class="compose-alt" data-alt-wrap hidden>
+        <input type="text" name="alt_text" maxlength="1000" autocomplete="off"
+               placeholder="Describe this image for people who cannot see it"
+               aria-label="Image description">
+      </div>
+
       <div class="compose-bar">
         <label class="media-btn" title="Add a photo">
           <%= icon('image') %>
-          <input type="file" name="media" accept="image/*">
+          <input type="file" name="media" accept="image/*" data-media-input>
         </label>
         <span class="tweet-counter counter" data-counter-output><%= @max_len %></span>
         <button class="btn primary-btn tweet-btn" type="submit">Tweet</button>

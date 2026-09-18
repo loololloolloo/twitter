@@ -8,6 +8,17 @@
       </div>
     </div>
 
+    <%# The All / Mentions split, as the 2019 client had it. Both are filters
+        over the same list rather than separate stores. %>
+    <ul class="profile-tabs">
+      <li class="<%= 'is-active' if @tab == 'all' %>">
+        <% if @tab == "all" %><span>All</span><% else %><a href="<%= notifications_path %>">All</a><% end %>
+      </li>
+      <li class="<%= 'is-active' if @tab == 'mentions' %>">
+        <% if @tab == "mentions" %><span>Mentions</span><% else %><a href="<%= notifications_path(tab: 'mentions') %>">Mentions</a><% end %>
+      </li>
+    </ul>
+
     <ul class="row-list">
       <% if @items.present? %>
         <% @items.each do |note| %>
@@ -20,13 +31,16 @@
                 <% if note.actor %>
                   <a class="row-name" href="<%= profile_path(note.actor.username) %>">@<%= note.actor.username %></a>
                 <% end %>
+                <% if !note.is_read %><span class="chip">New</span><% end %>
               </div>
               <p class="row-note">
                 <% if note.kind == "favourite" %>favorited your tweet
                 <% elsif note.kind == "like" %>liked your tweet
                 <% elsif note.kind == "retweet" %>retweeted your tweet
+                <% elsif note.kind == "quote" %>quoted your tweet
                 <% elsif note.kind == "reply" %>replied: <%= note.body %>
                 <% elsif note.kind == "follow" %>followed you
+                <% elsif note.kind == "follow_request" %>asked to follow you
                 <% elsif note.kind == "mention" %>mentioned you: <%= note.body %>
                 <% else %><%= note.body %>
                 <% end %>
@@ -36,6 +50,10 @@
             <% if note.tweet_id %>
               <div class="row-action">
                 <a class="btn btn-pill" href="<%= tweet_path(note.tweet_id) %>">View</a>
+              </div>
+            <% elsif note.kind == "follow_request" %>
+              <div class="row-action">
+                <a class="btn btn-pill" href="<%= follow_requests_path %>">Review</a>
               </div>
             <% end %>
           </li>

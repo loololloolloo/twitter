@@ -60,6 +60,6 @@ class LikesController < ApplicationController
     @tweet = Tweet.visible.find_by(id: params[:id])
     return if @tweet
 
-    render plain: "Not found", status: :not_found
+    render_not_found
   end
 end

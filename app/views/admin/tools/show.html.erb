@@ -50,45 +50,7 @@
     </div>
   <% end %>
 
-  <% if can?('users.view') %>
-    <% bot_count = @inventory[:bots] %>
-    <div class="panel">
-      <h3 class="panel-title">Simulated accounts</h3>
-      <p class="muted">
-        <%= count_label(bot_count) %> simulated account(s) take part in the site.
-        Hiding them removes their posts and profiles from public view without
-        deleting anything.
-      </p>
-      <p class="rail-status">
-        <span class="pill <%= @bots_hidden ? 'pill-warn' : 'pill-ok' %>">
-          <%= @bots_hidden ? 'hidden' : 'visible' %>
-        </span>
-      </p>
-
-      <%= button_to(@bots_hidden ? "Show bots" : "Hide bots",
-                    admin_sidebar_bots_path,
-                    class: "btn btn-mini", form_class: "rail-form") %>
-    </div>
-  <% end %>
-
   <div class="tool-list">
-    <div class="tool">
-      <div class="tool-body">
-        <h3 class="tool-title">Clear simulated accounts</h3>
-        <p class="tool-note">
-          Deletes all <%= number_with_delimiter(@inventory[:bots]) %> simulated account(s)
-          along with everything they posted, liked and followed. Real members are untouched.
-        </p>
-      </div>
-      <div class="tool-action">
-        <%= form_with url: admin_tools_clear_bots_path, method: :post, class: "confirm-form" do %>
-          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
-          <input type="hidden" name="tab" value="site">
-          <button class="btn btn-danger" type="submit">Clear bots</button>
-        <% end %>
-      </div>
-    </div>
-
     <div class="tool">
       <div class="tool-body">
         <h3 class="tool-title">Clear follow graph</h3>

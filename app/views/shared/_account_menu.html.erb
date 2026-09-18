@@ -1,0 +1,54 @@
+<%# The account menu, shared by both shells. The 2019 design shows it as a
+    popover in the sidebar footer; the recovered designs show it as a hover
+    dropdown under the avatar in the top bar. The markup is the same in both,
+    and each stylesheet positions it. %>
+<div class="account-menu" data-account-menu>
+  <button class="account-link" type="button" aria-haspopup="true" aria-expanded="false">
+    <%= pic(current_user.avatar_path, 40) %>
+    <span class="account-names">
+      <span class="account-name"><%= current_user.display_name %></span>
+      <span class="account-handle">@<%= current_user.username %></span>
+    </span>
+    <span class="account-caret"><%= icon('ellipsis') %></span>
+  </button>
+
+  <div class="account-popover" role="menu" aria-label="Account menu">
+    <% others = connected_accounts.reject { |account| account.id == current_user.id } %>
+    <% if others.any? %>
+      <% others.each do |account| %>
+        <%= button_to switch_account_path(account.id), method: :post,
+                      class: "account-popover-account" do %>
+          <%= pic(account.avatar_path, 40) %>
+          <span class="account-popover-names">
+            <span class="account-popover-name"><%= account.display_name %></span>
+            <span class="account-popover-handle">@<%= account.username %></span>
+          </span>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <%# The active account is listed last with a check, the way the
+        switcher showed which one is live. %>
+    <div class="account-popover-row is-current">
+      <%= pic(current_user.avatar_path, 40) %>
+      <span class="account-popover-names">
+        <span class="account-popover-name"><%= current_user.display_name %></span>
+        <span class="account-popover-handle">@<%= current_user.username %></span>
+      </span>
+      <span class="account-popover-check"><%= icon('verified') %></span>
+    </div>
+
+    <a class="account-popover-row" href="<%= login_path(add: 1) %>">
+      <%= icon('user') %><span>Add an existing account</span>
+    </a>
+
+    <div class="account-popover-divider"></div>
+
+    <a class="account-popover-row" href="<%= settings_path %>">
+      <%= icon('gear') %><span>Settings and privacy</span>
+    </a>
+    <a class="account-popover-row" href="<%= logout_path %>">
+      <%= icon('right-from-bracket') %><span>Sign out</span>
+    </a>
+  </div>
+</div>

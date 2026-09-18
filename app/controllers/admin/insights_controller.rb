@@ -5,8 +5,6 @@ module Admin
     def index
       @totals = {
         users: User.count,
-        humans: User.humans.count,
-        bots: User.bots.count,
         verified: User.where(is_verified: true).count,
         suspended: User.where(is_suspended: true).count,
         banned: User.where(is_banned: true).count,

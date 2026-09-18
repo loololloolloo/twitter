@@ -3,8 +3,11 @@
 <% tweet = local_assigns[:tweet] %>
 <%# A retweet is two different people: the account whose body is shown, and the
     account that retweeted. The flag names the retweeter ("Retweeted by"), the
-    rest of the entry belongs to the original author. %>
+    rest of the entry belongs to the original author. A quote is different: the
+    quoting account's own words are the body and the quoted post is attached
+    beneath, so it is not treated as a retweet here. %>
 <% original = tweet.retweet_of %>
+<% quoted = tweet.quote_of %>
 <% author = original&.user || tweet.user %>
 <% retweeter = original ? tweet.user : nil %>
 <% show_body = original || tweet %>
@@ -28,6 +31,29 @@
         <span class="tweet-handle">@<%= author.username %></span>
         <span class="tweet-dot">&middot;</span>
         <span class="tweet-time" title="<%= show_body.created_at %>"><%= time_ago(show_body.created_at) %></span>
+
+        <%# The overflow menu: the per-post actions that do not fit on the
+            action bar. Only rendered when there is at least one entry in it,
+            so a post with no available actions carries no empty menu. %>
+        <% can_report = show_body.user_id != current_user.id %>
+        <% can_quote = !show_body.retweet_of_id && show_body.user_id != current_user.id %>
+        <% if can_report || can_quote || show_body.user_id == current_user.id %>
+          <details class="tweet-menu">
+            <summary aria-label="More options"><%= icon('ellipsis') %></summary>
+            <div class="tweet-menu-list">
+              <% if can_quote %>
+                <a href="<%= tweet_path(show_body, quote: 1) %>">Quote Tweet</a>
+              <% end %>
+              <% if show_body.user_id == current_user.id %>
+                <a href="<%= tweet_activity_path(show_body) %>">View Tweet activity</a>
+                <a href="<%= tweet_path(show_body) %>" data-copy-link="<%= tweet_url(show_body) %>">Copy link to Tweet</a>
+              <% end %>
+              <% if can_report %>
+                <a href="<%= new_report_path(tweet_id: show_body.id) %>">Report Tweet</a>
+              <% end %>
+            </div>
+          </details>
+        <% end %>
       </div>
 
       <% if show_body.body.present? %>
@@ -35,7 +61,31 @@
       <% end %>
 
       <% if show_body.media_path.present? %>
-        <div class="tweet-media"><img src="/uploads/<%= show_body.media_path %>" alt=""></div>
+        <div class="tweet-media">
+          <img src="/uploads/<%= show_body.media_path %>" alt="<%= show_body.alt_text.to_s %>">
+        </div>
+      <% end %>
+
+      <%# A quoted post is rendered as a card beneath the quoting body, which is
+          what distinguishes a quote from a retweet: both posts are visible and
+          the quoting account's words lead. %>
+      <% if quoted %>
+        <a class="quote-card" href="<%= tweet_path(quoted) %>">
+          <div class="quote-head">
+            <%= pic(quoted.user.avatar_path, 20) %>
+            <span class="quote-name"><%= quoted.user.display_name.presence || quoted.user.username %></span>
+            <% if quoted.user.is_verified %><span class="verified-badge"><%= icon('verified') %></span><% end %>
+            <span class="quote-handle">@<%= quoted.user.username %></span>
+            <span class="tweet-dot">&middot;</span>
+            <span class="tweet-time"><%= time_ago(quoted.created_at) %></span>
+          </div>
+          <% if quoted.body.present? %>
+            <p class="quote-text"><%= linkify(quoted.body) %></p>
+          <% end %>
+          <% if quoted.media_path.present? %>
+            <div class="tweet-media"><img src="/uploads/<%= quoted.media_path %>" alt="<%= quoted.alt_text.to_s %>"></div>
+          <% end %>
+        </a>
       <% end %>
 
       <%# The engagement figures ride alongside their own controls, as the web
@@ -49,6 +99,7 @@
       <% rt_active = signed_in? && show_body.retweeted_by?(current_user) %>
       <% fav_active = signed_in? && show_body.favourited_by?(current_user) %>
       <% like_active = signed_in? && show_body.liked_by?(current_user) %>
+      <% saved = signed_in? && show_body.bookmarked_by?(current_user) %>
       <div class="tweet-actions">
         <a class="act act-reply" href="<%= tweet_path(show_body) %>" title="Reply">
           <%= icon('reply') %>
@@ -95,6 +146,18 @@
             <% elsif likes.positive? %>
               <span class="act-count"><%= count_label(likes) %></span>
             <% end %>
+          </button>
+        <% end %>
+
+        <%# Bookmarking, added to the client in 2018 and carried into the 2019
+            design. Toggles in place like the other reactions. %>
+        <%= form_with url: bookmark_tweet_path(show_body), method: :post,
+                      class: "inline js-bookmark",
+                      data: { bookmarked: saved, save_url: bookmark_tweet_path(show_body),
+                              unsave_url: bookmark_tweet_path(show_body) } do %>
+          <button class="act act-save <%= 'saved' if saved %>" type="submit"
+                  title="<%= saved ? 'Remove from saved posts' : 'Save post' %>">
+            <%= icon(saved ? 'bookmark-solid' : 'bookmark-regular') %>
           </button>
         <% end %>
 

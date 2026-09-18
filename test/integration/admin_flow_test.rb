@@ -70,38 +70,6 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
     assert_no_match(/announcement-banner/, response.body)
   end
 
-  test "the hide-bots switch takes simulated accounts off the public site" do
-    owner = create_user(username: "owner_one", role: "owner")
-    viewer = create_user(username: "viewer")
-    bot = create_user(username: "botly", is_bot: true)
-    Tweet.create!(user: bot, body: "bots are talking")
-    Tweet.create!(user: viewer, body: "a human is talking")
-
-    sign_in(owner)
-    post admin_sidebar_bots_path
-    assert_redirected_to admin_root_path
-    assert SiteSetting.hide_bots?
-
-    assert_empty Tweet.visible.where(user_id: bot.id)
-    assert_equal 1, Tweet.visible.where(user_id: viewer.id).count
-
-    get "/users"
-    assert_no_match(/botly/, response.body)
-  end
-
-  test "showing bots again restores them" do
-    owner = create_user(username: "owner_one", role: "owner")
-    bot = create_user(username: "botly", is_bot: true)
-    Tweet.create!(user: bot, body: "bots are talking")
-
-    SiteSetting.put("hide_bots", "1")
-    sign_in(owner)
-
-    post admin_sidebar_bots_path
-    refute SiteSetting.hide_bots?
-    assert_equal 1, Tweet.visible.where(user_id: bot.id).count
-  end
-
   test "only editors may post an announcement" do
     member = create_user(username: "member")
     sign_in(member)

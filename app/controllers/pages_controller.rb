@@ -8,7 +8,7 @@ class PagesController < ApplicationController
 
   def show
     @slug = params[:page]
-    return render(plain: "Not found", status: :not_found) unless PAGES.key?(@slug)
+    return render_not_found unless PAGES.key?(@slug)
 
     @title = PAGES[@slug]
     render :show

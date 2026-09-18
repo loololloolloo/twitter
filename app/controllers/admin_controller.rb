@@ -8,7 +8,7 @@ class AdminController < ApplicationController
 
   layout "admin"
 
-  helper_method :rank_of, :outranks?
+  helper_method :rank_of, :outranks?, :may_manage?
 
   private
 
@@ -45,5 +45,26 @@ class AdminController < ApplicationController
   # or acting on themselves where the legacy panel allowed it.
   def outranks?(target)
     rank_of(current_user) > rank_of(target)
+  end
+
+  # The instance owner account is the one account the panel cannot touch from
+  # the outside. It answers to nobody, so every mutating action has to ask this
+  # before it writes. Rank alone is not enough: an admin's rank is above a
+  # plain member's, so the role-change guard would happily let them demote the
+  # owner to "user" and take the instance over.
+  def may_manage?(target)
+    return true unless target.owner?
+
+    target.id == current_user.id
+  end
+
+  # Gate for the actions that would otherwise let staff alter the owner
+  # account. Redirects rather than raising, so the operator lands back on the
+  # card with an explanation instead of an error screen.
+  def require_may_manage!
+    return if may_manage?(@user)
+
+    redirect_to admin_user_path(@user),
+                alert: "The @#{@user.username} account can only be changed by signing in as it."
   end
 end

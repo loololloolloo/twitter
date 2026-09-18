@@ -1,15 +1,42 @@
 class TweetsController < ApplicationController
   before_action :require_login!
-  before_action :load_tweet, only: [ :show, :retweet, :destroy, :stats ]
+  before_action :load_tweet, only: [ :show, :retweet, :destroy, :stats, :activity ]
 
   def show
-    @replies = @tweet.replies.visible.includes(:user).order(:created_at)
+    # Replies the author has hidden stay visible to the author alone, greyed, so
+    # the thread reads whole to the one person who hid them. Whether to keep a
+    # hidden reply is decided by who is reading, not by who wrote the reply.
+    replies = @tweet.replies.visible.includes(:user).order(:created_at)
+    @hidden_count = replies.count(&:reply_hidden?)
+    viewer_is_author = @tweet.user_id == current_user.id
+    @replies = replies.reject { |reply| reply.reply_hidden? && !viewer_is_author }
     @ancestors = []
     node = @tweet.parent
     while node
       @ancestors.unshift(node)
       node = node.parent
     end
+
+    # The permalink is also where a quote of this post is composed, so the
+    # composer's quote target is set here rather than on the timeline.
+    @quote_of = @tweet if params[:quote].present?
+  end
+
+  # The per-post analytics screen. The 2019 client showed impressions and
+  # engagement for the author's own posts only, so this is restricted to the
+  # author (or an operator with the delete permission).
+  def activity
+    unless @tweet.user_id == current_user.id || can?("tweets.delete")
+      return redirect_to tweet_path(@tweet), alert: "You can only see activity for your own posts."
+    end
+
+    @impressions = TweetView.where(tweet_id: @tweet.id).count
+    # A view with dwell time recorded is one where the reader stayed, which is
+    # the closest thing this schema has to the client's "detail expands" figure.
+    @detail_impressions = TweetView.where(tweet_id: @tweet.id).where("dwell_seconds > 0").count
+    @profile_visits = ProfileView.where(user_id: @tweet.user_id).count
+    @engagement = @tweet.like_count + @tweet.favourite_count + @tweet.retweet_count + @tweet.reply_count
+    @rate = @impressions.positive? ? (@engagement.to_f / @impressions * 100).round(1) : 0.0
   end
 
   # Current engagement for the focused post and its replies, so the permalink
@@ -28,8 +55,9 @@ class TweetsController < ApplicationController
     body = params[:body].to_s.strip
     media = params[:media]
     has_media = media.present? && media.respond_to?(:original_filename) && media.original_filename.present?
+    quote_of_id = params[:quote_of_id].presence
 
-    if body.empty? && !has_media
+    if body.empty? && !has_media && quote_of_id.blank?
       redirect_back fallback_location: home_path, alert: "Your tweet was empty."
       return
     end
@@ -42,6 +70,18 @@ class TweetsController < ApplicationController
 
     parent = params[:parent_id].present? ? Tweet.visible.find_by(id: params[:parent_id]) : nil
 
+    # A quote names the post it attaches. It is loaded through the readable
+    # scope so a quote cannot be used to embed a post from a blocked or
+    # protected account the reader may not see.
+    quoted = nil
+    if quote_of_id.present?
+      quoted = Tweet.visible.readable_by(current_user).find_by(id: quote_of_id)
+      if quoted.nil?
+        redirect_back fallback_location: home_path, alert: "That post is not available."
+        return
+      end
+    end
+
     # The upload is validated before the tweet is written so a rejected file
     # cannot leave a row pointing at a path that was never stored.
     media_path = Uploads.store(media, current_user.id)
@@ -51,24 +91,42 @@ class TweetsController < ApplicationController
       return
     end
 
-    tweet = Tweet.create!(user: current_user, body: body, parent: parent, media_path: media_path)
+    tweet = Tweet.create!(
+      user: current_user,
+      body: body,
+      parent: parent,
+      quote_of: quoted,
+      media_path: media_path,
+      alt_text: params[:alt_text].to_s.strip.first(1000).presence
+    )
 
     if parent && parent.user_id != current_user.id
       Notification.create!(user: parent.user, actor: current_user, kind: "reply",
                            tweet: tweet, body: body.first(120))
     end
 
-    MentionScanner.notify(tweet)
+    if quoted && quoted.user_id != current_user.id
+      Notification.create!(user: quoted.user, actor: current_user, kind: "quote",
+                           tweet: tweet, body: "@#{current_user.username} quoted your tweet")
+    end
 
-    # A post from the account the population is watching is answered at once,
-    # rather than waiting for each bot's next scheduled slot.
-    BotEngine.rally_to(tweet) if parent.nil?
+    MentionScanner.notify(tweet)
 
     if parent
       redirect_to tweet_path(parent)
     else
       redirect_back fallback_location: home_path
     end
+  end
+
+  # Hiding a reply is the parent author's decision. Only the author of the post
+  # being replied to can hide the reply, which is the rule the client enforced.
+  def hide_reply
+    moderate_reply(hidden: true)
+  end
+
+  def unhide_reply
+    moderate_reply(hidden: false)
   end
 
   def retweet
@@ -130,6 +188,28 @@ class TweetsController < ApplicationController
     end
   end
 
+  # Hiding and unhiding are one rule applied two ways, so they share a body.
+  # The reply is loaded without the readable scope on purpose: the parent's
+  # author is the one account allowed to act on a reply it may not otherwise
+  # be able to see, and the ownership check below is the gate.
+  def moderate_reply(hidden:)
+    reply = Tweet.find_by(id: params[:id])
+
+    if reply.nil? || reply.parent_id.nil?
+      redirect_to(home_path, alert: "That reply is not available.") and return
+    end
+
+    unless reply.parent.user_id == current_user.id || can?("tweets.delete")
+      redirect_to(tweet_path(reply.parent), alert: "Only the author of the original post can hide a reply.") and return
+    end
+
+    hidden ? reply.hide_reply! : reply.unhide_reply!
+    audit!(hidden ? "tweet.hide_reply" : "tweet.unhide_reply",
+           target: "tweet:#{reply.id}", detail: hidden ? "hid a reply" : "unhid a reply")
+
+    redirect_to tweet_path(reply.parent), notice: hidden ? "Reply hidden." : "Reply unhidden."
+  end
+
   def destroy
     unless @tweet.user_id == current_user.id || can?("tweets.delete")
       redirect_to tweet_path(@tweet), alert: "You cannot delete that tweet."
@@ -145,10 +225,17 @@ class TweetsController < ApplicationController
   private
 
   def load_tweet
-    @tweet = Tweet.visible.includes(:user, retweet_of: :user).find_by(id: params[:id])
+    # Scoped through `readable_by` so every action that names a post by id -
+    # the permalink, retweet, stats, activity - applies the same rule: a
+    # protected account's post is not readable by a stranger, and a 404 is the
+    # answer rather than a page that then has to hide its own contents.
+    @tweet = Tweet.visible
+                  .readable_by(current_user)
+                  .includes(:user, retweet_of: :user, quote_of: :user)
+                  .find_by(id: params[:id])
     return if @tweet
 
-    render plain: "Not found", status: :not_found
+    render_not_found
   end
 
   # One post's engagement, in the same shape the action endpoints return, so

@@ -1,0 +1,70 @@
+<% content_for :title, "Lists / #{@site_name}" %>
+
+<div class="layout">
+  <section class="col-main">
+    <div class="stream-head">
+      <div class="stream-head-title">
+        <h1>Lists</h1>
+        <span class="stream-sub">@<%= current_user.username %></span>
+      </div>
+      <a class="btn btn-primary" href="<%= new_list_path %>">Create a list</a>
+    </div>
+
+    <div class="panel-section">
+      <h2 class="panel-title">Your lists</h2>
+      <ul class="row-list">
+        <% if @lists.present? %>
+          <% @lists.each do |list| %>
+            <li class="row-item">
+              <div class="row-avatar"><%= icon('list') %></div>
+              <div class="row-body">
+                <div class="row-title">
+                  <a class="row-name" href="<%= list_path(list) %>"><%= list.name %></a>
+                  <% if list.is_private %>
+                    <span class="chip"><%= icon('lock') %> Private</span>
+                  <% end %>
+                </div>
+                <p class="row-note">
+                  <%= list.member_count %> <%= 'member'.pluralize(list.member_count) %>
+                  <% if list.description.present? %> &middot; <%= list.description %><% end %>
+                </p>
+              </div>
+              <div class="row-action">
+                <a class="btn btn-pill" href="<%= list_members_path(list) %>">Edit</a>
+              </div>
+            </li>
+          <% end %>
+        <% else %>
+          <li class="empty-note">You have not created any lists yet.</li>
+        <% end %>
+      </ul>
+    </div>
+
+    <%# Lists somebody else made and added this account to. Read-only here: the
+        owner is the only one who can change the membership. %>
+    <div class="panel-section">
+      <h2 class="panel-title">Lists you are on</h2>
+      <ul class="row-list">
+        <% if @subscribed.present? %>
+          <% @subscribed.each do |list| %>
+            <li class="row-item">
+              <div class="row-avatar"><%= icon('list') %></div>
+              <div class="row-body">
+                <div class="row-title">
+                  <a class="row-name" href="<%= list_path(list) %>"><%= list.name %></a>
+                </div>
+                <p class="row-note">by <a href="<%= profile_path(list.user.username) %>">@<%= list.user.username %></a></p>
+              </div>
+            </li>
+          <% end %>
+        <% else %>
+          <li class="empty-note">You are not on anyone else's list.</li>
+        <% end %>
+      </ul>
+    </div>
+  </section>
+
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
+</div>

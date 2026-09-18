@@ -28,12 +28,16 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_match(/profile-aside/, response.body)
   end
 
-  test "the stat bar carries the four metrics and links to their tabs" do
+  # The 2019 profile header kept Following and Followers under the bio and
+  # dropped the Likes total the earlier client showed there. Likes survives only
+  # as a tab, so it is asserted separately rather than as a header figure.
+  test "the header carries the follow counts and links to their lists" do
     get profile_path(@subject.username)
 
-    %w[Tweets Following Followers Likes].each do |label|
-      assert_match(/#{label}/, response.body)
-    end
+    counts = response.body[/<p class="profile-follow-counts">.*?<\/p>/m].to_s
+    assert_match(/Following/, counts)
+    assert_match(/Followers/, counts)
+    assert_no_match(/Likes/, counts)
 
     assert_match(%r{href="/u/watched_one/followers"}, response.body)
     assert_match(%r{href="/u/watched_one/following"}, response.body)
@@ -101,6 +105,9 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_no_match(/@watched_one/, response.body.split("Who to follow").last.to_s)
   end
 
+  # The header no longer prints a Likes total, but the model still has to count
+  # the reactions other people left on the account's posts rather than the ones
+  # the account gave, which is what any other surface would report.
   test "the profile reports the likes its posts received, not the likes it gave" do
     mine = Tweet.create!(user: @subject, body: "my post", bonus_likes: 3)
     other = Tweet.create!(user: @me, body: "someone else's post")
@@ -112,10 +119,6 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     Like.create!(user: @subject, tweet: other, kind: "like")
 
     assert_equal 5, @subject.likes_received_count
-
-    get profile_path(@subject.username)
-    assert_response :success
-    assert_match(/5/, response.body)
   end
 
   test "the profile uses the wide page container" do

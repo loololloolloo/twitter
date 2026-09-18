@@ -25,15 +25,8 @@ module Admin
     def show
       @tab = TABS.key?(params[:tab]) ? params[:tab] : "site"
       @inventory = Maintenance.inventory
-      @bots_hidden = SiteSetting.hide_bots?
       @database_bytes = Maintenance.database_bytes
       @table_weights = Maintenance.table_weights
-    end
-
-    def clear_bot_accounts
-      removed = Maintenance.clear_bot_accounts
-      audit!("maintenance.clear_bots", target: "database", detail: "deleted #{removed} simulated account(s)")
-      redirect_to admin_tools_path(tab: "site"), notice: "#{helpers.count_label(removed)} simulated account(s) removed."
     end
 
     def clear_follows

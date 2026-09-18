@@ -24,6 +24,8 @@
            href="<%= settings_path(panel: 'privacy') %>">Privacy and safety</a>
         <a class="settings-nav-link <%= 'is-active' if section == 'notifications' %>"
            href="<%= settings_path(panel: 'notifications') %>">Notifications</a>
+        <a class="settings-nav-link <%= 'is-active' if section == 'preferences' %>"
+           href="<%= settings_path(panel: 'preferences') %>">Preferences</a>
         <a class="settings-nav-link <%= 'is-active' if section == 'accessibility' %>"
            href="<%= settings_path(panel: 'accessibility') %>">Accessibility, display, and languages</a>
         <a class="settings-nav-link <%= 'is-active' if section == 'data' %>"
@@ -69,6 +71,24 @@
           </p>
 
           <div class="settings-block">
+            <h3 class="settings-block-title">Tweet privacy</h3>
+            <p class="settings-block-note">
+              When your Tweets are protected, only people you approve can see
+              them. Your followers must be approved before they can see your
+              Tweets, and your Tweets will not appear in public search results.
+            </p>
+            <%= form_with url: privacy_settings_path, method: :patch, class: "settings-form" do %>
+              <%= hidden_field_tag :panel, "privacy" %>
+              <label class="checkbox-row" for="settings-protected">
+                <input id="settings-protected" type="checkbox" name="protected" value="1"
+                       <%= "checked" if current_user.protected? %>>
+                <span>Protect my Tweets</span>
+              </label>
+              <%= button_tag "Save", class: "btn btn-primary", type: "submit" %>
+            <% end %>
+          </div>
+
+          <div class="settings-block">
             <h3 class="settings-block-title">Your posts</h3>
             <p class="settings-block-note">
               Delete every tweet you have posted. Replies and retweets other
@@ -101,6 +121,41 @@
             <a href="<%= notifications_path %>">Notifications</a> page: replies,
             retweets, favorites, likes and new followers.
           </p>
+
+        <% when 'preferences' %>
+          <h2 class="settings-panel-title">Preferences</h2>
+          <p class="settings-panel-note">
+            Pick which era of the client you want to use. The choice is saved to
+            your account, so it follows you to other browsers.
+          </p>
+
+          <div class="settings-block">
+            <h3 class="settings-block-title">Design</h3>
+            <p class="settings-block-note">
+              The current client is the default. The other two are the earlier
+              looks this site was built in.
+            </p>
+            <div class="settings-design-choices">
+              <%# One submit button per design, all in a single form. Each
+                  button carries the name of the design it stores, so the whole
+                  set is one control and the chosen one is written by name. %>
+              <%= form_with url: design_path, method: :patch, class: "settings-design-form" do %>
+                <%= hidden_field_tag :panel, "preferences" %>
+                <% User::DESIGNS.each do |option| %>
+                  <% label, note = case option
+                       when "2019" then ["2019", "The current client. Sidebar navigation and rounded cards."]
+                       when "2015" then ["2015", "The classic client. Top navigation, no sidebar."]
+                       else ["Prototype", "The very first design. Top navigation, narrower column."]
+                     end %>
+                  <button class="settings-design-choice <%= 'is-active' if current_user.design == option %>"
+                          type="submit" name="design" value="<%= option %>">
+                    <span class="settings-design-name"><%= label %></span>
+                    <span class="settings-design-note"><%= note %></span>
+                  </button>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
 
         <% when 'accessibility' %>
           <h2 class="settings-panel-title">Accessibility, display, and languages</h2>

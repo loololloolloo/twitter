@@ -159,15 +159,25 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
 .account-menu { position: relative; }
 
 /* The 2019 account popover: a rounded card that opens upward from the account
-   row. It is a popover rather than a page, so switching accounts never leaves
-   the screen you are on. */
+   row on hover. It is a popover rather than a page, so switching accounts never
+   leaves the screen you are on. The bridge below the card spans the gap to the
+   account row so the pointer can travel into the menu without leaving it. */
 .account-popover {
   display: none; position: absolute; left: 0; bottom: 58px;
   background: var(--white); border: 1px solid var(--xlight-gray);
   border-radius: 16px; min-width: 260px; padding: 6px 0;
   box-shadow: 0 4px 14px rgba(0,0,0,.16); z-index: 50;
 }
+.account-popover::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px;
+}
+.account-menu:focus-within .account-popover,
 .account-menu.open .account-popover { display: block; }
+/* Hover-to-open only where a pointer can actually hover. On touch there is no
+   hover state, so the click toggle in the script is what opens it instead. */
+@media (hover: hover) {
+  .account-menu:hover .account-popover { display: block; }
+}
 
 .account-popover-row,
 .account-popover-account {
@@ -204,7 +214,34 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
   .side-account .account-link { justify-content: center; }
   .account-names, .account-caret { display: none; }
   .account-popover { left: 0; }
+  /* The More panel is anchored to the rail's right edge once the rail is narrow,
+     so it opens beside the icon rather than over the stream. */
+  .side-more-list { left: 0; right: auto; }
 }
+
+/* "More" in the rail. The 2019 client opened this in place as a panel of the
+   destinations that are not primary, so it is a disclosure rather than a page.
+   The list is positioned to the rail's right so it never covers the label the
+   pointer is on. */
+.side-more > summary { list-style: none; cursor: pointer; }
+.side-more > summary::-webkit-details-marker { display: none; }
+.side-more[open] > summary { background: rgba(29,161,242,.1); color: var(--blue); }
+.side-more[open] > summary .ico { color: var(--blue); opacity: 1; }
+.side-more-list {
+  display: flex; flex-direction: column; gap: 2px;
+  margin: 2px 0 4px 12px; padding-left: 10px;
+  border-left: 2px solid var(--xlight-gray);
+}
+.side-more-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 10px; border-radius: 999px;
+  color: var(--dark); font-size: 15px; font-weight: 700;
+}
+.side-more-item .ico { width: 20px; height: 20px; opacity: .8; }
+.side-more-item:hover { background: rgba(29,161,242,.1); color: var(--blue); text-decoration: none; }
+.side-more-item:hover .ico { color: var(--blue); opacity: 1; }
+.side-more-item.is-active { color: var(--blue); }
+.side-more-item.is-active .ico { color: var(--blue); opacity: 1; }
 
 /* A pinned post is flagged above its entry rather than being duplicated, the
    way the 2019 client labelled it. */
@@ -536,7 +573,8 @@ html[data-theme="dark"] .tweet:hover { background: rgba(255,255,255,.03); }
 .tweet-actions { z-index: 3; }
 .tweet-body { flex: 1; min-width: 0; }
 .tweet-head { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap;
-              font-size: 15px; line-height: 20px; }
+              font-size: 15px; line-height: 20px; position: relative;
+              padding-right: 34px; }
 .tweet-name { font-weight: 700; color: var(--dark); }
 .tweet-handle, .tweet-time { color: var(--gray); font-size: 15px; font-weight: 400; }
 .tweet-dot { color: var(--gray); }
@@ -1554,6 +1592,17 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 }
 .stream-head-sub { display: block; font-size: 13px; color: var(--gray); }
 
+/* The sparkle control in the home header. It sits at the right edge and names
+   the ordering one click away, which is how the 2019 client labelled it. */
+.stream-head-toggle {
+  margin-left: auto; flex-shrink: 0;
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: 999px;
+  color: var(--blue); font-size: 15px; font-weight: 700;
+}
+.stream-head-toggle .ico { width: 18px; height: 18px; opacity: 1; }
+.stream-head-toggle:hover { background: rgba(29,161,242,.1); text-decoration: none; }
+
 /* The circular back target, as on the profile and conversation headers. */
 .head-back {
   display: flex; align-items: center; justify-content: center;
@@ -1827,3 +1876,184 @@ html[data-theme="dark"] .row-item:hover { background: rgba(255,255,255,.03); }
   color: var(--blue-deep); font-size: 13px; font-weight: 700;
 }
 .rail-actions-list a:hover { background: var(--bg); color: var(--blue); text-decoration: none; }
+
+/* ================= 2019 client features =================
+   Bookmarks, lists, protected accounts, follow requests, blocks and mutes,
+   quote tweets, image descriptions, hidden replies and per-post activity. The
+   pieces below extend the existing stream and row patterns rather than
+   introducing a second visual language for them. */
+
+/* ---------------- sidebar counter ---------------- */
+/* The count of pending follow requests, tucked against the label so it reads
+   as part of the link rather than as a separate control. */
+.side-badge {
+  margin-left: auto; min-width: 20px; padding: 1px 7px;
+  border-radius: 999px; background: var(--blue); color: var(--white);
+  font-size: 12px; font-weight: 700; text-align: center;
+}
+
+/* ---------------- saved posts ---------------- */
+.act-save { color: var(--gray); }
+.act-save.saved { color: var(--blue); font-weight: 700; }
+.act-save.saved .ico { color: var(--blue); }
+
+/* ---------------- quote tweets ---------------- */
+/* A quoted post is a bordered card beneath the quoting body, both visible at
+   once. It is deliberately not the retweet treatment: a retweet shows one body
+   with a "Retweeted by" flag, a quote shows two. */
+.quote-card {
+  display: block; margin-top: 10px; padding: 10px 12px;
+  border: 1px solid var(--xlight-gray); border-radius: 12px;
+  color: inherit; background: var(--card);
+}
+.quote-card:hover { background: rgba(29,161,242,.04); text-decoration: none; }
+html[data-theme="dark"] .quote-card:hover { background: rgba(255,255,255,.03); }
+.quote-head { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+.quote-head .avatar { width: 20px; height: 20px; }
+.quote-name { font-size: 15px; font-weight: 700; color: var(--dark); }
+.quote-handle { font-size: 15px; color: var(--gray); }
+.quote-text { margin: 0; font-size: 15px; line-height: 20px; color: var(--dark);
+              word-wrap: break-word; }
+.quote-card .tweet-media { margin-top: 8px; }
+.quote-card .tweet-media img { border-radius: 12px; }
+
+/* The composer shows what is being quoted while it is written. */
+.compose-quote {
+  margin-top: 10px; padding: 10px 12px;
+  border: 1px solid var(--xlight-gray); border-radius: 12px;
+}
+
+/* ---------------- per-post overflow menu ---------------- */
+/* The actions that do not fit the icon row: quote, activity, copy link and
+   report. A <details> element, so it opens without script and closes on the
+   outside click the script adds. */
+/* The overflow menu is taken out of the header's flex line and pinned to the
+   top right corner. Left in the flow it wrapped onto a line of its own as soon
+   as the name, handle and timestamp filled the row, which added the button's
+   28px height above the text and read as a large gap between the author's name
+   and the body. The header reserves the button's column with padding-right so
+   the pinned button never overlaps the timestamp. */
+.tweet-menu { position: absolute; top: 0; right: 0; flex-shrink: 0; z-index: 4; }
+.tweet-menu > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; width: 28px; height: 28px; border-radius: 999px;
+  color: var(--gray);
+}
+.tweet-menu > summary::-webkit-details-marker { display: none; }
+.tweet-menu > summary:hover { background: rgba(29,161,242,.1); color: var(--blue); }
+.tweet-menu > summary .ico { width: 16px; height: 16px; }
+.tweet-menu-list {
+  position: absolute; right: 0; top: 32px; min-width: 200px; padding: 6px 0;
+  background: var(--card); border: 1px solid var(--xlight-gray);
+  border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.12); z-index: 20;
+}
+.tweet-menu-list > a,
+.tweet-menu-list .menu-button {
+  display: block; width: 100%; padding: 10px 16px; border: 0; background: none;
+  color: var(--dark); font-size: 15px; font-weight: 400; text-align: left;
+  cursor: pointer; font-family: inherit;
+}
+.tweet-menu-list > a:hover,
+.tweet-menu-list .menu-button:hover {
+  background: var(--bg); text-decoration: none;
+}
+/* In the profile and permalink action rows the menu is a normal flex item, not
+   a pinned corner button, so it keeps the relative positioning the dropdown is
+   measured from and sits inline with the buttons beside it. */
+.tweet-menu-inline { position: relative; margin-left: 8px; flex-shrink: 0; }
+
+/* ---------------- protected accounts ---------------- */
+.lock-badge { color: var(--gray); }
+.lock-badge .ico { width: 17px; height: 17px; }
+/* The notice that replaces the stream on a locked profile. */
+.lock-notice, .block-notice {
+  padding: 24px 16px; border-bottom: 1px solid var(--xlight-gray);
+  background: var(--card);
+}
+.lock-notice p, .block-notice p { margin: 0 0 8px; font-size: 15px; line-height: 21px; }
+.lock-notice p:first-child, .block-notice h2 { font-weight: 800; color: var(--dark); }
+.block-notice h2 { margin: 0 0 8px; font-size: 19px; }
+.lock-notice .ico { width: 17px; height: 17px; }
+
+/* ---------------- hidden replies ---------------- */
+/* The author's own moderation. The count is shown to them alone; everybody
+   else simply does not see the reply. */
+.hidden-note {
+  padding: 10px 16px; border-bottom: 1px solid var(--xlight-gray);
+  background: var(--bg); color: var(--gray); font-size: 13px;
+}
+.reply-moderation { padding: 0 16px 8px; list-style: none; }
+
+/* ---------------- image descriptions ---------------- */
+/* Alt text sits under the composer's media button and only appears once an
+   image has been chosen. */
+.compose-alt { margin-top: 8px; }
+.compose-alt input {
+  width: 100%; padding: 8px 10px; font-size: 14px; font-family: inherit;
+  border: 1px solid var(--xlight-gray); border-radius: 8px;
+  background: var(--card); color: var(--dark);
+}
+.compose-alt input:focus { outline: none; border-color: var(--blue); }
+
+/* ---------------- lists ---------------- */
+.panel-section {
+  padding: 16px; border-bottom: 1px solid var(--xlight-gray);
+  background: var(--card);
+}
+.panel-count { color: var(--gray); font-weight: 400; font-size: 14px; }
+.inline-form { display: flex; gap: 8px; align-items: center; }
+.inline-form input[type=text] {
+  flex: 1; min-width: 0; padding: 10px 12px; font-size: 15px; font-family: inherit;
+  border: 1px solid var(--xlight-gray); border-radius: 999px;
+  background: var(--card); color: var(--dark);
+}
+.inline-form input[type=text]:focus { outline: none; border-color: var(--blue); }
+.row-action-pair { display: flex; gap: 8px; }
+.stream-head-actions { display: flex; gap: 8px; align-items: center; }
+.stream-head-stacked { align-items: flex-start; }
+/* The note that explains a stream that has no entries yet. */
+.stream-note {
+  margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--xlight-gray);
+  color: var(--gray); font-size: 13px; line-height: 18px; background: var(--card);
+}
+
+/* ---------------- forms ---------------- */
+.settings-actions {
+  display: flex; gap: 10px; align-items: center; margin-top: 16px;
+}
+.checkbox-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 400; color: var(--dark); cursor: pointer;
+}
+.checkbox-row input { width: 18px; height: 18px; margin: 0; }
+.field-hint { display: block; margin-top: 4px; font-size: 12px; color: var(--gray); }
+.form-error {
+  margin: 0 0 14px; padding: 10px 12px; border-radius: 8px;
+  background: rgba(224,36,94,.08); color: var(--red); font-size: 14px;
+}
+.btn-tiny { padding: 4px 12px; font-size: 13px; }
+
+/* ---------------- reporting ---------------- */
+.report-reasons { margin: 0 0 18px; padding: 0; border: 0; }
+.report-reasons legend {
+  padding: 0 0 10px; font-size: 15px; font-weight: 700; color: var(--dark);
+}
+.report-reason {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; font-size: 15px; color: var(--dark); cursor: pointer;
+}
+.report-name { font-weight: 700; color: var(--dark); }
+.report-quoted {
+  margin: 10px 0 0; padding-left: 12px; border-left: 2px solid var(--xlight-gray);
+}
+
+/* ---------------- per-post activity ---------------- */
+.activity-figure { margin: 0; font-size: 28px; font-weight: 800; color: var(--dark); }
+.activity-table {
+  width: 100%; margin-top: 14px; border-collapse: collapse; font-size: 15px;
+}
+.activity-table th, .activity-table td {
+  padding: 10px 0; border-top: 1px solid var(--xlight-gray); text-align: left;
+}
+.activity-table th { font-weight: 400; color: var(--gray); }
+.activity-table td { text-align: right; font-weight: 700; color: var(--dark); }

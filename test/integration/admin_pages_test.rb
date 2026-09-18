@@ -12,6 +12,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin/settings
     /admin/tweets
     /admin/audit
+    /admin/insights
   ].freeze
 
   test "every admin page renders for the owner" do
@@ -23,6 +24,23 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
       get path
       assert_response :success, "#{path} did not render"
     end
+  end
+
+  test "the insights screen reports totals and storage" do
+    owner = create_user(username: "king", role: "owner")
+    member = create_user(username: "member")
+    tweet = Tweet.create!(user: member, body: "counted", bonus_likes: 4)
+    Like.create!(user: owner, tweet: tweet, kind: "like")
+
+    sign_in(owner)
+    get admin_insights_path
+
+    assert_response :success
+    assert_match(/Insights/, response.body)
+    assert_match(/New accounts, last 14 days/, response.body)
+    assert_match(/Most followed/, response.body)
+    assert_match(/Most liked posts/, response.body)
+    assert_match(/Storage/, response.body)
   end
 
   test "the user detail page renders for the owner" do

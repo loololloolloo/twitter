@@ -16,6 +16,7 @@ class Permission < ApplicationRecord
     "users.avatar"       => "Import profile pictures from external providers",
     "users.email"        => "Change a user's email address",
     "users.roles"        => "Assign roles to users",
+    "users.tags"         => "Set operational tags on a user",
     "users.permissions"  => "Edit role permissions",
     "users.impersonate"  => "Log in as another user",
     "tweets.view"        => "View all tweets",

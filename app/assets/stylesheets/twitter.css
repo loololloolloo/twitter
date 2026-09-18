@@ -23,19 +23,30 @@
      so the stream keeps its line length. */
   --sidebar-w: 275px;
   --sidebar-w-collapsed: 88px;
-  /* The content band: a 600px stream beside a 350px rail, with a 30px gutter,
-     which is the geometry the redesign settled on. */
+  /* The content band: the stream fills the room the 350px rail leaves, and a
+     small gutter keeps the rail's cards off the stream's edge - the 2019 client
+     separated the two, but only by a modest gap rather than the 30px that read
+     as a strip of dead background between them. */
   --stream-w: 600px;
   --rail-w: 350px;
-  --rail-gap: 30px;
+  --rail-gap: 12px;
   --header-h: 53px;
-  /* The profile picture and how far its framed box sits inside the banner.
-     The box belongs to the banner, not to the strip below it: it is anchored so
-     its bottom edge is `--pfp-inset` above the banner's bottom edge, which keeps
-     it clear of the stat bar at every width. Both numbers change together, so
-     the arithmetic stays in one place. */
-  --pfp-size: 200px;
-  --pfp-inset: 14px;
+  /* The profile picture and how the framed box sits on the banner's bottom
+     edge. The 2019 profile draws the picture at 134px inside a 4px ring and
+     straddles the banner/card boundary on purpose: `--pfp-overlap` is how far
+     the frame's centre hangs below the banner, so half the circle is over the
+     banner and half over the details below it, which is what the redesign
+     looks like. The frame stays wholly inside the profile card, which is the
+     standing requirement, and the details block reserves the picture's column
+     so the two never collide. */
+  --pfp-size: 134px;
+  --pfp-ring: 4px;
+  --pfp-overlap: 67px;
+  /* The admin panel's own geometry: a fixed rail down the left edge and a
+     capped content column beside it. */
+  --admin-rail-w: 240px;
+  --admin-content-w: 1120px;
+  --admin-topbar-h: 46px;
 }
 
 /* Night mode. The variables are redefined on the root element so every rule
@@ -81,9 +92,14 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
    stacked menu of icon+label links, a filled compose button and the account
    switcher at the bottom. The rail is a fixed column and the content sits
    beside it, so every page inherits the same three-column geometry. */
+/* The shell spans the viewport rather than sitting in a centred 1265px box.
+   Centring the box left a growing void to the left of the rail - at 1920px it
+   was 320px of empty page before the bird - which read as a layout bug. The
+   rail is now anchored to the left edge and the content band centres itself in
+   whatever room is left, so the only gap is the gutter between the two. */
 .app-shell {
   display: flex; align-items: flex-start;
-  max-width: 1265px; margin: 0 auto;
+  width: 100%;
 }
 /* `min-width: 0` is what lets the content column shrink with the viewport.
    Without it a flex item refuses to go below its content width and the widest
@@ -121,14 +137,18 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
   border-radius: 999px; font-size: 16px; font-weight: 700;
   box-shadow: 0 1px 3px rgba(0,0,0,.12);
 }
-.side-compose .ico { width: 20px; height: 20px; opacity: 1; color: var(--white); }
+/* The 2019 rail's compose control is a text pill, not an icon-and-text pill:
+   the icon is hidden where the rail is expanded and only comes back once the
+   rail collapses to icons and the label is gone. */
+.side-compose .ico { display: none; }
 .side-compose:hover { background: var(--blue-dark); color: var(--white); text-decoration: none; }
 
 .side-account { margin-top: auto; padding-top: 10px; }
 .side-account .account-link {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 8px 10px; border-radius: 999px;
-  color: var(--dark); font-weight: 400;
+  background: none; border: 0; cursor: pointer; font-family: var(--font);
+  color: var(--dark); font-weight: 400; text-align: left;
 }
 .side-account .account-link:hover { background: rgba(29,161,242,.1); text-decoration: none; }
 .account-names { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1; }
@@ -137,15 +157,39 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
 .account-handle { font-size: 13px; color: var(--gray); }
 .account-caret .ico { width: 16px; height: 16px; }
 .account-menu { position: relative; }
-.account-dropdown {
-  display: none; position: absolute; left: 0; bottom: 56px;
+
+/* The 2019 account popover: a rounded card that opens upward from the account
+   row. It is a popover rather than a page, so switching accounts never leaves
+   the screen you are on. */
+.account-popover {
+  display: none; position: absolute; left: 0; bottom: 58px;
   background: var(--white); border: 1px solid var(--xlight-gray);
-  border-radius: 12px; min-width: 200px; padding: 6px 0;
+  border-radius: 16px; min-width: 260px; padding: 6px 0;
   box-shadow: 0 4px 14px rgba(0,0,0,.16); z-index: 50;
 }
-.account-menu:hover .account-dropdown, .account-menu.open .account-dropdown { display: block; }
-.account-dropdown a { display: block; padding: 10px 16px; color: var(--dark); font-size: 14px; }
-.account-dropdown a:hover { background: var(--bg); text-decoration: none; }
+.account-menu.open .account-popover { display: block; }
+
+.account-popover-row,
+.account-popover-account {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 16px; margin: 0; border: 0; background: none;
+  color: var(--dark); font-size: 14px; font-family: var(--font);
+  text-align: left; cursor: pointer;
+}
+.account-popover-row:hover,
+.account-popover-account:hover { background: var(--bg); text-decoration: none; }
+.account-popover-row .ico { width: 18px; height: 18px; flex-shrink: 0; }
+.account-popover-account img,
+.account-popover-account .avatar,
+.account-popover-row .avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }
+.account-popover-names { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.account-popover-name { font-weight: 700; font-size: 14px; color: var(--dark); }
+.account-popover-handle { font-size: 13px; color: var(--gray); }
+.account-popover-check { margin-left: auto; }
+.account-popover-check .ico { color: var(--blue); width: 20px; height: 20px; opacity: 1; }
+.account-popover-divider {
+  height: 1px; background: var(--xlight-gray); margin: 6px 0;
+}
 
 /* The rail collapses to icons when the viewport can no longer hold it beside
    both content columns, which is what keeps the stream from being squeezed. */
@@ -155,24 +199,33 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
   .side-label { display: none; }
   .side-compose { width: 52px; height: 52px; padding: 0; }
   .side-compose .side-label { display: none; }
+  .side-compose .ico { display: block; width: 22px; height: 22px; color: var(--white); }
   .side-account { width: 100%; }
   .side-account .account-link { justify-content: center; }
   .account-names, .account-caret { display: none; }
-  .account-dropdown { left: 0; }
+  .account-popover { left: 0; }
 }
 
+/* A pinned post is flagged above its entry rather than being duplicated, the
+   way the 2019 client labelled it. */
+.pin-flag {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 15px 6px; font-size: 13px; color: var(--gray);
+}
+.pin-label { font-weight: 700; color: var(--gray); }
+.pin-when { font-size: 12px; }
+
 /* ---------------- admin top bar ----------------
-   The admin panel keeps its own layout and its own global bar: it is an
-   operator surface, not part of the signed-in stream, and it carries a
-   different set of destinations. It sits above the admin shell, which clears it
-   with its own top padding. */
+   The panel's global bar. It carries the panel's cross-cutting destinations and
+   the way back to the public site, and it spans the full window so the brand
+   lines up with the rail's own left edge. */
 .topbar {
   background: var(--white);
   border-bottom: 1px solid var(--xlight-gray);
   position: fixed; top: 0; right: 0; left: 0; z-index: 1000;
 }
 .topbar-inner {
-  max-width: 1190px; margin: 0 auto; padding: 0 15px;
+  max-width: none; margin: 0; padding: 0 15px;
   display: flex; align-items: center; gap: 16px; height: 46px;
 }
 .brand { display: flex; align-items: center; }
@@ -185,8 +238,61 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
 }
 .topnav a:hover { background: var(--bg); text-decoration: none; color: var(--blue); }
 .topnav a.active { color: var(--blue); }
+.nav-count {
+  background: #A8193C; color: var(--white); border-radius: 9px;
+  padding: 0 6px; font-size: 11px; font-weight: 700; margin-left: 2px;
+}
 .topbar-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
 .topbar-right .account-link { color: var(--blue); font-size: 13px; font-weight: 700; }
+
+/* ---------------- admin rail ----------------
+   The rail is a fixed, full-height column pinned to the left edge below the
+   global bar. It holds the operator card and the section navigation, so a long
+   data table never pushes the destinations out of reach. */
+.admin-rail {
+  position: fixed; top: var(--admin-topbar-h); left: 0; bottom: 0;
+  width: var(--admin-rail-w);
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 14px 12px 16px;
+  background: var(--white);
+  border-right: 1px solid var(--xlight-gray);
+  overflow-y: auto;
+  z-index: 20;
+}
+.admin-brand { display: flex; align-items: center; padding: 2px 6px 0; }
+.admin-brand img { width: 26px; height: 26px; display: block; }
+
+/* The rail's destinations. Flat rows rather than pills: the panel is a dense
+   internal tool, and the icon-plus-label row with a tinted active state keeps
+   a long list scannable. */
+.admin-nav { display: flex; flex-direction: column; gap: 1px; }
+.admin-nav a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 9px; border-radius: 4px;
+  color: var(--dark); font-size: 13px; font-weight: 700;
+}
+.admin-nav a:hover { background: var(--bg); color: var(--blue); text-decoration: none; }
+.admin-nav a.is-active { background: #E8F4FD; color: var(--blue-deep); }
+.admin-nav .ico { width: 16px; height: 16px; flex-shrink: 0; }
+.admin-nav a.is-active .ico { color: var(--blue); opacity: 1; }
+.admin-nav .nav-count { margin-left: auto; }
+
+/* The rail's own controls are stacked cards; they scroll with the rail rather
+   than being pinned, so the destinations stay at the top where they are
+   always reachable. */
+.admin-rail .rail-card { flex-shrink: 0; }
+
+.admin-rail-foot { margin-top: auto; padding-top: 10px; }
+.admin-back {
+  display: block; padding: 8px 9px; border-radius: 4px;
+  color: var(--blue); font-size: 13px; font-weight: 700;
+}
+.admin-back:hover { background: var(--bg); text-decoration: none; }
+
+.nav-count {
+  background: #A8193C; color: var(--white); border-radius: 9px;
+  padding: 0 6px; font-size: 11px; font-weight: 700; margin-left: 2px;
+}
 
 /* ---------------- icons & avatars ----------------
    The 2019 redesign made every avatar a circle, including the large profile
@@ -209,21 +315,42 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
    The content band is the redesign's own geometry: a 600px stream and a 350px
    rail with a 30px gutter between them. The stream is a bordered card on the
    page background rather than bare text, and the rail's cards float beside it. */
-.page { max-width: calc(var(--stream-w) + var(--rail-gap) + var(--rail-w)); padding: 0 0 40px; }
-.page-wide { max-width: calc(600px + var(--rail-gap) + var(--rail-w)); }
+/* The content band sits directly beside the rail with a gutter, rather than
+   being centred in whatever space is left. Centring left a void between the
+   rail and the stream that grew with the viewport - 325px at 1920px - which
+   read as the rail and the content being two disconnected islands. Anchored
+   this way the leftover space all falls to the right of the layout. */
+.page {
+  max-width: none;
+  margin: 0; padding: 0 0 40px;
+}
+.page-wide { max-width: none; }
 .layout { display: flex; gap: 0; align-items: flex-start; }
-/* The stream is capped at 600px and centred in whatever space is left, so a
-   wider viewport grows the gutter instead of stretching the line length. */
+/* The stream takes the room the rail leaves, so the band always meets the
+   right edge of the window. A capped stream left a dead strip that grew with
+   the viewport; filling it keeps the sidebar and the content touching the same
+   edges at every zoom level. */
 .col-main {
-  flex: 1 1 var(--stream-w); max-width: var(--stream-w);
+  flex: 1 1 auto; max-width: none;
   min-width: 0;
   background: var(--card);
   border-left: 1px solid var(--xlight-gray);
   border-right: 1px solid var(--xlight-gray);
   min-height: 100vh;
 }
-.col-right { width: var(--rail-w); flex-shrink: 0; padding: 0 0 0 var(--rail-gap); }
+/* The right column owns the rail plus the gutter, and the gutter is padding
+   inside it rather than a margin, so the cards fill their box and the only
+   space between the stream and the rail is the declared gap. The earlier bug
+   was not that a gap existed but that it was 30px wide and the cards were inset
+   inside it as well, which doubled the empty band running the height of the
+   rail; the gutter is now small, which is the separation the 2019 client drew. */
+.col-right {
+  width: calc(var(--rail-w) + var(--rail-gap));
+  flex-shrink: 0; padding: 0 0 0 var(--rail-gap);
+  box-sizing: border-box;
+}
 .col-right:empty { display: none; }
+.col-right > * { width: 100%; }
 /* Below the two-column band the rail moves under the stream rather than
    squeezing it, which is the redesign's own narrow-desktop behaviour. */
 @media (max-width: 1000px) {
@@ -664,60 +791,81 @@ input.submit.button.signup:hover {
 .befound p { font-size: 12px; color: var(--gray); line-height: 1.5; margin: 0; }
 
 /* ---------------- settings ----------------
-   2015 settings screen: a bold section header, then a form-horizontal grid
-   with a 120px right-aligned label column and a 140px content indent. */
-.settings-header-bar { padding: 14px 15px 0; }
-.settings-header-bar h1 { margin: 0; font-size: 20px; font-weight: 700; color: var(--dark); }
-.settings-header { margin: 0 0 10px; font-size: 20px; font-weight: 700; color: var(--dark); }
-.settings-section {
-  border-top: 1px solid var(--xlight-gray); padding: 20px 15px;
+   The 2019 settings screen is two columns inside the stream: a 200px list of
+   section links on the left and the selected section's controls on the right.
+   Only one section is rendered at a time, so the page never becomes a long
+   stack of unrelated forms. */
+.settings-shell { display: flex; align-items: flex-start; min-height: 420px; }
+.settings-nav {
+  width: 200px; flex-shrink: 0; display: flex; flex-direction: column;
+  border-right: 1px solid var(--xlight-gray); padding: 6px 0;
 }
-.settings-profile { padding: 10px 15px 4px; }
+.settings-nav-link {
+  display: block; padding: 11px 16px; color: var(--dark);
+  font-size: 14px; line-height: 1.3; border-left: 3px solid transparent;
+}
+.settings-nav-link:hover { background: var(--bg); text-decoration: none; }
+.settings-nav-link.is-active {
+  border-left-color: var(--blue); font-weight: 700; color: var(--dark);
+}
+.settings-detail { flex: 1; min-width: 0; padding: 16px 20px 24px; }
+.settings-panel-title { margin: 0 0 4px; font-size: 19px; font-weight: 700; color: var(--dark); }
+.settings-panel-note { margin: 0 0 18px; color: var(--gray); font-size: 13px; line-height: 1.5; }
+.settings-block { padding: 0 0 20px; margin-bottom: 20px; border-bottom: 1px solid var(--xlight-gray); }
+.settings-block:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+.settings-block-title { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: var(--dark); }
+.settings-block-note { margin: 0 0 12px; color: var(--gray); font-size: 13px; line-height: 1.5; }
+
 .settings-avatar-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 10px 0 18px 140px;
+  display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
 }
-.settings-avatar .avatar { width: 73px; height: 73px; border-radius: 5px; }
+.settings-avatar .avatar { width: 73px; height: 73px; border-radius: 50%; }
 .settings-avatar-controls { display: flex; flex-direction: column; gap: 6px; }
 .settings-hint, .settings-note { margin: 0; font-size: 12px; color: var(--gray); }
-.settings-note { margin-top: 4px; }
+.settings-hint { margin-top: 4px; }
 
-.settings-form label { display: block; margin-bottom: 14px; font-weight: 700; font-size: 13px; }
-.settings-form input {
-  width: 100%; border: 1px solid var(--xlight-gray); border-radius: 4px;
-  padding: 9px 10px; font-size: 14px; font-family: var(--font); margin-top: 5px;
-  outline: none; font-weight: 400;
+/* The 2019 form is a single column of labelled fields rather than the older
+   floated two-column grid, which is what makes it readable on a narrow rail. */
+.settings-form .settings-field { margin-bottom: 18px; }
+.settings-form .settings-field label {
+  display: block; margin-bottom: 6px; font-size: 13px; font-weight: 700;
+  color: var(--gray);
 }
-.settings-form input:focus { border-color: var(--blue); }
-.hint { color: var(--gray); font-weight: 400; font-size: 11px; }
-
-/* form-horizontal: floated right-aligned label, indented controls. */
-.form-horizontal { padding: 4px 15px 20px; }
-.form-horizontal .control-group { margin-bottom: 15px; }
-.form-horizontal .control-group:after { content: ""; display: block; clear: both; }
-.form-horizontal .control-label {
-  float: left; width: 120px; padding-top: 5px; margin: 0;
-  text-align: right; font-size: 13px; font-weight: 400;
-  line-height: 20px; color: var(--gray); border-bottom: 0;
+.settings-form input[type=text],
+.settings-form input[type=password],
+.settings-form textarea {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid var(--light-gray); border-radius: 4px;
+  padding: 9px 10px; font-family: var(--font); font-size: 15px;
+  color: var(--dark); outline: none; background: var(--white);
 }
-.form-horizontal .controls { margin-left: 140px; }
-.form-horizontal .controls p { color: var(--gray); font-size: 12px; }
-.form-horizontal input[type=text],
-.form-horizontal input[type=password],
-.form-horizontal textarea {
-  width: 100%; box-sizing: border-box; border: 1px solid var(--light-gray);
-  border-radius: 3px; padding: 6px 8px; margin-bottom: 5px;
-  font-family: var(--font); font-size: 13px; line-height: 18px;
-  color: var(--dark); outline: none;
-}
-.form-horizontal input:focus, .form-horizontal textarea:focus { border-color: var(--blue); }
-.form-horizontal textarea { min-height: 70px; resize: vertical; }
-.form-horizontal .form-actions { padding-left: 140px; margin: 20px 0 8px; }
+.settings-form input:focus, .settings-form textarea:focus { border-color: var(--blue); }
+.settings-form textarea { min-height: 80px; resize: vertical; }
 
 /* File inputs are hidden behind a button-styled label, as in the original. */
 .settings-file { display: inline-block; cursor: pointer; }
 .settings-file input[type=file] { display: none; }
 .settings-file .btn { display: inline-block; }
+
+.settings-theme-choices { display: flex; gap: 10px; flex-wrap: wrap; }
+.settings-theme-choices .btn-theme { display: inline-flex; align-items: center; gap: 8px; }
+.settings-theme-choices .btn-theme.is-active {
+  border-color: var(--blue); color: var(--blue); font-weight: 700;
+}
+.settings-theme-choices .btn-theme .ico { width: 18px; height: 18px; }
+
+/* Below the rail breakpoint the section list sits above the detail column
+   rather than beside it. */
+@media (max-width: 960px) {
+  .settings-shell { flex-direction: column; }
+  .settings-nav {
+    width: 100%; border-right: 0; border-bottom: 1px solid var(--xlight-gray);
+    flex-direction: row; flex-wrap: wrap; padding: 0;
+  }
+  .settings-nav-link { border-left: 0; border-bottom: 3px solid transparent; }
+  .settings-nav-link.is-active { border-left-color: transparent; border-bottom-color: var(--blue); }
+  .settings-detail { padding: 16px 0 24px; }
+}
 
 /* ---------------- flash ---------------- */
 .flash-wrap { max-width: 1100px; margin: 10px auto 0; padding: 0 12px; }
@@ -740,15 +888,16 @@ body:has(.announcement-banner) .page { padding-top: 12px; }
 body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 
 /* ---------------- admin ----------------
-   The admin screen is a 1190px shell: a fixed-width rail holding the operator
-   card and the quick controls, and a fluid main column for the page itself.
-   Top padding clears the 46px global nav, which is fixed. */
-.admin-shell {
-  max-width: 1190px; margin: 0 auto; padding: 60px 15px 40px; /* clears the 46px bar */
-  display: flex; gap: 15px; align-items: flex-start;
+   The panel's content column sits beside the fixed rail: the rail's width is
+   reserved as a left margin, so the main column is never overlapped and never
+   leaves a dead band. The main column is a centred inner box rather than the
+   full width, which stops a data table from stretching across an ultrawide
+   monitor. */
+.admin-shell { min-height: 100vh; margin-left: var(--admin-rail-w); padding-top: var(--admin-topbar-h); }
+.admin-main {
+  max-width: var(--admin-content-w);
+  margin: 0 auto; padding: 24px 20px 48px;
 }
-.admin-rail { width: 290px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; }
-.admin-main { flex: 1; min-width: 0; }
 
 /* Who is operating the panel, as a card rather than a sentence, so identity,
    role and reach are scannable at a glance. */
@@ -803,10 +952,174 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 .rail-actions { display: flex; gap: 6px; margin-top: 8px; }
 .admin-main .flash-wrap { max-width: none; margin: 0 0 12px; padding: 0; }
 
-@media (max-width: 960px) {
-  .admin-shell { flex-direction: column; }
-  .admin-rail { width: 100%; }
+/* ---------------- admin: tabs, tools and stats ----------------
+   The tools screen is grouped into tabs so the reversible cleanups are not
+   sitting next to the sweeps that cannot be undone. Each task is a row: what it
+   does on the left, the control that fires it on the right, so the destructive
+   button is never the thing under the cursor while reading. */
+.admin-tabs {
+  display: flex; gap: 2px; margin: 0 0 15px;
+  border-bottom: 1px solid var(--xlight-gray);
 }
+.admin-tab {
+  padding: 9px 14px; font-size: 14px; font-weight: 700; color: var(--gray);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.admin-tab:hover { color: var(--blue); text-decoration: none; }
+.admin-tab.is-active { color: var(--blue); border-bottom-color: var(--blue); }
+
+.stat-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.stat {
+  flex: 1 1 110px; padding: 10px 12px;
+  background: var(--bg); border-radius: 4px;
+}
+.stat-value { display: block; font-size: 20px; font-weight: 700; color: var(--dark); }
+.stat-label { display: block; font-size: 12px; color: var(--gray); }
+
+.tool-list { display: flex; flex-direction: column; gap: 10px; }
+.tool {
+  display: flex; align-items: center; gap: 15px;
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 4px; padding: 14px 15px;
+}
+.tool-body { flex: 1; min-width: 0; }
+.tool-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: var(--dark); }
+.tool-note { margin: 0; font-size: 13px; color: var(--gray); line-height: 1.45; }
+.tool-action { flex-shrink: 0; }
+.confirm-form { display: flex; align-items: center; gap: 6px; }
+.confirm-form input[type="text"] {
+  width: 104px; padding: 7px 9px; font-family: var(--font); font-size: 13px;
+  border: 1px solid var(--xlight-gray); border-radius: 4px; outline: none;
+}
+.confirm-form input[type="text"]:focus { border-color: var(--blue); }
+.confirm-form input[type="file"] { font-size: 13px; max-width: 220px; }
+
+.danger-zone {
+  border: 1px solid #E0245E; border-radius: 4px;
+  padding: 15px; display: flex; flex-direction: column; gap: 10px;
+}
+.danger-zone .tool { border-color: var(--xlight-gray); }
+.danger-note {
+  margin: 0; font-size: 13px; font-weight: 700; color: #A8193C;
+}
+
+@media (max-width: 700px) {
+  .tool { flex-direction: column; align-items: stretch; }
+  .tool-action { flex-shrink: 1; }
+}
+
+/* Below the rail's useful width the panel stacks: the rail becomes a normal
+   block at the top of the page and the content follows it. */
+@media (max-width: 860px) {
+  .admin-rail {
+    position: static; width: auto; height: auto;
+    border-right: 0; border-bottom: 1px solid var(--xlight-gray);
+  }
+  .admin-shell { margin-left: 0; }
+  .topnav { display: none; }
+}
+
+/* ---------------- admin: account tags and cautions ----------------
+   The internal tool this panel is modelled on marks an account with flat,
+   coloured tag chips and, when the account is one that needs a second opinion,
+   a red caution strip across the top of the page. The chips are deliberately
+   square-cornered and small: they are data, not decoration. */
+.tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 10px; }
+.tag {
+  display: inline-block; border-radius: 3px; padding: 2px 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: .2px;
+  border: 1px solid transparent;
+}
+/* Yellow is the colour the real tool used for the visibility limits, which is
+   why the two blacklists and "Do Not Amplify" share it. */
+.tag-limit  { background: #FFF8E1; color: #8A6100; border-color: #F2D98C; }
+.tag-alert  { background: #FDECEE; color: #A8193C; border-color: #F3BCC6; }
+.tag-info   { background: #E8F4FD; color: #1B6FA8; border-color: #B9DCF5; }
+.tag-quiet  { background: var(--bg); color: var(--gray); border-color: var(--xlight-gray); }
+
+.caution {
+  display: flex; align-items: flex-start; gap: 9px;
+  background: #FDECEE; border: 1px solid #F3BCC6; border-left: 4px solid #A8193C;
+  border-radius: 4px; padding: 10px 12px; margin: 0 0 15px;
+}
+.caution-text { margin: 0; font-size: 13px; color: #7D1230; font-weight: 700; }
+.caution-sub { margin: 3px 0 0; font-size: 12px; color: #A8193C; font-weight: 400; }
+
+/* The user page's own header: handle, state chips and the identity line, laid
+   out as one block rather than a title and a paragraph. */
+.admin-user-head {
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 4px; padding: 15px; margin: 0 0 15px;
+}
+.admin-user-id { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.admin-user-id img, .admin-user-id .avatar { width: 64px; height: 64px; border-radius: 4px; }
+.admin-user-names { min-width: 0; }
+.admin-user-handle { margin: 0; font-size: 20px; font-weight: 700; color: var(--dark); }
+.admin-user-real { margin: 2px 0 0; font-size: 13px; color: var(--gray); }
+.admin-user-meta {
+  display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px;
+  font-size: 12px; color: var(--gray);
+}
+.admin-user-meta strong { color: var(--dark); }
+.admin-user-links { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; }
+
+/* The tag editor is a grid of checkboxes with the column name as the label, so
+   the whole set can be scanned and changed in one submit. */
+.tag-editor { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 8px; }
+.tag-toggle {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  border: 1px solid var(--xlight-gray); border-radius: 4px;
+  font-size: 13px; font-weight: 400; margin: 0; background: var(--white);
+}
+.tag-toggle input { margin: 0; }
+.tag-toggle.on { border-color: #F2D98C; background: #FFFDF5; }
+
+/* Reports queue. Each item is a row with the report on the left and the
+   decision controls on the right, so a moderator can work down the list. */
+.report-item {
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 4px; padding: 12px 15px; margin: 0 0 10px;
+  display: flex; gap: 15px; align-items: flex-start; flex-wrap: wrap;
+}
+.report-main { flex: 1; min-width: 260px; }
+.report-who { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
+.report-who img, .report-who .avatar { width: 32px; height: 32px; }
+.report-subject { font-weight: 700; color: var(--dark); font-size: 14px; }
+.report-when { color: var(--gray); font-size: 12px; }
+.report-quote {
+  margin: 8px 0; padding: 8px 10px; background: var(--bg);
+  border-left: 3px solid var(--light-gray); border-radius: 3px;
+  font-size: 13px; color: var(--dark); word-wrap: break-word;
+}
+.report-detail { margin: 6px 0 0; font-size: 13px; color: var(--dark); }
+.report-side { width: 250px; flex-shrink: 0; }
+.report-side .stack { padding: 0; }
+@media (max-width: 800px) { .report-side { width: 100%; } }
+
+/* State tabs across the top of the queue, with the count beside each label. */
+.state-tabs { display: flex; gap: 4px; margin: 0 0 15px; flex-wrap: wrap; }
+.state-tab {
+  display: flex; align-items: center; gap: 6px; padding: 7px 12px;
+  border: 1px solid var(--xlight-gray); border-radius: 4px;
+  background: var(--white); color: var(--gray); font-size: 13px; font-weight: 700;
+}
+.state-tab:hover { text-decoration: none; color: var(--blue); border-color: var(--blue); }
+.state-tab.active { background: var(--blue); border-color: var(--blue); color: var(--white); }
+.state-tab .state-count {
+  background: var(--xlight-gray); color: var(--gray); border-radius: 9px;
+  padding: 0 6px; font-size: 11px;
+}
+.state-tab.active .state-count { background: rgba(255,255,255,.28); color: var(--white); }
+
+/* An impersonation strip, shown while the operator is browsing as someone
+   else, so the session is never mistaken for their own. */
+.impersonation-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 1200;
+  background: #7D1230; color: var(--white); font-size: 13px;
+  padding: 8px 15px; display: flex; align-items: center; gap: 12px;
+  justify-content: center;
+}
+.impersonation-bar a { color: var(--white); font-weight: 700; text-decoration: underline; }
 
 /* ---------------- admin pages ---------------- */
 .page-head {
@@ -950,193 +1263,160 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 .profile-nav-back:hover { color: var(--blue); text-decoration: none; }
 .profile-nav-title { font-size: 18px; font-weight: 400; color: var(--dark); }
 
-/* ---------------- profile: canopy + stat bar ----------------
-   2015 profile: a full-bleed banner with the framed picture sitting inside it,
-   then a 60px white bar holding the four metrics (which double as the tab
-   navigation) and the follow actions. */
+/* ---------------- profile: back bar ---------------- */
+.profile-nav {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0 10px;
+}
+.profile-nav-back {
+  color: var(--gray); font-size: 20px; line-height: 1;
+  padding: 0 4px;
+}
+.profile-nav-back:hover { color: var(--blue); text-decoration: none; }
+.profile-nav-title { font-size: 18px; font-weight: 400; color: var(--dark); }
+
+/* ---------------- profile: banner, picture and details ----------------
+   The 2019 profile is one card. Its first block is a 199.5px full-bleed banner
+   with a 134px picture in a 4px ring anchored on the banner's bottom edge, and
+   the details follow underneath.
+
+   The picture straddles the banner/card boundary on purpose, which is what the
+   redesign looks like: `--pfp-overlap` is half the frame, so the circle's centre
+   sits on the line and half of it is over the banner while half is over the
+   details. The frame never leaves the profile card, and the details row reserves
+   the picture's column so the name and actions cannot collide with it. */
+.profile-header {
+  background: var(--card);
+  border-bottom: 1px solid var(--xlight-gray);
+}
 .profile-canopy {
   position: relative;
   background-color: var(--blue);
   background-size: cover;
   background-position: center;
 }
-.profile-canopy.has-banner { height: 300px; }
-/* No banner: the tinted backdrop still has to be tall enough to hold the
-   picture. The picture plus its stand-off from the bottom, with a small top
-   margin, gives the band its height with nothing overlapping. */
-.profile-canopy.no-banner { height: calc(var(--pfp-size) + var(--pfp-inset) + 14px); }
+.profile-canopy.has-banner { height: 199.5px; }
+/* No banner: the tinted backdrop still has to hold the upper half of the
+   picture, which is all that is over it. */
+.profile-canopy.no-banner { height: calc(var(--pfp-overlap) + 32px); }
 
-.profile-statbar {
-  position: relative;
-  height: 60px;
-  background: var(--white);
-  border-bottom: 1px solid var(--xlight-gray);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .05);
-}
-.statbar-inner {
-  display: flex; align-items: stretch;
-  height: 100%;
-}
-/* The picture slot. It is positioned inside the banner now, so the frame below
-   resolves against the banner's edges rather than the bar's. */
+/* The picture slot. It is anchored to the banner's bottom edge rather than the
+   details block's, so the overlap stays exactly half the frame at every width. */
 .profile-canopy .statbar-avatar {
-  position: absolute; left: 15px; bottom: var(--pfp-inset);
+  position: absolute; left: 15px;
+  bottom: calc(var(--pfp-overlap) * -1);
   z-index: 10;
 }
-.statbar-avatar {
-  width: 290px; flex-shrink: 0;
-}
-/* The framed picture, anchored to the bottom-left of the banner. Its bottom
-   edge is `--pfp-inset` above the banner's bottom, so the whole box stays
-   inside the banner - and clear of the bar, the metrics and the sidebar below
-   - at every width. Anchoring to the bottom is what makes the inset hold when
-   the banner's height changes between the wide and narrow rules. */
+.statbar-avatar { width: var(--pfp-size); flex-shrink: 0; }
+/* The framed picture. The ring is the card colour, so it reads as a cut-out
+   against the banner, which is how the 2019 picture looks. */
 .statbar-avatar-frame {
   width: var(--pfp-size); height: var(--pfp-size);
-  padding: 4px;
+  padding: var(--pfp-ring);
   background: var(--card); border-radius: 50%;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
 }
 .statbar-avatar-frame .avatar { width: 100%; height: 100%; border-radius: 50%; }
 .statbar-avatar-frame .avatar-empty { background: var(--bg); }
-.statbar-avatar-frame .ico { width: 120px; height: 120px; }
 .statbar-avatar-frame .avatar { display: flex; align-items: center; justify-content: center; }
+.statbar-avatar-frame .ico { width: 80px; height: 80px; }
 
-.statbar-metrics {
-  display: flex; list-style: none; margin: 0; padding: 0; flex-grow: 1;
+/* The details row. The actions sit on the right of the row the picture's lower
+   half occupies, which is where the 2019 profile puts them; the reserved column
+   keeps them off the picture. The name block follows underneath, left-aligned
+   with the picture's left edge. */
+.profile-details { padding: 0 16px 16px; }
+.profile-details-head {
+  display: flex; align-items: flex-start; justify-content: flex-end;
+  min-height: var(--pfp-overlap); padding-left: calc(var(--pfp-size) + 16px);
 }
-.sm-item a {
-  display: block; padding: 14px 15px 0;
-  text-align: center; border-bottom: 4px solid transparent;
-  transition: border-color .15s ease-in-out;
-}
-.sm-item a:hover { text-decoration: none; border-bottom-color: var(--blue); }
-.sm-item.is-active a { border-bottom-color: var(--gray); }
-.sm-label {
-  display: block; font-size: 11px; font-weight: 700; color: var(--gray);
-  letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px;
-}
-.sm-value { display: block; font-size: 18px; font-weight: 700; color: var(--dark); }
-.sm-item a:hover .sm-value { color: var(--blue); }
-.sm-item.is-active .sm-value { color: var(--dark); }
-
-.statbar-actions {
-  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
-  width: 290px; flex-shrink: 0; padding-right: 15px;
-}
-
-/* The stat bar is three bands - a 290px picture slot, the flexible metrics and
-   a 290px action slot - inside a full-bleed strip. They only add up to a page
-   that fits while the viewport is wide; below that the strip ran past the edge
-   and gave the whole page a horizontal scrollbar, because the two outer bands
-   were not allowed to shrink. They give up their fixed widths here instead. */
-@media (max-width: 1000px) {
-  /* The picture shrinks with the page. Its stand-off and the bannerless
-     backdrop are derived from these two numbers, so they follow automatically
-     and nothing starts overlapping. */
-  :root { --pfp-size: 140px; --pfp-inset: 12px; }
-  .profile-canopy.has-banner { height: 220px; }
-  .profile-canopy .statbar-avatar { left: 12px; }
-  .profile-statbar { height: 56px; }
-  .statbar-avatar { width: 175px; }
-  .statbar-actions { width: auto; flex-shrink: 1; padding-right: 12px; }
-}
-
-/* Below the rail breakpoint the metrics cannot hold their full width on the
-   same row as the picture and the action buttons, so they drop to their own
-   line and the bar grows to hold them. The picture lives in the banner above,
-   so the metrics need no inset for it and the row never re-introduces the
-   overflow. */
-@media (max-width: 960px) {
-  .statbar-inner { flex-wrap: wrap; }
-  .statbar-actions { order: 2; width: auto; margin-left: auto; }
-  .statbar-metrics {
-    order: 3; flex-basis: 100%; min-width: 0; flex-wrap: wrap;
-  }
-  .sm-item { flex: 1 1 0; min-width: 0; }
-  .sm-label, .sm-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .profile-statbar { height: auto; }
-}
-
-/* The body sits below the bar, stacked in the centre column as the redesign
-   has it: the account's details first, then its tabs and stream. The picture is
-   inside the banner, so it never reaches this column. */
-.profile-body {
-  display: flex; flex-direction: column; padding: 0; align-items: stretch;
-}
-.profile-side { width: 100%; padding: 12px 16px 4px; min-width: 0; }
-.profile-stream {
-  width: 100%; min-width: 0; align-self: stretch;
-}
-
-/* The three columns are 290px and 290px of fixed rail around a flexible stream,
-   so below the rail breakpoint they no longer fit side by side and the body
-   pushed the page wider than the viewport. They stack here, matching how the
-   rest of the site's rails already collapse. This sits after the three width
-   rules so the equal-specificity stacking wins. */
-@media (max-width: 960px) {
-  .profile-body { flex-direction: column; }
-  .profile-side, .profile-aside, .profile-stream { width: 100%; max-width: none; }
-}
-
+.profile-details-name { min-width: 0; }
 .profile-name {
-  margin: 0; font-size: 22px; font-weight: 700; color: var(--dark);
+  margin: 0; font-size: 20px; font-weight: 700; color: var(--dark);
   display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
 }
 .profile-screenname {
-  margin: 0 0 12px; font-size: 14px; font-weight: 400; color: var(--gray);
-  display: block;
+  margin: 0; font-size: 15px; font-weight: 400; color: var(--gray);
 }
-/* Bio runs in the darker body colour at 14px/20px on the 2015 profile. */
-.profile-bio { margin: 0 0 15px; font-size: 14px; line-height: 20px;
-               color: var(--dark); font-weight: 400; word-wrap: break-word; }
+.profile-actions {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  padding-top: 8px;
+}
+.profile-bio-wrap { padding-top: 12px; }
+.profile-bio {
+  margin: 0 0 12px; font-size: 15px; line-height: 20px;
+  color: var(--dark); font-weight: 400; word-wrap: break-word;
+}
+.profile-fields {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  margin: 0 0 12px; font-size: 15px; color: var(--gray);
+}
+.profile-fields span { display: flex; align-items: center; gap: 5px; }
+.profile-fields .ico { width: 18px; height: 18px; flex-shrink: 0; }
 
-/* Shown on the profile of a permanently banned account, in place of the bio
-   and profile fields that are withheld. */
+/* The follow counts are repeated as plain text under the bio, which is where
+   the 2019 profile puts them as well as in the tab strip. */
+.profile-follow-counts {
+  display: flex; gap: 20px; margin: 0; font-size: 15px; color: var(--gray);
+}
+.profile-follow-counts strong { color: var(--dark); }
+.profile-follow-counts a { color: var(--gray); }
+.profile-follow-counts a:hover { color: var(--blue); text-decoration: none; }
+
+/* The sticky header's second line: the account name with its tweet count under
+   it, as the 2019 header shows. */
+.stream-head-sub { display: block; font-size: 13px; color: var(--gray); margin-top: 1px; }
+
+/* Shown on a permanently banned account, in place of the withheld details. */
 .profile-banned-label {
-  margin: 12px 0 4px;
-  font-size: 15px;
-  font-weight: bold;
-  color: var(--red);
+  margin: 0 0 4px; font-size: 15px; font-weight: bold; color: var(--red);
 }
 .profile-banned-label .ico { width: 15px; height: 15px; vertical-align: -2px; }
-.profile-banned-note { margin: 6px 0 0; font-size: 13px; }
-.profile-fields {
-  display: flex; flex-direction: column; gap: 8px;
-  margin: 0 0 20px; font-size: 13px; color: var(--gray);
-}
-.profile-fields span { display: flex; align-items: center; gap: 8px; }
-.profile-fields .ico { width: 16px; height: 16px; flex-shrink: 0; }
+.profile-banned-note { margin: 0; font-size: 15px; }
 
 /* Verified badge: the official scalloped-edge mark. */
 .verified-badge { display: inline-flex; align-items: center; }
-.verified-badge .ico { width: 17px; height: 17px; opacity: 1; }
+.verified-badge .ico { width: 18px; height: 18px; opacity: 1; }
 
-/* ---------------- profile: left-rail photo strip ---------------- */
-.photo-strip { margin-top: 20px; }
-.photo-strip-title {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 13px; color: var(--gray); margin-bottom: 8px;
-}
-.photo-strip-title .ico { width: 16px; height: 16px; }
-.photo-strip-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
-  border-radius: 4px; overflow: hidden;
-}
-.photo-strip-cell { display: block; aspect-ratio: 1 / 1; background: var(--xlight-gray); }
-.photo-strip-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-/* ---------------- profile: stream tabs ---------------- */
-.stream-tabs {
+/* ---------------- profile: tab strip ----------------
+   The four 2019 tabs: Tweets, Tweets & replies, Media and Likes. The active one
+   is bold and underlined; the others are grey and pick up colour on hover. */
+.profile-tabs {
   display: flex; list-style: none; margin: 0; padding: 0;
   border-bottom: 1px solid var(--xlight-gray);
 }
-.st-item a {
-  display: block; padding: 15px 20px; font-size: 15px; font-weight: 700;
-  color: var(--blue); border-bottom: 3px solid transparent;
+.pt-item { flex: 1 1 0; min-width: 0; }
+.pt-item a, .pt-item span {
+  display: block; padding: 15px 4px; text-align: center;
+  font-size: 15px; font-weight: 400; color: var(--gray);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.st-item a:hover { text-decoration: none; color: var(--dark); }
-.st-item.is-active a { color: var(--dark); border-bottom-color: var(--dark); }
+.pt-item a:hover { color: var(--dark); background: var(--bg); text-decoration: none; }
+.pt-item.is-active span { color: var(--dark); font-weight: 700; border-bottom-color: var(--blue); }
+
+.profile-empty { padding: 30px 16px; text-align: center; }
+
+/* The profile's right rail follows the same collapse as the rest of the site:
+   below the rail breakpoint it moves under the stream instead of beside it. */
+.profile-aside { min-width: 0; }
+@media (max-width: 960px) {
+  .profile-aside { width: 100%; max-width: none; }
+}
+
+/* Below the rail breakpoint the picture column cannot be reserved beside the
+   name any more, so the picture shrinks and the details drop their inset. */
+@media (max-width: 1000px) {
+  :root { --pfp-size: 112px; --pfp-overlap: 56px; }
+  .profile-canopy.has-banner { height: 160px; }
+  .profile-canopy .statbar-avatar { left: 12px; }
+}
+/* On a phone the actions cannot sit on one line beside the picture's column, so
+   they wrap. The reserved left padding is kept, which is what holds them clear of
+   the picture's lower half. */
+@media (max-width: 700px) {
+  .profile-actions { flex-wrap: wrap; justify-content: flex-end; }
+}
 
 /* ---------------- connections list ---------------- */
 .connections-head { padding: 14px 0 4px; }
@@ -1492,3 +1772,58 @@ html[data-theme="dark"] .row-item:hover { background: rgba(255,255,255,.03); }
 
 /* Rows that carry a status, e.g. the current account in a list. */
 .row-item.is-current { background: var(--bg); }
+
+/* ---------------- insights ----------------
+   The panel's read-only analytics screen. The two sparklines are drawn with
+   flex columns rather than a charting library: each column is a day, the bar
+   inside it is scaled against the busiest day in the series, so a quiet site
+   still shows its shape instead of flatlining. */
+.insight-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;
+}
+@media (max-width: 800px) { .insight-grid { grid-template-columns: 1fr; } }
+.spark {
+  display: flex; align-items: flex-end; gap: 4px; height: 90px;
+  padding: 6px 0 0;
+}
+.spark-col {
+  flex: 1; display: flex; flex-direction: column; justify-content: flex-end;
+  align-items: center; height: 100%; min-width: 0;
+}
+.spark-bar {
+  display: block; width: 100%; max-width: 26px;
+  background: var(--blue); border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+.spark-label { margin-top: 4px; color: var(--gray); font-size: 10px; }
+
+/* Rail blocks: the panel sidebar's own sections below the operator card. They
+   carry live counts and shortcuts, never the section links the top bar already
+   owns, so the two surfaces cannot drift into duplicates. */
+.rail-block {
+  background: var(--white); border: 1px solid var(--xlight-gray);
+  border-radius: 4px; padding: 14px 15px;
+}
+.rail-block + .rail-block { margin-top: 0; }
+.rail-heading {
+  margin: 0 0 10px; font-size: 11px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .6px; color: var(--gray);
+}
+.rail-stats { list-style: none; margin: 0; padding: 0;
+             display: flex; flex-direction: column; gap: 2px; }
+.rail-stats a {
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 6px 8px; border-radius: 4px;
+  color: var(--gray); font-size: 13px;
+}
+.rail-stats a:hover { background: var(--bg); text-decoration: none; }
+.rail-stats strong {
+  font-size: 16px; font-weight: 700; color: var(--dark);
+  min-width: 26px; display: inline-block;
+}
+.rail-actions-list { display: flex; flex-direction: column; gap: 1px; }
+.rail-actions-list a {
+  display: block; padding: 7px 8px; border-radius: 4px;
+  color: var(--blue-deep); font-size: 13px; font-weight: 700;
+}
+.rail-actions-list a:hover { background: var(--bg); color: var(--blue); text-decoration: none; }

@@ -1,0 +1,376 @@
+<% content_for :title, "Tools / Admin / #{@site_name}" %>
+
+<div class="page-head">
+  <h1 class="admin-title">Tools</h1>
+  <p class="admin-sub">Bulk cleanups, backups and the destructive sweeps.</p>
+</div>
+
+<nav class="admin-tabs">
+  <% Admin::ToolsController::TABS.each do |key, label| %>
+    <a href="<%= admin_tools_path(tab: key) %>"
+       class="admin-tab <%= 'is-active' if @tab == key %>"><%= label %></a>
+  <% end %>
+</nav>
+
+<%# What is on the site right now. An operator reads this before choosing a
+    sweep, so the blast radius of each one is visible rather than guessed at. %>
+<div class="panel">
+  <h3 class="panel-title">Contents</h3>
+  <div class="stat-grid">
+    <% @inventory.each do |label, value| %>
+      <div class="stat">
+        <span class="stat-value"><%= number_with_delimiter(value) %></span>
+        <span class="stat-label"><%= label.to_s.humanize %></span>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<% if @tab == "site" %>
+  <% if can?('settings.edit') %>
+    <div class="panel">
+      <h3 class="panel-title">Announcement</h3>
+      <p class="muted">Shown as a banner on every page until you clear it.</p>
+
+      <% if SiteSetting.announcement.present? %>
+        <p class="rail-announcement"><%= SiteSetting.announcement %></p>
+      <% end %>
+
+      <%= form_with url: admin_sidebar_announcement_path, method: :post, class: "rail-form" do %>
+        <textarea name="announcement" rows="2" maxlength="280"
+                  placeholder="Say something to everyone"><%= SiteSetting.announcement %></textarea>
+        <div class="rail-actions">
+          <button class="btn btn-primary btn-mini" type="submit">Post</button>
+          <% if SiteSetting.announcement.present? %>
+            <button class="btn btn-mini btn-danger" type="submit"
+                    name="announcement" value="">Clear</button>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if can?('users.view') %>
+    <% bot_count = @inventory[:bots] %>
+    <div class="panel">
+      <h3 class="panel-title">Simulated accounts</h3>
+      <p class="muted">
+        <%= count_label(bot_count) %> simulated account(s) take part in the site.
+        Hiding them removes their posts and profiles from public view without
+        deleting anything.
+      </p>
+      <p class="rail-status">
+        <span class="pill <%= @bots_hidden ? 'pill-warn' : 'pill-ok' %>">
+          <%= @bots_hidden ? 'hidden' : 'visible' %>
+        </span>
+      </p>
+
+      <%= button_to(@bots_hidden ? "Show bots" : "Hide bots",
+                    admin_sidebar_bots_path,
+                    class: "btn btn-mini", form_class: "rail-form") %>
+    </div>
+  <% end %>
+
+  <div class="tool-list">
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Clear simulated accounts</h3>
+        <p class="tool-note">
+          Deletes all <%= number_with_delimiter(@inventory[:bots]) %> simulated account(s)
+          along with everything they posted, liked and followed. Real members are untouched.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_bots_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="site">
+          <button class="btn btn-danger" type="submit">Clear bots</button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Clear follow graph</h3>
+        <p class="tool-note">
+          Removes all <%= number_with_delimiter(@inventory[:follows]) %> follow(s). Accounts and
+          posts stay; nobody follows anybody afterwards.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_follows_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="site">
+          <button class="btn btn-danger" type="submit">Clear follows</button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Delete all tweets</h3>
+        <p class="tool-note">
+          Deletes all <%= number_with_delimiter(@inventory[:tweets]) %> post(s), including replies
+          and retweets, plus the likes, views and notifications that pointed at them.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_purge_tweets_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="site">
+          <button class="btn btn-danger" type="submit">Delete tweets</button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Clear sessions</h3>
+        <p class="tool-note">
+          Signs out every member except you. Use this after a reset or if an account
+          may be compromised.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_sessions_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="site">
+          <button class="btn" type="submit">Clear sessions</button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Prune orphaned rows</h3>
+        <p class="tool-note">
+          Removes likes, notifications and follows left pointing at records that no
+          longer exist. Safe to run at any time.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= button_to "Prune", admin_tools_prune_orphans_path, class: "btn" %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @tab == "content" %>
+  <div class="tool-list">
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Clear notifications</h3>
+        <p class="tool-note">
+          Empties every inbox: <%= number_with_delimiter(@inventory[:notifications]) %> notification(s).
+          The posts they pointed at stay, so nobody loses content.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_notifications_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="content">
+          <button class="btn btn-danger" type="submit">Clear notifications</button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Delete direct messages</h3>
+        <p class="tool-note">
+          Removes every conversation and message (<%= number_with_delimiter(@inventory[:conversations]) %>
+          conversation(s)). Accounts are untouched.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_messages_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="content">
+          <button class="btn btn-danger" type="submit">Delete messages</button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Clear view counters</h3>
+        <p class="tool-note">
+          Drops the per-post and per-profile readership records so the numbers start over.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_views_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="content">
+          <button class="btn" type="submit">Clear views</button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Clear reports</h3>
+        <p class="tool-note">
+          Deletes all <%= number_with_delimiter(@inventory[:reports]) %> report(s), open ones included.
+          No account or post is touched.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_reports_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="content">
+          <button class="btn btn-danger" type="submit">Clear reports</button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Clear granted followers</h3>
+        <p class="tool-note">
+          Zeroes the administrator-granted follower padding
+          (<%= number_with_delimiter(@inventory[:granted_followers]) %>) while keeping every real follow.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_granted_followers_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="content">
+          <button class="btn" type="submit">Clear granted</button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Clear granted engagement</h3>
+        <p class="tool-note">
+          Zeroes the granted like, favourite and retweet padding on every post, keeping real reactions.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_granted_engagement_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="content">
+          <button class="btn" type="submit">Clear granted</button>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @tab == "storage" %>
+  <div class="panel">
+    <h3 class="panel-title">Database</h3>
+    <p class="muted">File size: <strong><%= number_to_human_size(@database_bytes) %></strong></p>
+    <table class="data-table">
+      <thead><tr><th>Table</th><th>Rows</th></tr></thead>
+      <tbody>
+        <% @table_weights.each do |label, count| %>
+          <tr><td><%= label %></td><td><%= number_with_delimiter(count) %></td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tool-list">
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Compact the database</h3>
+        <p class="tool-note">
+          Reclaims the space left behind by deleted rows. Safe to run at any time and it
+          does not remove any data.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= button_to "Compact", admin_tools_vacuum_path, class: "btn" %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Sign out everyone</h3>
+        <p class="tool-note">
+          Deletes every session, yours included. Everyone signs in again, which is the
+          strongest way to end a suspected hijack.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_all_sessions_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="storage">
+          <button class="btn btn-danger" type="submit">Sign out all</button>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @tab == "backup" %>
+  <div class="tool-list">
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Export a backup</h3>
+        <p class="tool-note">Downloads every table as a portable .sql file.</p>
+      </div>
+      <div class="tool-action">
+        <a class="btn btn-primary" href="<%= admin_backup_path %>">Export .sql</a>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Restore from a backup</h3>
+        <p class="tool-note">
+          Replaces the live database with the contents of a dump. The import runs in
+          one transaction, so a bad file leaves the current data untouched.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_restore_path, method: :post, multipart: true, class: "confirm-form" do %>
+          <input type="file" name="backup" accept=".sql,text/plain">
+          <button class="btn btn-danger" type="submit">Restore</button>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @tab == "danger" %>
+  <div class="danger-zone">
+    <p class="danger-note">
+      These cannot be undone from the panel. Export a backup first.
+    </p>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Clear the audit log</h3>
+        <p class="tool-note">Deletes the record of what the panel has done.</p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_clear_audit_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="danger">
+          <button class="btn btn-danger" type="submit">Clear log</button>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="tool">
+      <div class="tool-body">
+        <h3 class="tool-title">Reset the site</h3>
+        <p class="tool-note">
+          Removes every account except yours and all content, leaving a fresh install.
+          Roles, permissions and site settings are kept.
+        </p>
+      </div>
+      <div class="tool-action">
+        <%= form_with url: admin_tools_reset_path, method: :post, class: "confirm-form" do %>
+          <input type="text" name="confirm" placeholder="CONFIRM" autocomplete="off" aria-label="Type CONFIRM">
+          <input type="hidden" name="tab" value="danger">
+          <button class="btn btn-danger" type="submit">Reset site</button>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

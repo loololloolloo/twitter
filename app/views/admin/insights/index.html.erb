@@ -1,0 +1,118 @@
+<% content_for :title, "Insights / Admin / #{@site_name}" %>
+
+<div class="page-head">
+  <h1 class="admin-title">Insights</h1>
+  <p class="admin-sub">Read-only figures over the data the site already keeps.</p>
+</div>
+
+<div class="stat-grid">
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:users]) %></span><span class="stat-label">Accounts</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:humans]) %></span><span class="stat-label">Members</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:bots]) %></span><span class="stat-label">Simulated</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:verified]) %></span><span class="stat-label">Verified</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:tweets]) %></span><span class="stat-label">Posts</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:replies]) %></span><span class="stat-label">Replies</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:retweets]) %></span><span class="stat-label">Retweets</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:media]) %></span><span class="stat-label">With media</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:likes]) %></span><span class="stat-label">Likes</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:favourites]) %></span><span class="stat-label">Favourites</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:follows]) %></span><span class="stat-label">Follows</span></div>
+  <div class="stat"><span class="stat-num"><%= count_label(@totals[:messages]) %></span><span class="stat-label">Messages</span></div>
+  <div class="stat warn"><span class="stat-num"><%= count_label(@totals[:reports_open]) %></span><span class="stat-label">Open reports</span></div>
+  <div class="stat warn"><span class="stat-num"><%= count_label(@totals[:suspended]) %></span><span class="stat-label">Suspended</span></div>
+  <div class="stat warn"><span class="stat-num"><%= count_label(@totals[:banned]) %></span><span class="stat-label">Banned</span></div>
+</div>
+
+<%# Two fortnight-long sparklines. Each bar is scaled against the busiest day
+    in its own series, so a quiet site still shows its shape. %>
+<div class="insight-grid">
+  <div class="panel">
+    <h3 class="panel-title">New accounts, last 14 days</h3>
+    <% signup_max = [ @signup_series.map(&:last).max.to_i, 1 ].max %>
+    <div class="spark">
+      <% @signup_series.each do |day, count| %>
+        <div class="spark-col" title="<%= day.strftime('%d %b') %>: <%= count %>">
+          <span class="spark-bar" style="height: <%= (count * 100.0 / signup_max).round %>%"></span>
+          <span class="spark-label"><%= day.strftime('%-d') %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Posts, last 14 days</h3>
+    <% post_max = [ @activity_series.map(&:last).max.to_i, 1 ].max %>
+    <div class="spark">
+      <% @activity_series.each do |day, count| %>
+        <div class="spark-col" title="<%= day.strftime('%d %b') %>: <%= count %>">
+          <span class="spark-bar" style="height: <%= (count * 100.0 / post_max).round %>%"></span>
+          <span class="spark-label"><%= day.strftime('%-d') %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div class="panel">
+    <h3 class="panel-title">Most followed</h3>
+    <table class="data-table">
+      <thead><tr><th>Account</th><th>Role</th><th>Followers</th></tr></thead>
+      <tbody>
+        <% @top_accounts.each do |user| %>
+          <tr>
+            <td>
+              <a href="<%= admin_user_path(user) %>">@<%= user.username %></a>
+              <br><span class="muted"><%= user.display_name %></span>
+            </td>
+            <td><%= user.role.name %></td>
+            <td><%= count_label(user.follower_count) %></td>
+          </tr>
+        <% end %>
+        <% if @top_accounts.empty? %>
+          <tr><td colspan="3" class="muted">No accounts yet.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Most liked posts</h3>
+    <table class="data-table">
+      <thead><tr><th>Post</th><th>Author</th><th>Likes</th></tr></thead>
+      <tbody>
+        <% @top_posts.each do |tweet| %>
+          <tr>
+            <td><a href="<%= tweet_path(tweet) %>"><%= truncate(tweet.body.to_s, length: 60) %></a></td>
+            <td class="muted">@<%= tweet.user.username %></td>
+            <td><%= count_label(tweet.like_count) %></td>
+          </tr>
+        <% end %>
+        <% if @top_posts.empty? %>
+          <tr><td colspan="3" class="muted">No posts yet.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">Storage</h3>
+  <p class="muted">Database file: <strong><%= number_to_human_size(@database_bytes) %></strong></p>
+  <table class="data-table">
+    <thead><tr><th>Table</th><th>Rows</th><th></th></tr></thead>
+    <tbody>
+      <% @table_weights.each do |label, count| %>
+        <tr>
+          <td><%= label %></td>
+          <td><%= number_with_delimiter(count) %></td>
+          <td>
+            <div class="meter">
+              <span class="meter-fill" style="width: <%= @weight_max.zero? ? 0 : (count * 100.0 / @weight_max).round %>%"></span>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

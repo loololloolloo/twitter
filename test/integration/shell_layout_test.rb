@@ -21,7 +21,6 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
       profile_path(me.username),
       tweet_path(tweet),
       settings_path,
-      accounts_path,
       about_path
     ]
 
@@ -34,6 +33,12 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
       assert_no_match(/class="topnav"/, response.body, "#{path} still renders the old top nav")
       assert_no_match(/col-left/, response.body, "#{path} still renders a left rail column")
     end
+
+    # The old account list is a forward now, so it is checked as a redirect
+    # rather than as a page that renders the shell.
+    get accounts_path
+    assert_response :redirect
+    assert_match(%r{/settings\?panel=data}, response.location)
   end
 
   test "pages with a rail render search, trends and suggestions" do
@@ -51,13 +56,17 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "the admin panel keeps its own top bar layout" do
+  test "the admin panel keeps its own sidebar layout" do
     owner = create_user(username: "shell_admin", role: "owner")
     sign_in(owner)
 
     get admin_root_path
     assert_response :success
-    assert_includes response.body, 'class="topnav"'
+    assert_includes response.body, 'class="admin-rail"'
     assert_includes response.body, 'class="admin-shell"'
+    # The sidebar is filled with live counts and shortcuts, not a second copy of
+    # the top bar's section links.
+    assert_includes response.body, 'class="rail-block"'
+    assert_no_match(/class="admin-nav"/, response.body)
   end
 end

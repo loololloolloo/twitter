@@ -127,4 +127,40 @@ module ApplicationHelper
   def display_url(url)
     url.to_s.sub(%r{\Ahttps?://(www\.)?}, "").sub(%r{/\z}, "")
   end
+
+  # The coloured tag chips the internal tool shows on an account. Visibility
+  # limits share the yellow the real tool used; a compromise warning is red and
+  # the two informational tags are blue.
+  TAG_STYLES = {
+    "Search Blacklist" => "tag-limit",
+    "Trends Blacklist" => "tag-limit",
+    "Do Not Amplify"   => "tag-limit",
+    "Compromised"      => "tag-alert",
+    "High Profile"     => "tag-info",
+    "Consult SIP-PES"  => "tag-alert"
+  }.freeze
+
+  def account_tag_chips(user)
+    tags = user.account_tags
+    return content_tag(:span, "No tags", class: "tag tag-quiet") if tags.empty?
+
+    safe_join(tags.map { |label|
+      content_tag(:span, label, class: "tag #{TAG_STYLES.fetch(label, 'tag-quiet')}")
+    })
+  end
+
+  # The red strip the tool puts above an account whose actions have to be
+  # escalated before anything is done to it.
+  def review_caution(user)
+    return "".html_safe unless user.requires_review
+
+    content_tag(:div, class: "caution") do
+      safe_join([
+        content_tag(:p, "Do Not Take Action on This Account Without Consulting SIP-PES",
+                    class: "caution-text"),
+        content_tag(:p, "The account is tagged for escalation. Confirm the decision with the policy team before suspending, banning or deleting.",
+                    class: "caution-sub")
+      ])
+    end
+  end
 end

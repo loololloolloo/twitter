@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_17_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_17_000003) do
   create_table "audit_logs", force: :cascade do |t|
     t.string "action", null: false
     t.integer "actor_id"
@@ -94,6 +94,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000001) do
     t.index ["viewer_id", "user_id"], name: "index_profile_views_on_viewer_id_and_user_id"
   end
 
+  create_table "reports", force: :cascade do |t|
+    t.string "category", default: "abuse", null: false
+    t.datetime "created_at", null: false
+    t.text "detail", default: "", null: false
+    t.integer "reporter_id"
+    t.text "resolution_note", default: "", null: false
+    t.datetime "resolved_at"
+    t.integer "resolved_by_id"
+    t.string "state", default: "open", null: false
+    t.integer "tweet_id"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["reporter_id"], name: "index_reports_on_reporter_id"
+    t.index ["state", "created_at"], name: "index_reports_on_state_and_created_at"
+    t.index ["state"], name: "index_reports_on_state"
+    t.index ["tweet_id"], name: "index_reports_on_tweet_id"
+    t.index ["user_id"], name: "index_reports_on_user_id"
+  end
+
   create_table "role_permissions", force: :cascade do |t|
     t.integer "permission_id", null: false
     t.integer "role_id", null: false
@@ -148,6 +167,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000001) do
     t.boolean "is_pinned", default: false, null: false
     t.string "media_path"
     t.integer "parent_id"
+    t.datetime "pinned_at"
     t.integer "retweet_of_id"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
@@ -169,9 +189,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000001) do
     t.integer "bonus_followers", default: 0, null: false
     t.datetime "created_at", null: false
     t.string "display_name", null: false
+    t.boolean "do_not_amplify", default: false, null: false
     t.string "email", null: false
     t.boolean "is_banned", default: false, null: false
     t.boolean "is_bot", default: false, null: false
+    t.boolean "is_compromised", default: false, null: false
+    t.boolean "is_high_profile", default: false, null: false
     t.boolean "is_suspended", default: false, null: false
     t.boolean "is_verified", default: false, null: false
     t.datetime "last_action_at"
@@ -181,8 +204,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000001) do
     t.datetime "next_action_at"
     t.string "password_hash", null: false
     t.text "persona", default: "{}", null: false
+    t.boolean "requires_review", default: false, null: false
     t.integer "role_id", null: false
+    t.boolean "search_blacklist", default: false, null: false
+    t.text "tag_note", default: "", null: false
     t.string "theme", default: "light", null: false
+    t.boolean "trends_blacklist", default: false, null: false
     t.datetime "updated_at", null: false
     t.string "username", null: false
     t.string "website", default: "", null: false
@@ -207,6 +234,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_17_000001) do
   add_foreign_key "notifications", "users", column: "actor_id"
   add_foreign_key "profile_views", "users"
   add_foreign_key "profile_views", "users", column: "viewer_id"
+  add_foreign_key "reports", "tweets"
+  add_foreign_key "reports", "users"
+  add_foreign_key "reports", "users", column: "reporter_id"
   add_foreign_key "role_permissions", "permissions"
   add_foreign_key "role_permissions", "roles"
   add_foreign_key "sessions", "users"

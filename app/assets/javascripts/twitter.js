@@ -1,14 +1,28 @@
 // Front-end behaviour for the classic client. Deliberately jQuery, matching
 // the library the original web client used in this era.
 $(function () {
-  // Account menu in the top bar opens on click and closes on an outside click.
-  $('.account-menu').on('click', function (e) {
+  // Account menu in the sidebar opens on click and closes on an outside click.
+  // It is a popover rather than a page, so the account rows inside it submit
+  // their own switch forms and the menu never has to navigate by itself.
+  $('.account-menu > .account-link').on('click', function (e) {
     e.stopPropagation();
-    $(this).toggleClass('open');
+    var $menu = $(this).closest('.account-menu');
+    var open = !$menu.hasClass('open');
+
+    $('.account-menu').removeClass('open').find('.account-link').attr('aria-expanded', 'false');
+    $menu.toggleClass('open', open);
+    $(this).attr('aria-expanded', open ? 'true' : 'false');
   });
 
   $('body').on('click', function () {
-    $('.account-menu').removeClass('open');
+    $('.account-menu').removeClass('open').find('.account-link').attr('aria-expanded', 'false');
+  });
+
+  // Escape closes the popover, as it did on the web client.
+  $(document).on('keydown', function (e) {
+    if (e.key === 'Escape') {
+      $('.account-menu').removeClass('open').find('.account-link').attr('aria-expanded', 'false');
+    }
   });
 
   // Character counter on the composer, turning red past the limit.

@@ -4,7 +4,8 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern
 
   helper_method :current_user, :signed_in?, :can?, :site_name, :max_tweet_length,
-                :humanize_until, :ban_expiry, :ban_duration_choices
+                :humanize_until, :ban_expiry, :ban_duration_choices,
+                :connected_accounts, :impersonating?
 
   # Controllers that stay reachable while an account is banned. Everything else
   # redirects to the ban screen so the reason and the log out button are never
@@ -31,8 +32,27 @@ class ApplicationController < ActionController::Base
     current_user.present?
   end
 
+  # True while an operator is browsing as another member. The original operator
+  # id is kept in the session for the duration.
+  def impersonating?
+    session[:impersonator_id].present?
+  end
+
   def can?(key)
     signed_in? && current_user.can?(key)
+  end
+
+  # The accounts this browser has signed into, in the order they were added.
+  # The sidebar switcher renders them in place rather than sending the member
+  # to a separate screen, so the layout needs the list on every page.
+  def connected_accounts
+    return [] unless signed_in?
+
+    ids = AccountsController.account_ids(session)
+    return [] if ids.empty?
+
+    found = User.where(id: ids).index_by(&:id)
+    ids.filter_map { |id| found[id] }
   end
 
   def enforce_ban

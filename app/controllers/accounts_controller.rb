@@ -15,24 +15,23 @@ class AccountsController < ApplicationController
     session[:account_ids] = ids
   end
 
+  # There is no account list screen any more: switching accounts happens in the
+  # sidebar popover, and the list itself lives on the settings page's data
+  # section. This address only forwards, and it stays behind `require_login!`
+  # so the forward never leaks the list to a signed-out visitor.
   def index
-    @accounts = User.where(id: self.class.account_ids(session)).to_a
-                    .sort_by { |u| self.class.account_ids(session).index(u.id) }
+    redirect_to settings_path(panel: "data")
   end
 
-  # Switching is deliberately password-free: an account only appears here after
-  # it has been signed into in this browser, so the switch reuses that proof
-  # rather than asking for it again. The id is checked against the session list,
-  # so a forged id cannot reach an account that was never signed in.
   def update
     user = User.find_by(id: params[:id])
 
     unless user && self.class.account_ids(session).include?(user.id)
-      return redirect_to accounts_path, alert: "That account is not connected to this browser."
+      return redirect_to home_path, alert: "That account is not connected to this browser."
     end
 
     if user.is_suspended?
-      return redirect_to accounts_path, alert: "This account is suspended."
+      return redirect_to home_path, alert: "This account is suspended."
     end
 
     session[:user_id] = user.id
@@ -61,6 +60,6 @@ class AccountsController < ApplicationController
       return redirect_to login_path, notice: "Signed out."
     end
 
-    redirect_to accounts_path, notice: "Account removed from this browser."
+    redirect_to home_path, notice: "Account removed from this browser."
   end
 end

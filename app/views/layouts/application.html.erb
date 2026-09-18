@@ -63,24 +63,58 @@
     <a class="side-compose" href="<%= home_path %>#reply"><%= icon('compose') %><span class="side-label">Tweet</span></a>
 
     <div class="side-account">
-      <div class="account-menu">
-        <a class="account-link" href="<%= profile_path(current_user.username) %>">
+      <%# The 2019 account menu is a popover, not a page. Clicking the account
+          row opens it; it lists the accounts this browser is signed into with
+          the active one checked, offers Add account / Log out of all accounts,
+          and keeps only Settings and Sign out below them. %>
+      <div class="account-menu" data-account-menu>
+        <button class="account-link" type="button" aria-haspopup="true" aria-expanded="false">
           <%= pic(current_user.avatar_path, 40) %>
           <span class="account-names">
             <span class="account-name"><%= current_user.display_name %></span>
             <span class="account-handle">@<%= current_user.username %></span>
           </span>
           <span class="account-caret"><%= icon('ellipsis') %></span>
-        </a>
-        <div class="account-dropdown">
-          <a href="<%= profile_path(current_user.username) %>">View profile</a>
-          <a href="<%= settings_path %>">Settings</a>
-          <%# Shown for a single account too: the list is where a second account
-              gets added, so hiding it until there are two could never be the
-              way to get there. %>
-          <a href="<%= accounts_path %>">Accounts</a>
-          <% if can?('admin.access') %><a href="<%= admin_root_path %>">Admin</a><% end %>
-          <a href="<%= logout_path %>">Sign out</a>
+        </button>
+
+        <div class="account-popover" role="menu" aria-label="Account menu">
+          <% others = connected_accounts.reject { |account| account.id == current_user.id } %>
+          <% if others.any? %>
+            <% others.each do |account| %>
+              <%= button_to switch_account_path(account.id), method: :post,
+                            class: "account-popover-account" do %>
+                <%= pic(account.avatar_path, 40) %>
+                <span class="account-popover-names">
+                  <span class="account-popover-name"><%= account.display_name %></span>
+                  <span class="account-popover-handle">@<%= account.username %></span>
+                </span>
+              <% end %>
+            <% end %>
+          <% end %>
+
+          <%# The active account is listed last with a check, the way the
+              switcher showed which one is live. %>
+          <div class="account-popover-row is-current">
+            <%= pic(current_user.avatar_path, 40) %>
+            <span class="account-popover-names">
+              <span class="account-popover-name"><%= current_user.display_name %></span>
+              <span class="account-popover-handle">@<%= current_user.username %></span>
+            </span>
+            <span class="account-popover-check"><%= icon('verified') %></span>
+          </div>
+
+          <a class="account-popover-row" href="<%= login_path(add: 1) %>">
+            <%= icon('user') %><span>Add an existing account</span>
+          </a>
+
+          <div class="account-popover-divider"></div>
+
+          <a class="account-popover-row" href="<%= settings_path %>">
+            <%= icon('gear') %><span>Settings and privacy</span>
+          </a>
+          <a class="account-popover-row" href="<%= logout_path %>">
+            <%= icon('right-from-bracket') %><span>Sign out</span>
+          </a>
         </div>
       </div>
     </div>
@@ -127,6 +161,16 @@
   <a href="<%= privacy_path %>">Privacy</a>
   <span>&copy; <%= @site_name %></span>
 </footer>
+<% end %>
+
+<%# While an operator is browsing as another member, a strip stays pinned to the
+    bottom of every page so the session is never mistaken for their own. %>
+<% if impersonating? %>
+<div class="impersonation-bar">
+  <span>You are browsing as @<%= current_user.username %>, impersonating a member.</span>
+  <%= button_to "Return to my account", admin_stop_impersonating_path,
+                class: "btn btn-mini", form_class: "inline" %>
+</div>
 <% end %>
 
 <%= javascript_include_tag "jquery.min" %>

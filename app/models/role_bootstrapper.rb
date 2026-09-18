@@ -6,10 +6,11 @@ module RoleBootstrapper
     "owner" => Permission::KEYS.keys,
     "admin" => %w[
       admin.access users.view users.suspend users.ban users.delete users.verify
-      users.bot_followers bots.runner users.avatar users.email tweets.view tweets.delete tweets.pin reports.view
-      reports.resolve audit.view backup.export
+      users.bot_followers bots.runner users.avatar users.email users.tags
+      tweets.view tweets.delete tweets.pin reports.view
+      reports.resolve audit.view backup.export maintenance.run
     ],
-    "moderator" => %w[admin.access users.view tweets.view reports.view reports.resolve],
+    "moderator" => %w[admin.access users.view users.tags tweets.view reports.view reports.resolve],
     "user" => []
   }.freeze
 

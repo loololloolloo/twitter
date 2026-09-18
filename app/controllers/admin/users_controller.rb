@@ -3,7 +3,7 @@ module Admin
     before_action :require_permission_for_action
     before_action :load_user, only: [ :show, :ban, :unban, :suspend, :destroy,
                                        :update_role, :toggle_verified, :set_followers,
-                                       :update_email ]
+                                       :update_email, :update_tags, :impersonate ]
 
     def index
       @search = params[:q].to_s.strip
@@ -44,6 +44,94 @@ module Admin
                      .where("target = :target OR actor_id = :id", target: "user:#{@user.id}", id: @user.id)
                      .recent.limit(40)
       @ban_choices = ban_duration_choices
+      @reports = Report.where(user_id: @user.id).includes(:reporter).recent.limit(20)
+      @open_reports = @reports.count(&:open?)
+    end
+
+    # The tag toggles on the user page. The form always carries the whole set, so a
+    # flag that is absent from the submission is one the operator cleared rather
+    # than one they left alone. Every change is recorded with its new value.
+    def update_tags
+      unless can?("users.tags")
+        return redirect_to(admin_user_path(@user), alert: "You do not have the users.tags permission.")
+      end
+
+      changed = []
+      User::ACCOUNT_TAGS.each_key do |column|
+        wanted = params[column].present?
+        next if @user.public_send(column) == wanted
+
+        @user.update!(column => wanted)
+        changed << "#{column}=#{wanted}"
+      end
+
+      note = params[:tag_note].to_s.strip
+      if @user.tag_note != note
+        @user.update!(tag_note: note)
+        changed << "tag_note updated"
+      end
+
+      if changed.empty?
+        redirect_to admin_user_path(@user), notice: "No tag changes."
+      else
+        audit!("users.tags", target: "user:#{@user.id}", detail: changed.join(", "))
+        redirect_to admin_user_path(@user), notice: "Tags updated."
+      end
+    end
+
+    # Log in as another member. Restricted to accounts the operator outranks, so
+    # this cannot be used to take over a peer or the owner; the original
+    # operator id is stashed in the session so the impersonation can be ended.
+    def impersonate
+      unless can?("users.impersonate")
+        return redirect_to(admin_user_path(@user), alert: "You do not have the users.impersonate permission.")
+      end
+
+      if @user.id == current_user.id
+        return redirect_to(admin_user_path(@user), alert: "You are already signed in as this account.")
+      end
+
+      unless outranks?(@user)
+        return redirect_to(admin_user_path(@user),
+                           alert: "You cannot impersonate a user at or above your own level.")
+      end
+
+      if @user.is_bot
+        return redirect_to(admin_user_path(@user), alert: "Simulated accounts cannot be signed into.")
+      end
+
+      audit!("users.impersonate", target: "user:#{@user.id}", detail: "started as @#{@user.username}")
+      session[:impersonator_id] = current_user.id
+      session[:user_id] = @user.id
+
+      redirect_to home_path, notice: "You are now browsing as @#{@user.username}."
+    end
+
+    # Ends an impersonation and returns the operator to the panel.
+    def stop_impersonating
+      operator_id = session[:impersonator_id]
+      unless operator_id
+        return redirect_to home_path, alert: "You are not impersonating anyone."
+      end
+
+      operator = User.find_by(id: operator_id)
+      session.delete(:impersonator_id)
+
+      if operator.nil?
+        session.delete(:user_id)
+        return redirect_to login_path, alert: "The operator account no longer exists."
+      end
+
+      session[:user_id] = operator.id
+      AuditLog.record(actor: operator, action: "users.impersonate.end", detail: "returned to own account")
+      redirect_to admin_root_path, notice: "Impersonation ended."
+    end
+
+    # The panel gate asks `admin.access` of whoever is signed in, which while
+    # impersonating is the member, not the operator. Ending an impersonation
+    # therefore has to bypass that check or the operator can never get back.
+    def skip_admin_panel_gate?
+      action_name == "stop_impersonating"
     end
 
     def ban

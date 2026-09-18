@@ -72,7 +72,7 @@ class AccountFeaturesTest < ActionDispatch::IntegrationTest
 
     post login_path, params: { identifier: @other.username, password: "password123", add: 1 }
 
-    assert_redirected_to accounts_path
+    assert_redirected_to home_path
     ids = AccountsController.account_ids(session)
     assert_includes ids, @me.id, "the first account must stay connected"
     assert_includes ids, @other.id
@@ -88,10 +88,10 @@ class AccountFeaturesTest < ActionDispatch::IntegrationTest
     assert_no_match(/name="add"/, response.body)
   end
 
-  test "the accounts page offers a way to add another account" do
-    get accounts_path
+  test "the sidebar account menu offers a way to add another account" do
+    get home_path
     assert_response :success
-    assert_match(/Add account/, response.body)
+    assert_match(/Add an existing account/, response.body)
     assert_match(/login\?add=1/, response.body)
   end
 

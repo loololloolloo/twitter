@@ -18,25 +18,31 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
     assert_no_match(/Signed in as/, response.body)
   end
 
-  test "the admin navbar carries the panel links and no Admin label" do
+  test "the admin rail carries the panel links as a sidebar" do
     owner = create_user(username: "owner_one", role: "owner")
     sign_in(owner)
 
     get admin_root_path
+    # The panel keeps both surfaces: the section links are in the top bar, and the
+    # rail carries counts and shortcuts rather than repeating them.
     assert_match(%r{<nav class="topnav">}, response.body)
     assert_match(%r{href="/admin/audit"}, response.body)
-    assert_no_match(/admin-brand/, response.body)
+    assert_match(%r{class="rail-block"}, response.body)
+    refute_match(%r{<nav class="admin-nav"}, response.body)
   end
 
-  test "the operator card counts the permissions the role actually grants" do
+  test "the operator card identifies the signed-in operator" do
     admin = create_user(username: "boss", role: "admin")
     sign_in(admin)
 
     get admin_root_path
-    granted = Role.find_by!(name: "admin").permission_keys.size
 
-    assert_match(/#{granted}<\/strong>/, response.body)
-    assert_match(/of #{Permission.count}/, response.body)
+    assert_match(/class="operator-card"/, response.body)
+    assert_match(/@boss/, response.body)
+    assert_match(/pill-role/, response.body)
+    # The old card reported a permission total as "n of m"; it was removed as
+    # noise, so the operator card no longer prints a fraction at all.
+    assert_no_match(/of #{Permission.count}/, response.body)
   end
 
   test "an announcement posted from the rail reaches the public site" do

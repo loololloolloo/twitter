@@ -49,6 +49,36 @@ class User < ApplicationRecord
   # follow" lists, which would otherwise keep recommending invisible accounts.
   scope :visible, -> { SiteSetting.hide_bots? ? not_suspended.humans : not_suspended }
 
+  # The operational flags the internal tool shows as tags. They do not remove an
+  # account; they record how it should be treated, and the admin user page
+  # renders them as the coloured chips the real tool uses.
+  ACCOUNT_TAGS = {
+    "search_blacklist" => "Search Blacklist",
+    "trends_blacklist" => "Trends Blacklist",
+    "do_not_amplify"   => "Do Not Amplify",
+    "is_compromised"   => "Compromised",
+    "is_high_profile"  => "High Profile",
+    "requires_review"  => "Consult SIP-PES"
+  }.freeze
+
+  def account_tags
+    ACCOUNT_TAGS.select { |column, _| public_send(column) }.values
+  end
+
+  # True when the account carries a tag that suppresses its reach. The public
+  # timeline and search consult this, so the flags are not just decoration.
+  def reach_limited?
+    search_blacklist || trends_blacklist || do_not_amplify
+  end
+
+  scope :reach_limited, -> {
+    where(search_blacklist: true).or(where(trends_blacklist: true)).or(where(do_not_amplify: true))
+  }
+
+  def pinned_tweet
+    tweets.where.not(pinned_at: nil).order(pinned_at: :desc).first
+  end
+
   # Decoded persona for a simulated account; empty for real members.
   def persona_hash
     @persona_hash ||= JSON.parse(persona.presence || "{}")
@@ -143,6 +173,16 @@ class User < ApplicationRecord
 
   def tweet_count
     tweets.where(is_deleted: false).count
+  end
+
+  # Every like and favourite the account's posts have received, including any
+  # administrator-granted padding on those posts. This is a total of what the
+  # account's posts earned, not a count of the reactions the account itself
+  # gave, which is what the profile's Likes figure reports.
+  def likes_received_count
+    tweets.sum(:bonus_likes) + tweets.sum(:bonus_favourites) +
+      Like.joins(:tweet).where(tweets: { user_id: id })
+          .where(tweets: { is_deleted: false }).count
   end
 
   def permission_keys

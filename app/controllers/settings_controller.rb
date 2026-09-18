@@ -1,7 +1,10 @@
 class SettingsController < ApplicationController
   before_action :require_login!
 
+  SECTIONS = %w[account security privacy notifications accessibility data].freeze
+
   def edit
+    @section = params[:panel].presence_in(SECTIONS) || "account"
   end
 
   def update
@@ -30,7 +33,7 @@ class SettingsController < ApplicationController
       Uploads.remove(previous_banner) if banner.present? && previous_banner != banner
 
       audit!("user.settings", target: "user:#{current_user.id}", detail: "updated profile settings")
-      redirect_to settings_path, notice: "Your profile has been updated."
+      redirect_to settings_redirect_path, notice: "Your profile has been updated."
     else
       # The new files were written before validation; if the update failed they
       # would be orphans, so drop them.
@@ -43,25 +46,25 @@ class SettingsController < ApplicationController
 
   def password
     unless current_user.password_matches?(params[:current_password])
-      redirect_to settings_path, alert: "Your current password is incorrect."
+      redirect_to settings_redirect_path, alert: "Your current password is incorrect."
       return
     end
 
     password = params[:password].to_s
 
     if password.length < 8
-      redirect_to settings_path, alert: "Your new password must be at least 8 characters."
+      redirect_to settings_redirect_path, alert: "Your new password must be at least 8 characters."
       return
     end
 
     if password != params[:password_confirm].to_s
-      redirect_to settings_path, alert: "The new passwords did not match."
+      redirect_to settings_redirect_path, alert: "The new passwords did not match."
       return
     end
 
     current_user.update!(password_hash: PasswordDigest.hash(password))
     audit!("user.password", target: "user:#{current_user.id}", detail: "changed password")
-    redirect_to settings_path, notice: "Your password has been changed."
+    redirect_to settings_redirect_path, notice: "Your password has been changed."
   end
 
   # The appearance section has no form of its own; the two links carry the
@@ -71,7 +74,7 @@ class SettingsController < ApplicationController
     theme = User::THEMES.include?(params[:theme].to_s) ? params[:theme].to_s : "light"
     current_user.update!(theme: theme)
 
-    redirect_to settings_path, notice: "Appearance updated."
+    redirect_to settings_redirect_path, notice: "Appearance updated."
   end
 
   # Deletes the messages the signed-in member sent. This is not an admin power -
@@ -92,7 +95,7 @@ class SettingsController < ApplicationController
 
     audit!("user.messages_cleared", target: "user:#{current_user.id}",
                                      detail: "deleted #{removed} sent messages")
-    redirect_to settings_path, notice: "Deleted #{removed} #{'message'.pluralize(removed)} you sent."
+    redirect_to settings_redirect_path, notice: "Deleted #{removed} #{'message'.pluralize(removed)} you sent."
   end
 
   # Deletes every tweet the signed-in member has posted. Like the message
@@ -108,6 +111,16 @@ class SettingsController < ApplicationController
 
     audit!("user.tweets_cleared", target: "user:#{current_user.id}",
                                   detail: "deleted #{removed} tweets")
-    redirect_to settings_path, notice: "Deleted #{removed} #{'tweet'.pluralize(removed)}."
+    redirect_to settings_redirect_path, notice: "Deleted #{removed} #{'tweet'.pluralize(removed)}."
+  end
+
+  private
+
+  # A redirect back to settings has to land on the same section the action was
+  # fired from, or changing the password from the security panel drops the
+  # member on the account panel instead. An unknown panel is dropped rather than
+  # reflected, so the parameter cannot steer the redirect anywhere new.
+  def settings_redirect_path
+    settings_path(panel: params[:panel].presence_in(SECTIONS))
   end
 end

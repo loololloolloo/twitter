@@ -16,22 +16,22 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     sign_in(@me)
   end
 
-  test "the profile renders the banner, stat bar and three columns" do
+  test "the profile renders the 2019 header, banner, details and columns" do
     get profile_path(@subject.username)
 
     assert_response :success
     assert_match(/profile-canopy/, response.body)
-    assert_match(/profile-statbar/, response.body)
-    assert_match(/profile-body/, response.body)
-    assert_match(/profile-side/, response.body)
-    assert_match(/profile-stream/, response.body)
+    assert_match(/profile-header/, response.body)
+    assert_match(/profile-details/, response.body)
+    assert_match(/statbar-avatar-frame/, response.body)
+    assert_match(/profile-tabs/, response.body)
     assert_match(/profile-aside/, response.body)
   end
 
   test "the stat bar carries the four metrics and links to their tabs" do
     get profile_path(@subject.username)
 
-    %w[Tweets Following Followers Favorites].each do |label|
+    %w[Tweets Following Followers Likes].each do |label|
       assert_match(/#{label}/, response.body)
     end
 
@@ -39,12 +39,35 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_match(%r{href="/u/watched_one/following"}, response.body)
   end
 
+  test "the 2019 tab strip offers tweets, replies, media and likes" do
+    get profile_path(@subject.username)
+
+    %w[Tweets].each { |label| assert_match(/#{label}/, response.body) }
+    assert_match(/Tweets &amp; replies/, response.body)
+    assert_match(/tab=replies/, response.body)
+    assert_match(/tab=media/, response.body)
+    assert_match(/tab=likes/, response.body)
+  end
+
+  test "the default tweets tab hides replies unless they are asked for" do
+    root = Tweet.create!(user: @subject, body: "a root post")
+    reply = Tweet.create!(user: @subject, body: "a reply", parent: root)
+
+    get profile_path(@subject.username)
+    assert_match(/a root post/, response.body)
+    refute_match(/#{Regexp.escape(reply.body)}/, response.body)
+
+    get profile_path(@subject.username, tab: "replies")
+    assert_match(/a root post/, response.body)
+    assert_match(/a reply/, response.body)
+  end
+
   test "the stream tabs mark the current view active" do
     get profile_path(@subject.username)
-    assert_match(/st-item is-active/, response.body)
+    assert_match(/pt-item is-active/, response.body)
 
     get profile_path(@subject.username, tab: "media")
-    assert_match(/st-item is-active/, response.body)
+    assert_match(/pt-item is-active/, response.body)
     assert_match(/Media/, response.body)
   end
 
@@ -57,15 +80,15 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_match(/Joined /, response.body)
   end
 
-  test "the photo strip appears beside the details once the account has media" do
-    get profile_path(@subject.username)
-    assert_no_match(/photo-strip/, response.body)
+  test "the media tab shows the account's photos" do
+    get profile_path(@subject.username, tab: "media")
+    assert_no_match(/media-rail/, response.body)
 
     tweet = Tweet.create!(user: @subject, body: "look", media_path: "media/watched_one_1.png")
     assert tweet.media_path.present?
 
-    get profile_path(@subject.username)
-    assert_match(/photo-strip/, response.body)
+    get profile_path(@subject.username, tab: "media")
+    assert_match(/media-rail/, response.body)
   end
 
   test "the suggestion rail never suggests the profile being viewed" do
@@ -76,6 +99,23 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_match(/Who to follow/, response.body)
     assert_match(/@third_one/, response.body)
     assert_no_match(/@watched_one/, response.body.split("Who to follow").last.to_s)
+  end
+
+  test "the profile reports the likes its posts received, not the likes it gave" do
+    mine = Tweet.create!(user: @subject, body: "my post", bonus_likes: 3)
+    other = Tweet.create!(user: @me, body: "someone else's post")
+
+    # Reactions other people put on the subject's posts are counted.
+    Like.create!(user: @me, tweet: mine, kind: "like")
+    Like.create!(user: @me, tweet: mine, kind: "favourite")
+    # A reaction the subject gave to someone else's post is not.
+    Like.create!(user: @subject, tweet: other, kind: "like")
+
+    assert_equal 5, @subject.likes_received_count
+
+    get profile_path(@subject.username)
+    assert_response :success
+    assert_match(/5/, response.body)
   end
 
   test "the profile uses the wide page container" do
@@ -94,54 +134,67 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_match(/statbar-avatar-frame/, response.body)
     assert_match(/avatar avatar-200/, response.body)
   end
-
-  # The bannerless backdrop has to be tall enough to hold the whole picture plus
-  # its stand-off. It was a 60px strip, so the frame rendered above the backdrop
-  # and was clipped by the fixed top bar - on every profile, since no account has
-  # a banner. The failure is in the stylesheet alone, with no markup symptom, so
-  # the numbers that have to agree are checked here rather than left to a browser
-  # measurement.
+  # The bannerless backdrop has to hold the upper half of the picture, which is
+  # the part that sits over it. It was a 60px strip, so the frame rendered above
+  # the backdrop and was clipped by the fixed top bar - on every profile, since
+  # no account has a banner. The failure is in the stylesheet alone, with no
+  # markup symptom, so the numbers that have to agree are checked here rather
+  # than left to a browser measurement.
   test "the bannerless canopy is tall enough for the picture it holds" do
     css = Rails.root.join("app/assets/stylesheets/twitter.css").read
 
-    size = css[/^:root\s*\{[^}]*?--pfp-size:\s*(\d+)px/m, 1].to_i
-    inset = css[/^:root\s*\{[^}]*?--pfp-inset:\s*(\d+)px/m, 1].to_i
-    headroom = css[/\.profile-canopy\.no-banner\s*\{\s*height:\s*calc\(var\(--pfp-size\)\s*\+\s*var\(--pfp-inset\)\s*\+\s*(\d+)px\)/, 1].to_i
+    overlap = css[/^:root\s*\{[^}]*?--pfp-overlap:\s*(\d+)px/m, 1].to_i
+    headroom = css[/\.profile-canopy\.no-banner\s*\{[^}]*?height:\s*calc\([^;]*\+\s*(\d+)px\)/m, 1].to_i
 
-    assert_operator size, :>, 0, "the picture's size has to be defined"
-    assert_operator inset, :>, 0, "the stand-off from the banner's bottom has to be defined"
+    assert_operator overlap, :>, 0, "the picture's overlap of the banner's edge has to be defined"
     assert_operator headroom, :>, 0,
                     "the backdrop needs headroom above the picture's top edge"
 
-    # The band is the picture, the stand-off below it and the headroom above it.
-    # It has to hold the picture and its stand-off, and the headroom should stay
-    # modest rather than the band ballooning past the picture it holds.
-    band = size + inset + headroom
-    assert_operator band, :>=, size + inset, "the picture and its stand-off must fit in the band"
-    assert_operator headroom, :<, size, "the headroom should not dwarf the picture"
+    # The picture straddles the banner's bottom edge, so the band is the half of
+    # the frame over it plus the headroom above it. The headroom should stay
+    # modest rather than the band ballooning, since the rest of the circle sits
+    # over the details block below.
+    assert_operator headroom, :<, overlap,
+                    "the headroom should not dwarf the half of the picture it holds"
   end
 
-  # The picture is anchored inside the banner: its slot is positioned against
-  # the banner's edges and the frame fills it. It used to hang off the stat bar
-  # by a negative `top`, which is what let it drift off the banner and into the
-  # bar - so these are the properties that keep it in place, and the browser
-  # measurement in ProfileLayoutSystemTest is what proves the result.
-  test "the picture is anchored inside the banner" do
+  # The picture slot is fixed so the picture keeps its circle; the details block
+  # beside it is the part that gives up width, otherwise the page would scroll
+  # sideways at narrow widths.
+  test "the picture stays fixed while the details give up their width" do
     css = Rails.root.join("app/assets/stylesheets/twitter.css").read
 
-    slot = css[/\.profile-canopy\s+\.statbar-avatar\s*\{([^}]*)\}/m, 1]
-    refute_nil slot, "the picture slot has to be positioned against the banner"
-    assert_match(/position:\s*absolute/, slot)
-    assert_match(/bottom:\s*var\(--pfp-inset\)/, slot,
-                 "the stand-off from the banner's bottom edge is what keeps it clear of the bar")
-    assert_match(/left:\s*15px/, slot)
+    assert_match(/\.statbar-avatar\s*\{[^}]*flex-shrink:\s*0/, css,
+                 "the picture slot must not be squeezed")
 
-    frame = css[/\.statbar-avatar-frame\s*\{([^}]*)\}/m, 1]
-    assert_match(/width:\s*var\(--pfp-size\)/, frame)
-    assert_no_match(/position:\s*absolute/, frame,
-                    "the frame should fill its slot, not position itself independently")
-    assert_no_match(/--pfp-rise/, frame,
-                    "a negative top against the bar is the drift being fixed")
+    # The narrowed picture still has to fit inside the bannerless band: the band
+    # is sized from the picture's own variables, so both have to be scaled
+    # together at this breakpoint or the picture outgrows what holds it.
+    tablet = media_blocks(css, "@media (max-width: 1000px)")
+    assert tablet.present?, "the profile needs a rule for viewports under 1000px"
+    assert_match(/--pfp-size:\s*\d+px/, tablet,
+                 "the picture has to scale with the narrow layout")
+    assert_match(/--pfp-overlap:\s*\d+px/, tablet)
+  end
+
+  # Below the phone breakpoint the actions no longer fit beside the picture's
+  # column, so they are allowed to wrap rather than being clipped.
+  test "the profile actions reflow on a narrow viewport" do
+    css = Rails.root.join("app/assets/stylesheets/twitter.css").read
+    phone = media_blocks(css, "@media (max-width: 700px)")
+
+    assert phone.present?, "the profile needs a wrapping rule for narrow viewports"
+    assert_match(/\.profile-actions\s*\{[^}]*flex-wrap:\s*wrap/, phone)
+  end
+
+  # The stream sits in the flexible centre column with the rail beside it, so
+  # below the rail breakpoint the rail has to stack rather than push the page
+  # wider than the viewport.
+  test "the profile columns stack on a narrow viewport" do
+    css = Rails.root.join("app/assets/stylesheets/twitter.css").read
+    rail = media_blocks(css, "@media (max-width: 960px)")
+
+    assert_match(/\.profile-aside[^{]*\{[^}]*width:\s*100%/, rail)
   end
 
   # Pulls out every @media block with the given header. A balanced-brace scan is
@@ -174,50 +227,5 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     end
 
     blocks.join("\n")
-  end
-
-  # The stat bar is a 290px picture slot, a flexible metrics band and a 290px
-  # action slot. With both outer slots fixed, anything narrower than the rail
-  # layout pushed the action slot past the right edge and gave the whole page a
-  # horizontal scrollbar. The bands have to be allowed to give up their widths.
-  test "the stat bar bands shrink instead of overflowing a narrow viewport" do
-    css = Rails.root.join("app/assets/stylesheets/twitter.css").read
-    tablet = media_blocks(css, "@media (max-width: 1000px)")
-
-    assert tablet.present?, "the stat bar needs a rule for viewports under 1000px"
-
-    actions = tablet[/\.statbar-actions\s*\{[^}]*?width:\s*(auto)/m, 1]
-    assert_equal "auto", actions, "the action slot must not hold a fixed width when narrow"
-
-    # The narrowed picture still has to fit inside the bannerless band: the band
-    # is sized from the picture's own variables, so both have to be scaled
-    # together at this breakpoint or the picture outgrows what holds it.
-    assert_match(/--pfp-size:\s*\d+px/, tablet,
-                 "the picture has to scale with the narrow layout")
-    assert_match(/--pfp-inset:\s*\d+px/, tablet)
-    assert_match(/\.profile-canopy\.no-banner|--pfp-size/, tablet)
-  end
-
-  # Below the rail breakpoint even the shrunk bands do not fit on one row, so
-  # the metrics move to their own line and the bar grows to hold them.
-  test "the metrics wrap onto their own row on a narrow viewport" do
-    css = Rails.root.join("app/assets/stylesheets/twitter.css").read
-    phone = media_blocks(css, "@media (max-width: 960px)")
-
-    assert phone.present?, "the stat bar needs a wrapping rule for narrow viewports"
-    assert_match(/\.statbar-inner\s*\{[^}]*flex-wrap:\s*wrap/, phone)
-    assert_match(/\.statbar-metrics\s*\{[^}]*flex-basis:\s*100%/, phone)
-    assert_match(/\.profile-statbar\s*\{[^}]*height:\s*auto/, phone)
-  end
-
-  # The three columns are two fixed 290px rails around a flexible stream, so
-  # below the rail breakpoint they have to stack rather than push the page wide.
-  test "the profile columns stack on a narrow viewport" do
-    css = Rails.root.join("app/assets/stylesheets/twitter.css").read
-    rail = media_blocks(css, "@media (max-width: 960px)")
-
-    assert_match(/\.profile-body\s*\{[^}]*flex-direction:\s*column/, rail)
-    assert_match(/\.profile-aside[^{]*\{[^}]*width:\s*100%/, rail)
-    assert_match(/\.profile-stream[^{]*\{[^}]*width:\s*100%/, rail)
   end
 end

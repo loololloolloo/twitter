@@ -27,10 +27,10 @@ class SessionsController < ApplicationController
     AccountsController.remember(session, user)
     user.update_column(:last_login_at, Time.current)
 
-    # Adding an account is not meant to navigate away from the list that shows
-    # it, so it lands back there rather than on the home feed.
+    # Adding an account is an act of switching to it, so it lands on the home
+    # feed as the new account rather than on a list screen.
     if adding_account?
-      return redirect_to accounts_path, notice: "Added @#{user.username}."
+      return redirect_to home_path, notice: "Added @#{user.username}."
     end
 
     # Signing in is an explicit act, so a ban screen is shown straight away

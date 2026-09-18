@@ -68,7 +68,7 @@ class BannedProfileTest < ActionDispatch::IntegrationTest
     get profile_path(user.username)
 
     assert_response :success
-    refute_match(/sm-value/, response.body)
+    refute_match(/profile-tabs/, response.body)
   end
 
   test "following and followers are not enumerable for a banned account" do
@@ -99,7 +99,7 @@ class BannedProfileTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/still visible/, response.body)
     assert_match(/Timed Person/, response.body)
-    assert_match(/sm-value/, response.body)
+    assert_match(/profile-tabs/, response.body)
     refute_match(/Account permanently banned/, response.body)
   end
 

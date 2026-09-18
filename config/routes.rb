@@ -27,10 +27,15 @@ Rails.application.routes.draw do
 
   patch "settings/theme", to: "settings#theme", as: :theme
 
-  # Accounts connected to this browser, and switching between them.
-  get    "accounts",     to: "accounts#index",   as: :accounts
+  # Accounts connected to this browser. There is no account list page: the
+  # switcher lives in the sidebar popover, so these two endpoints are all the
+  # server needs to offer.
   post   "accounts/:id", to: "accounts#update",  as: :switch_account
   delete "accounts/:id", to: "accounts#destroy", as: :forget_account
+
+  # The old account list address forwards to the switcher that replaced it, so
+  # a bookmark or a stale link lands somewhere useful instead of a 404.
+  get "accounts", to: "accounts#index", as: :accounts
 
   # Removes every message the signed-in member has sent. Not an admin action:
   # it only ever touches your own messages.
@@ -78,6 +83,8 @@ Rails.application.routes.draw do
     post   "users/:id/verified",  to: "users#toggle_verified", as: :user_verified
     post   "users/:id/followers", to: "users#set_followers",   as: :user_followers
     post   "users/:id/email",     to: "users#update_email",    as: :user_email
+    post   "users/:id/tags",      to: "users#update_tags",     as: :user_tags
+    post   "users/:id/impersonate", to: "users#impersonate",   as: :user_impersonate
 
     get  "avatars",             to: "avatars#index", as: :avatars
     post "avatars",             to: "avatars#bulk"
@@ -93,9 +100,40 @@ Rails.application.routes.draw do
 
     get    "tweets",     to: "tweets#index",   as: :tweets
     delete "tweets/:id", to: "tweets#destroy", as: :tweet
+    post   "tweets/:id/pin",   to: "tweets#pin",   as: :tweet_pin
+    post   "tweets/:id/unpin", to: "tweets#unpin", as: :tweet_unpin
+
+    post "stop-impersonating", to: "users#stop_impersonating", as: :stop_impersonating
+
+    get  "reports", to: "reports#index", as: :reports
+    post "reports/:id/resolve", to: "reports#resolve", as: :report_resolve
 
     get "audit",  to: "audit#index",   as: :audit
+    get "audit/export", to: "audit#export", as: :audit_export
     get "backup", to: "backup#export", as: :backup
+    # Insights is read-only analytics over the existing tables, so it needs no
+    # confirmation and destroys nothing.
+    get "insights", to: "insights#index", as: :insights
+
+    # Maintenance. Every destructive action is a POST so it cannot be reached
+    # by following a link, and each is confirmed and audited by the controller.
+    get  "tools",                   to: "tools#show",              as: :tools
+    post "tools/clear-bot-accounts", to: "tools#clear_bot_accounts", as: :tools_clear_bots
+    post "tools/clear-follows",      to: "tools#clear_follows",      as: :tools_clear_follows
+    post "tools/purge-tweets",       to: "tools#purge_tweets",       as: :tools_purge_tweets
+    post "tools/clear-sessions",     to: "tools#clear_sessions",     as: :tools_clear_sessions
+    post "tools/prune-orphans",      to: "tools#prune_orphans",      as: :tools_prune_orphans
+    post "tools/clear-audit-log",    to: "tools#clear_audit_log",    as: :tools_clear_audit
+    post "tools/reset-database",     to: "tools#reset_database",     as: :tools_reset
+    post "tools/restore-database",   to: "tools#restore_database",   as: :tools_restore
+    post "tools/clear-notifications", to: "tools#clear_notifications", as: :tools_clear_notifications
+    post "tools/clear-messages",      to: "tools#clear_messages",      as: :tools_clear_messages
+    post "tools/clear-views",         to: "tools#clear_views",         as: :tools_clear_views
+    post "tools/clear-reports",       to: "tools#clear_reports",       as: :tools_clear_reports
+    post "tools/clear-granted-followers",  to: "tools#clear_granted_followers",  as: :tools_clear_granted_followers
+    post "tools/clear-granted-engagement", to: "tools#clear_granted_engagement", as: :tools_clear_granted_engagement
+    post "tools/clear-all-sessions",  to: "tools#clear_all_sessions",  as: :tools_clear_all_sessions
+    post "tools/vacuum",              to: "tools#vacuum",              as: :tools_vacuum
 
     post "sidebar/announcement", to: "sidebar#update_announcement", as: :sidebar_announcement
     post "sidebar/bots",         to: "sidebar#toggle_bots",         as: :sidebar_bots

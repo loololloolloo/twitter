@@ -15,9 +15,12 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
     get settings_path
 
     assert_response :success
-    assert_match(/Appearance/, response.body)
-    assert_match(/Light mode/, response.body)
-    assert_match(/Dark mode/, response.body)
+    get settings_path(panel: "accessibility")
+
+    assert_response :success
+    assert_match(/Accessibility, display, and languages/, response.body)
+    assert_match(/Light/, response.body)
+    assert_match(/Dim/, response.body)
   end
 
   test "the root element carries the light theme by default" do
@@ -77,7 +80,7 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
   # -------------------------------------------------------------- accounts
 
   test "signing in registers the account for switching" do
-    get settings_path
+    get settings_path(panel: "data")
 
     assert_response :success
     assert_match(/@settings_one/, response.body)
@@ -87,10 +90,17 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
   test "a second sign-in adds the account to the switcher" do
     sign_in(create_user(username: "second_one"))
 
-    get accounts_path
+    get settings_path(panel: "data")
     assert_response :success
     assert_match(/@settings_one/, response.body)
     assert_match(/@second_one/, response.body)
+  end
+
+  test "the accounts address forwards to the settings section that replaced it" do
+    get accounts_path
+
+    assert_response :redirect
+    assert_match(%r{/settings\?panel=data}, response.location)
   end
 
   test "switching changes the signed-in account without a password" do
@@ -103,7 +113,8 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
     assert_response :redirect
 
     follow_redirect!
-    assert_match(%r{class="account-link" href="/u/switch_target"}, response.body)
+    assert_match(/@switch_target/, response.body)
+    assert_match(/Signed in as @switch_target/, response.body)
   end
 
   test "an account that was never signed in here cannot be switched to" do
@@ -114,9 +125,9 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
 
     follow_redirect!
     assert_match(/not connected to this browser/, response.body)
-    # The top-bar identity is the proof of who is actually signed in; the
+    # The account menu identity is the proof of who is actually signed in; the
     # stranger may legitimately appear in the suggestions rail.
-    assert_match(%r{class="account-link" href="/u/settings_one"}, response.body)
+    assert_match(/<span class="account-name">Settings One<\/span>/, response.body)
   end
 
   test "forging the account id does not reach another account" do
@@ -128,7 +139,7 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
 
     follow_redirect!
     assert_match(/not connected to this browser/, response.body)
-    refute_match(%r{class="account-link" href="/u/forged_target"}, response.body)
+    refute_match(%r{action="/accounts/#{other.id}"}, response.body)
   end
 
   test "removing an account forgets it without signing the current one out" do
@@ -139,7 +150,7 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
     delete forget_account_path(other.id)
     assert_response :redirect
 
-    get accounts_path
+    get settings_path(panel: "data")
     refute_match(/@removable_one/, response.body)
     assert_match(/@settings_one/, response.body)
   end
@@ -153,7 +164,7 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
     assert_response :redirect
 
     follow_redirect!
-    assert_match(%r{class="account-link" href="/u/fallback_one"}, response.body)
+    assert_match(/<span class="account-name">Fallback_one<\/span>/, response.body)
   end
 
   test "removing the only account signs the browser out" do
@@ -165,13 +176,13 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
     assert_match(%r{/login}, response.location)
   end
 
-  test "the accounts link is always offered so a second account can be added" do
+  test "the sidebar menu always offers adding another account" do
     get home_path
-    assert_match(%r{href="/accounts"}, response.body)
+    assert_match(%r{href="/login\?add=1"}, response.body)
 
     sign_in(create_user(username: "link_second"))
     get home_path
-    assert_match(%r{href="/accounts"}, response.body)
+    assert_match(%r{href="/login\?add=1"}, response.body)
   end
 
   # -------------------------------------------------------------- messages
@@ -242,8 +253,8 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "the messages section is on the settings page" do
-    get settings_path
+  test "the messages section is on the settings privacy panel" do
+    get settings_path(panel: "privacy")
 
     assert_match(/Delete all my messages/, response.body)
   end
@@ -258,7 +269,7 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
     assert_match(%r{/login}, response.location)
   end
 
-  test "the accounts screen is not reachable while signed out" do
+  test "the accounts address is not reachable while signed out" do
     delete logout_path
 
     get accounts_path

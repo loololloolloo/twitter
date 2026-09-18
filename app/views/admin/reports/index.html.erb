@@ -1,0 +1,113 @@
+<% content_for :title, "Reports / Admin / #{@site_name}" %>
+
+<div class="page-head">
+  <div>
+    <h1>Reports</h1>
+    <p class="page-note">
+      Reported content awaiting a decision. <%= @open_count %> open.
+    </p>
+  </div>
+</div>
+
+<nav class="state-tabs">
+  <% Report::STATES.each do |state| %>
+    <a class="state-tab <%= 'active' if @state == state %>"
+       href="<%= admin_reports_path(state: state, category: @category.presence) %>">
+      <%= state.capitalize %>
+      <span class="state-count"><%= @counts[state] %></span>
+    </a>
+  <% end %>
+</nav>
+
+<form class="admin-filter" action="<%= admin_reports_path %>" method="get">
+  <input type="hidden" name="state" value="<%= @state %>">
+  <select name="category">
+    <option value="">Any category</option>
+    <% Report::CATEGORIES.each do |key, label| %>
+      <option value="<%= key %>" <%= 'selected' if @category == key %>><%= label %></option>
+    <% end %>
+  </select>
+  <button class="btn btn-primary" type="submit">Filter</button>
+</form>
+
+<% if @reports.present? %>
+  <% @reports.each do |report| %>
+    <article class="report-item">
+      <div class="report-main">
+        <div class="report-who">
+          <%= pic(report.user.avatar_path, 32) %>
+          <span class="report-subject">@<%= report.user.username %></span>
+          <span class="tag tag-info"><%= report.category_label %></span>
+          <% if report.tweet.nil? %>
+            <span class="report-when">account report</span>
+          <% end %>
+          <span class="report-when"><%= time_ago(report.created_at) %></span>
+        </div>
+
+        <p class="report-detail">
+          Reported by
+          <% if report.reporter %>
+            <strong>@<%= report.reporter.username %></strong>
+          <% else %>
+            <strong>the site</strong>
+          <% end %>
+          <% if report.tweet %>
+            on tweet <code>#<%= report.tweet.id %></code>.
+          <% else %>
+            on the account itself.
+          <% end %>
+        </p>
+
+        <% if report.detail.present? %>
+          <p class="report-detail"><%= report.detail %></p>
+        <% end %>
+
+        <% if report.tweet %>
+          <blockquote class="report-quote">
+            <%= report.tweet.body.presence || "(media only)" %>
+          </blockquote>
+          <p class="report-detail">
+            <a href="<%= profile_path(report.user.username) %>">View profile</a>
+          </p>
+        <% end %>
+      </div>
+
+      <div class="report-side">
+        <% if report.open? %>
+          <% if can?('reports.resolve') %>
+            <%= form_with url: admin_report_resolve_path(report), method: :post, class: "stack" do %>
+              <label>Resolution note
+                <input type="text" name="note" placeholder="What did you decide?">
+              </label>
+              <div class="action-row">
+                <button class="btn btn-danger" type="submit" name="decision" value="actioned">
+                  Action content
+                </button>
+                <button class="btn" type="submit" name="decision" value="dismissed">
+                  Dismiss report
+                </button>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="muted">You cannot resolve reports.</p>
+          <% end %>
+        <% else %>
+          <p>
+            <span class="pill <%= report.state == 'actioned' ? 'pill-bad' : 'pill-ok' %>">
+              <%= report.state %>
+            </span>
+          </p>
+          <p class="muted">
+            by <%= report.resolved_by ? "@#{report.resolved_by.username}" : "system" %>
+            <%= time_ago(report.resolved_at) %>
+          </p>
+          <% if report.resolution_note.present? %>
+            <p class="report-detail"><%= report.resolution_note %></p>
+          <% end %>
+        <% end %>
+      </div>
+    </article>
+  <% end %>
+<% else %>
+  <p class="muted">Nothing in this queue.</p>
+<% end %>

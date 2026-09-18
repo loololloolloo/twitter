@@ -2,8 +2,13 @@ class ProfilesController < ApplicationController
   before_action :require_login!
   before_action :load_profile
 
+  # The 2019 tabs are Tweets, Tweets & replies, Media and Likes. `favorites`
+  # is kept as an accepted alias because older links and tests still use it.
+  TABS = %w[tweets replies media likes favorites].freeze
+
   def show
-    @active = params[:tab].presence_in(%w[tweets favorites media]) || "tweets"
+    @active = params[:tab].presence_in(TABS) || "tweets"
+    @active = "likes" if @active == "favorites"
 
     # A permanently banned account gets a notice instead of a profile: none of
     # its content, counts or tabs are loaded, and the profile is reported as not
@@ -18,6 +23,7 @@ class ProfilesController < ApplicationController
     @following_count = @user.following_count
     @follower_count = @user.follower_count
     @favorites_count = @user.likes.favourites.count
+    @likes_received_count = @user.likes_received_count
     @is_me = @user.id == current_user.id
     @is_following = current_user.following.exists?(id: @user.id)
 
@@ -37,15 +43,28 @@ class ProfilesController < ApplicationController
       @media = Tweet.visible.where(user_id: @user.id)
                      .where.not(media_path: [ nil, "" ])
                      .recent.limit(60)
-    elsif @active == "favorites"
+    elsif @active == "likes"
       @tweets = Tweet.visible
                      .where(id: @user.likes.favourites.select(:tweet_id))
                      .includes(:user, retweet_of: :user)
                      .recent.limit(60)
-    else
+    elsif @active == "replies"
+      # "Tweets & replies" is everything the account posted, replies included,
+      # which is the unfiltered author scope.
       @tweets = Tweet.visible.where(user_id: @user.id)
                      .includes(:user, retweet_of: :user)
                      .recent.limit(60)
+    else
+      # The default Tweets tab is the account's own posts without replies,
+      # matching the 2019 profile, which hides replies unless asked for.
+      @tweets = Tweet.visible.where(user_id: @user.id, parent_id: nil)
+                     .includes(:user, retweet_of: :user)
+                     .recent.limit(60)
+
+      # A pinned post sits at the top of this tab only, the way the 2019 client
+      # showed it: it is not a second copy, it moves the existing entry up.
+      @pinned = @tweets.find(&:pinned_at)
+      @tweets = @tweets.reject { |tweet| tweet.id == @pinned&.id } if @pinned
     end
   end
 

@@ -4,6 +4,7 @@
 class AdminController < ApplicationController
   before_action :require_login!
   before_action :require_admin_panel!
+  before_action :load_open_report_count
 
   layout "admin"
 
@@ -11,8 +12,19 @@ class AdminController < ApplicationController
 
   private
 
+  # The Reports tab carries the open-queue count, so it is loaded once here
+  # rather than by each screen that happens to want it.
+  def load_open_report_count
+    return unless can?("reports.view")
+
+    @open_reports_nav = Report.open.count
+  end
+
   def require_admin_panel!
     return if can?("admin.access")
+    # A controller may exempt an action from the gate; ending an impersonation
+    # is the case that needs it, since the acting session is the member's.
+    return if respond_to?(:skip_admin_panel_gate?, true) && send(:skip_admin_panel_gate?)
 
     # require_login! has already run, so a direct redirect beats bouncing
     # through the root route, which itself redirects signed-in users.

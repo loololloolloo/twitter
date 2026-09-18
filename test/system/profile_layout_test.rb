@@ -2,8 +2,13 @@ require "application_system_test_case"
 
 # The profile page was reported as: the picture's box sits off to one side of
 # the banner rather than in it, and at narrower widths the box overlaps the
-# stat bar and the sidebar. Both are geometry claims, so they are measured here
-# in a real browser instead of being eyeballed.
+# content below. Both are geometry claims, so they are measured here in a real
+# browser instead of being eyeballed.
+#
+# The 2019 profile draws the picture straddling the banner's bottom edge on
+# purpose: half the circle is over the banner and half over the details below it.
+# That is measured as well, along with the requirement that the frame never
+# leaves the profile card and never collides with the text beside it.
 class ProfileLayoutTest < ApplicationSystemTestCase
   # Wide enough for the full three-column layout, then the two widths below it
   # where the old rules let the picture drift.
@@ -15,40 +20,54 @@ class ProfileLayoutTest < ApplicationSystemTestCase
   end
 
   WIDTHS.each do |width|
-    test "the picture box sits inside the banner at #{width}px" do
+    test "the picture straddles the banner's bottom edge at #{width}px" do
       visit_profile(width)
 
       banner = box(".profile-canopy")
       frame = box(".statbar-avatar-frame")
 
-      # Inside the banner on every edge, which is what "in the banner, not
-      # offset from it" means.
+      # Left-aligned and narrower than the banner, so it is anchored to the
+      # banner rather than floating beside it.
       assert_operator frame[:left], :>=, banner[:left], "picture starts left of the banner"
       assert_operator frame[:right], :<=, banner[:right] + 0.5,
                       "picture runs past the banner's right edge"
       assert_operator frame[:top], :>=, banner[:top],
                       "picture starts above the banner's top edge"
-      assert_operator frame[:bottom], :<=, banner[:bottom] + 0.5,
-                      "picture hangs below the banner instead of sitting in it"
+
+      # The deliberate straddle: the frame crosses the banner's bottom edge, and
+      # it crosses it by about half its own height, so the circle's centre sits
+      # on the line between the banner and the card below it.
+      assert_operator frame[:bottom], :>, banner[:bottom],
+                      "picture should straddle the banner's bottom edge"
+      below = frame[:bottom] - banner[:bottom]
+      assert_in_delta below, frame[:height] / 2.0, frame[:height] / 4.0,
+                      "the picture should be about half below the banner's edge"
     end
 
-    test "the picture box stays clear of the stat bar at #{width}px" do
+    test "the picture never leaves the profile card at #{width}px" do
+      visit_profile(width)
+
+      card = box(".profile-header")
+      frame = box(".statbar-avatar-frame")
+
+      assert_operator frame[:top], :>=, card[:top], "picture starts above the card"
+      assert_operator frame[:bottom], :<=, card[:bottom] + 0.5,
+                      "picture hangs out of the bottom of the card"
+    end
+
+    test "the picture stays clear of the name and actions at #{width}px" do
       visit_profile(width)
 
       frame = box(".statbar-avatar-frame")
-      bar = box(".profile-statbar")
 
-      refute overlapping?(frame, bar), "picture box overlaps the stat bar: #{frame} vs #{bar}"
-      assert_operator frame[:bottom], :<=, bar[:top] + 0.5
-    end
+      # The details block starts at the banner's bottom edge and the picture
+      # overlaps into it by design, so the block as a whole is not the thing to
+      # measure against; the text and buttons beside the picture are.
+      name = box(".profile-details-name")
+      refute overlapping?(frame, name), "picture overlaps the name: #{frame} vs #{name}"
 
-    test "the picture box stays clear of the sidebar at #{width}px" do
-      visit_profile(width)
-
-      frame = box(".statbar-avatar-frame")
-      side = box(".profile-side")
-
-      refute overlapping?(frame, side), "picture box overlaps the sidebar: #{frame} vs #{side}"
+      actions = box(".profile-actions")
+      refute overlapping?(frame, actions), "picture overlaps the actions: #{frame} vs #{actions}"
     end
 
     test "the page does not scroll sideways at #{width}px" do
@@ -66,19 +85,13 @@ class ProfileLayoutTest < ApplicationSystemTestCase
     banner = box(".profile-canopy")
     frame = box(".statbar-avatar-frame")
 
-    assert_operator frame[:top], :>=, banner[:top]
-    assert_operator frame[:bottom], :<=, banner[:bottom] + 0.5,
-                    "picture hangs below the bannerless band"
-    refute overlapping?(frame, box(".profile-statbar"))
-  end
-
-  test "the metrics row is not covered by the picture" do
-    visit_profile(1400)
-
-    frame = box(".statbar-avatar-frame")
-    metrics = box(".statbar-metrics")
-
-    refute overlapping?(frame, metrics), "picture box overlaps the metrics: #{frame} vs #{metrics}"
+    # The bannerless band is shorter, but it still has to hold the picture's top
+    # edge, and the picture still straddles its bottom edge.
+    assert_operator frame[:top], :>=, banner[:top],
+                    "picture starts above the bannerless band"
+    assert_operator frame[:bottom], :>, banner[:bottom],
+                    "picture should straddle the bannerless band's bottom edge"
+    refute overlapping?(frame, box(".profile-details-name"))
   end
 
   test "the picture sits near the banner's left edge" do

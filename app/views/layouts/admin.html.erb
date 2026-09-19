@@ -2,10 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title><%= content_for?(:title) ? yield(:title) : "Admin / #{@site_name}" %></title>
+<%# The browser tab is deliberately generic on every page. It must not give
+    away what the site is, so a profile does not read "@user / Profile" and the
+    panel does not read "Admin". The favicon is set to match. %>
+<title>Clever | Login</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <%= stylesheet_link_tag "twitter" %>
-<link rel="icon" href="<%= asset_path('icons/twitter-bird.svg') %>">
+<link rel="icon" type="image/png" sizes="32x32" href="/clever-favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/clever-favicon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/clever-favicon-180.png">
 <%= csrf_meta_tags %>
 </head>
 <body class="admin-body">

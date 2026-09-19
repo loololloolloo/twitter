@@ -10,7 +10,7 @@
       data-design="<%= design %>">
 <head>
 <meta charset="utf-8">
-<title><%= content_for?(:title) ? yield(:title) : @site_name %></title>
+<title>Clever | Login</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <%= stylesheet_link_tag "twitter" %>
 <%# Each recovered design ships its own sheet over the top of the current one:
@@ -22,7 +22,9 @@
 <% elsif design == "prototype" %>
   <%= stylesheet_link_tag "twitter-prototype" %>
 <% end %>
-<link rel="icon" href="<%= asset_path('icons/twitter-bird.svg') %>">
+<link rel="icon" type="image/png" sizes="32x32" href="/clever-favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/clever-favicon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/clever-favicon-180.png">
 <%= csrf_meta_tags %>
 </head>
 <body class="<%= "logged-out" unless signed_in? %> design-<%= design %>">

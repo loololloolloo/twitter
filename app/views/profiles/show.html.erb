@@ -1,6 +1,5 @@
 <%# The title follows the account's real state: only a permanently banned
     account is an "Account suspended" page. %>
-<% content_for :title, "#{@user.permanently_banned? ? 'Account suspended' : "#{@user.display_name} (@#{@user.username})"} / #{@site_name}" %>
 
 <% if @user.permanently_banned? %>
   <%# A permanently banned account keeps its handle visible so the page still

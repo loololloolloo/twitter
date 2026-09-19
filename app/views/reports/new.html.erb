@@ -3,7 +3,6 @@
 <% tweet = @subject.is_a?(Tweet) ? @subject : nil %>
 <% account = tweet ? tweet.user : @subject %>
 
-<% content_for :title, "Report / #{@site_name}" %>
 
 <div class="layout">
   <section class="col-main">

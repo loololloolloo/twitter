@@ -103,3 +103,11 @@ namespaced per worker there.
   and the user page renders only the read-only card when it fails. Rank is not
   sufficient on its own — an admin outranks a plain member, so a rank-only role
   guard would let them demote the owner to `user` and take the instance.
+- The browser tab says "Clever | Login" on every page and the favicon is the
+  Clever mark, so the site does not announce itself in the tab strip, a
+  bookmark list or a saved-session list. No view may set a page title of its
+  own; the two layouts own it. A profile must not render "@user / Profile" and
+  the panel must not render "Admin". `test/integration/browser_chrome_test.rb`
+  sweeps both surfaces and fails if any view reintroduces `content_for :title`.
+  The favicon files live in `public/clever-favicon*.png` and are linked
+  directly rather than through the asset pipeline.

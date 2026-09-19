@@ -3,14 +3,16 @@ module Admin
     before_action :require_permission_for_action
     before_action :load_user, only: [ :show, :ban, :unban, :suspend, :destroy,
                                        :update_role, :toggle_verified, :set_followers,
-                                       :update_email, :update_tags, :impersonate ]
+                                       :update_email, :update_tags, :impersonate,
+                                       :warn, :revoke_warning ]
     # Every action that writes to the target account has to clear the owner
     # check. `show` is not in this list: the owner account is still viewable,
     # it just has nothing on it that can change it.
     before_action :require_may_manage!, only: [ :ban, :unban, :suspend, :destroy,
                                                 :update_role, :toggle_verified,
                                                 :set_followers, :update_email,
-                                                :update_tags, :impersonate ]
+                                                :update_tags, :impersonate,
+                                                :warn, :revoke_warning ]
 
     def index
       @search = params[:q].to_s.strip
@@ -53,6 +55,65 @@ module Admin
       @ban_choices = ban_duration_choices
       @reports = Report.where(user_id: @user.id).includes(:reporter).recent.limit(20)
       @open_reports = @reports.count(&:open?)
+      @warnings = @user.user_warnings.includes(:actor).recent.limit(50)
+      @active_warnings = @warnings.count(&:active?)
+      @warning_choices = warning_duration_choices
+      @moderation_history = moderation_history
+    end
+
+    # Issue a warning. A warning is deliberately not a sanction: it records that
+    # the account was told, and nothing about the account changes. The reason is
+    # required because a warning with no reason is unreadable to the next
+    # operator, and the category is validated against the model's own list.
+    def warn
+      unless can?("users.warn")
+        return redirect_to(admin_user_path(@user), alert: "You do not have the users.warn permission.")
+      end
+
+      if @user.id == current_user.id
+        return redirect_to(admin_user_path(@user), alert: "You cannot warn your own account.")
+      end
+
+      reason = params[:reason].to_s.strip
+      if reason.blank?
+        return redirect_to(admin_user_path(@user), alert: "A warning reason is required.")
+      end
+
+      category = params[:category].presence_in(UserWarning::CATEGORIES.keys) || "other"
+      expires = warning_expiry(params[:duration].presence || "none")
+
+      @user.user_warnings.create!(
+        actor: current_user,
+        category: category,
+        reason: reason,
+        expires_at: expires
+      )
+
+      label = expires ? "expires in #{humanize_until(expires)}" : "no expiry"
+      audit!("users.warn", target: "user:#{@user.id}",
+                           detail: "warned (#{category}), #{label}: #{reason}")
+      redirect_to admin_user_path(@user), notice: "Warning issued."
+    end
+
+    # Withdraw a warning that should not count against the account. The row is
+    # kept rather than deleted so the trail still shows that it was given and
+    # then revoked.
+    def revoke_warning
+      unless can?("users.warn")
+        return redirect_to(admin_user_path(@user), alert: "You do not have the users.warn permission.")
+      end
+
+      warning = @user.user_warnings.find_by(id: params[:warning_id])
+      return redirect_to(admin_user_path(@user), alert: "Unknown warning.") if warning.nil?
+
+      if warning.expired?
+        return redirect_to(admin_user_path(@user), alert: "That warning has already expired.")
+      end
+
+      warning.update!(expires_at: Time.current)
+      audit!("users.warn", target: "user:#{@user.id}",
+                           detail: "revoked warning ##{warning.id}")
+      redirect_to admin_user_path(@user), notice: "Warning revoked."
     end
 
     # The tag toggles on the user page. The form always carries the whole set, so a
@@ -300,7 +361,8 @@ module Admin
       "toggle_verified" => "users.verify", "update_role" => "users.roles",
       "ban" => "users.ban", "unban" => "users.ban",
       "set_followers" => "users.followers",
-      "update_email" => "users.email"
+      "update_email" => "users.email",
+      "warn" => "users.warn", "revoke_warning" => "users.warn"
     }.freeze
 
     def require_permission_for_action
@@ -313,6 +375,66 @@ module Admin
       return if @user
 
       render_not_found
+    end
+
+    # Every moderation action taken against this account, newest first, in one
+    # list. The audit trail below it is the raw record and stays as it is; this
+    # is the same events reduced to what happened, who did it and what it
+    # applies to, so an account's sanction history can be read without decoding
+    # action keys.
+    #
+    # Warnings are read from their own table rather than the audit trail because
+    # a warning carries state the trail cannot: it can expire or be revoked, and
+    # its row needs the controls for that. Everything else comes from the trail,
+    # which is the only source that records the actor and the exact time.
+    def moderation_history
+      entries = @warnings.map do |warning|
+        {
+          tone: warning.active? ? "warn" : "quiet",
+          label: "Warning: #{warning.category_label}",
+          actor: warning.actor,
+          at: warning.created_at,
+          detail: warning.reason,
+          state: warning_state(warning),
+          warning: warning
+        }
+      end
+
+      AuditLog.includes(:actor).where(target: "user:#{@user.id}").recent.limit(200).each do |entry|
+        next unless MODERATION_ACTIONS.key?(entry.action)
+
+        entries << {
+          tone: MODERATION_ACTIONS[entry.action][:tone],
+          label: MODERATION_ACTIONS[entry.action][:label],
+          actor: entry.actor, at: entry.created_at,
+          detail: entry.detail, state: nil, warning: nil
+        }
+      end
+
+      entries.sort_by { |entry| entry[:at] || Time.current }.reverse
+    end
+
+    # The action keys that count as moderation, with how each one reads in the
+    # history. Anything not listed here stays only in the raw audit trail.
+    # `users.warn` is deliberately absent: warnings render from their own rows,
+    # so listing it here would show every warning twice.
+    MODERATION_ACTIONS = {
+      "users.ban"      => { tone: "bad",  label: "Ban changed" },
+      "users.suspend"  => { tone: "bad",  label: "Suspension changed" },
+      "users.roles"    => { tone: "info", label: "Role changed" },
+      "users.verify"   => { tone: "info", label: "Verified badge changed" },
+      "users.tags"     => { tone: "info", label: "Account tags changed" },
+      "users.email"    => { tone: "info", label: "Email changed" },
+      "users.followers" => { tone: "info", label: "Follower count changed" },
+      "users.delete"   => { tone: "bad",  label: "Account deleted" }
+    }.freeze
+
+    # A warning's own status line: when it lapses, whether it has, or whether it
+    # is still standing.
+    def warning_state(warning)
+      return "expired" if warning.expired?
+
+      warning.expires_at ? "expires #{humanize_until(warning.expires_at)}" : "no expiry"
     end
   end
 end

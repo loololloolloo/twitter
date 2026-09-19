@@ -175,6 +175,108 @@
 </section>
 
 <h2 class="group-title">Moderation</h2>
+
+<%# The moderation history comes first among the moderation blocks. It is the
+    account's record: every warning, ban, suspension and staff change, newest
+    first, in one stack rather than scattered across panels. The controls that
+    produce new entries sit below it, so the operator reads what has already
+    happened before reaching for anything. %>
+<section class="admin-section">
+  <h3 class="panel-title">Moderation history</h3>
+  <p class="section-note">
+    Everything staff have done to this account, most recent first. Actions taken
+    elsewhere in the panel appear here.
+  </p>
+
+  <% if @moderation_history.present? %>
+    <ol class="mod-history">
+      <% @moderation_history.each do |entry| %>
+        <li class="mod-entry mod-<%= entry[:tone] %>">
+          <span class="mod-dot" aria-hidden="true"></span>
+          <div class="mod-body">
+            <div class="mod-head">
+              <strong class="mod-label"><%= entry[:label] %></strong>
+              <% if entry[:state].present? %>
+                <span class="mod-state"><%= entry[:state] %></span>
+              <% end %>
+              <span class="mod-when">
+                <% if entry[:at] %>
+                  <%= time_ago(entry[:at]) %>
+                <% else %>
+                  current
+                <% end %>
+              </span>
+            </div>
+            <p class="mod-detail"><%= entry[:detail].presence || 'No detail recorded.' %></p>
+            <p class="mod-meta">
+              by <%= entry[:actor] ? "@#{entry[:actor].username}" : "system" %>
+              <% if entry[:warning] %>
+                &middot; warning #<%= entry[:warning].id %>
+              <% end %>
+            </p>
+          </div>
+          <% if entry[:warning] && entry[:warning].active? && can?('users.warn') %>
+            <%= form_with url: admin_user_warning_revoke_path(@user, entry[:warning]), method: :post, class: "inline" do %>
+              <button class="btn btn-mini" type="submit">Revoke</button>
+            <% end %>
+          <% end %>
+        </li>
+      <% end %>
+    </ol>
+  <% else %>
+    <p class="muted">No moderation actions have been taken against this account.</p>
+  <% end %>
+</section>
+
+<%# Warnings. A warning changes nothing about the account; it records that the
+    account was told. It is therefore its own block rather than folded into the
+    ban panel, which does change the account. %>
+<section class="admin-section">
+  <h3 class="panel-title">Warnings</h3>
+  <p class="section-note">
+    A warning is a formal notice. It does not restrict the account; it records
+    that the account was told, so the next operator can see the history.
+  </p>
+
+  <p class="warn-summary">
+    <% if @active_warnings.positive? %>
+      <span class="pill pill-warn"><%= @active_warnings %> active</span>
+    <% else %>
+      <span class="pill pill-ok">none active</span>
+    <% end %>
+    <span class="muted"><%= @warnings.size %> issued in total</span>
+  </p>
+
+  <% if can?('users.warn') && @user.id != current_user.id %>
+    <%= form_with url: admin_user_warn_path(@user), method: :post, class: "stack" do %>
+      <label>Category
+        <select name="category">
+          <% UserWarning::CATEGORIES.each do |value, label| %>
+            <option value="<%= value %>"><%= label %></option>
+          <% end %>
+        </select>
+      </label>
+      <label>Reason
+        <input type="text" name="reason" required
+               placeholder="What was this account warned about?">
+      </label>
+      <label>Duration
+        <select name="duration">
+          <% @warning_choices.each do |value, label| %>
+            <option value="<%= value %>"><%= label %></option>
+          <% end %>
+        </select>
+      </label>
+      <button class="btn btn-danger" type="submit">Issue warning</button>
+    <% end %>
+  <% elsif @user.id == current_user.id %>
+    <p class="muted">You cannot warn your own account.</p>
+  <% else %>
+    <p class="muted">Your role cannot issue warnings.</p>
+  <% end %>
+</section>
+
+<h3 class="section-title">Sanctions &amp; staff controls</h3>
 <div class="detail-grid">
   <div class="panel">
     <h3 class="panel-title">Ban</h3>

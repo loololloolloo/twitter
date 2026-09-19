@@ -37,6 +37,24 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
 * Now: `.rail-title` is 19px/800, nested section headings are 15px/700, and the
   dead `.rail-block` / `.rail-stats` / `.rail-actions-list` rules are gone.
 
+## Verified correct already
+
+Checked against the 2019 client and left alone, so a later run does not
+"fix" them into something less accurate:
+
+* **Profile picture geometry.** `--pfp-size: 134px` with `--pfp-ring: 4px` and
+  `--pfp-overlap: 67px` on desktop, and `112px / 56px` at the mobile
+  breakpoint. The frame straddles the banner edge by half its height, which is
+  the 2019 arrangement. **Do not change these numbers** — the overlap is
+  deliberately half the frame, and the stat bar reserves `--pfp-overlap` so the
+  name clears the circle.
+* **Composer placeholder.** `site_tagline` defaults to "What's happening?",
+  which is the 2019 string. It is operator-editable in the admin settings, so
+  the default is what matters.
+* **Sidebar order.** Home, Explore, Notifications, Messages, Bookmarks, Lists,
+  Profile, More, then the Tweet button — the 2019 sequence. A test asserts the
+  order so it cannot drift.
+
 ## Open
 
 ### Right rail

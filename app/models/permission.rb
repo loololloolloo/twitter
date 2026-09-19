@@ -15,6 +15,7 @@ class Permission < ApplicationRecord
     "users.email"        => "Change a user's email address",
     "users.roles"        => "Assign roles to users",
     "users.tags"         => "Set operational tags on a user",
+    "users.warn"         => "Issue and revoke warnings on a user",
     "users.permissions"  => "Edit role permissions",
     "users.impersonate"  => "Log in as another user",
     "tweets.view"        => "View all tweets",

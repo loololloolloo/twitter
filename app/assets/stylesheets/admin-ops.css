@@ -803,3 +803,44 @@ h1, h2, h3 { margin: 0; font-weight: 700; }
   .report-side { width: 100%; }
   .operator-chip .operator-chip-name { display: none; }
 }
+
+/* ---------------- moderation history ----------------
+   The account's record as one vertical stack: a dot per event on a spine, the
+   event beside it. A timeline rather than a table because the entries are read
+   in order - "what has been done to this account" is a sequence, and a table
+   row per event loses the sense that the newest entry is where it stopped. */
+.mod-history { list-style: none; margin: 0; padding: 16px 16px 8px; }
+.mod-entry {
+  position: relative;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 0 0 16px 18px;
+  border-left: 1px solid var(--ops-line);
+  margin-left: 5px;
+}
+.mod-entry:last-child { border-left-color: transparent; padding-bottom: 4px; }
+.mod-dot {
+  position: absolute; left: -5px; top: 3px;
+  width: 9px; height: 9px; border-radius: 999px;
+  background: var(--ops-faint); border: 2px solid var(--ops-surface);
+}
+.mod-warn .mod-dot { background: var(--ops-warn); }
+.mod-bad .mod-dot { background: var(--ops-danger); }
+.mod-info .mod-dot { background: var(--ops-accent); }
+.mod-quiet .mod-dot { background: var(--ops-line); }
+
+.mod-body { flex: 1; min-width: 0; }
+.mod-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.mod-label { font-size: 13px; color: var(--ops-text); }
+.mod-warn .mod-label { color: var(--ops-warn); }
+.mod-bad .mod-label { color: var(--ops-danger); }
+.mod-state {
+  font-size: 11px; font-weight: 700; color: var(--ops-muted);
+  background: var(--ops-surface-alt); border: 1px solid var(--ops-line);
+  border-radius: 999px; padding: 1px 8px;
+}
+.mod-when { margin-left: auto; font-size: 11.5px; color: var(--ops-faint); }
+.mod-detail { margin: 3px 0 0; font-size: 12.5px; color: var(--ops-muted); word-wrap: break-word; }
+.mod-meta { margin: 3px 0 0; font-size: 11.5px; color: var(--ops-faint); }
+.mod-quiet .mod-detail { text-decoration: line-through; text-decoration-color: var(--ops-faint); }
+
+.warn-summary { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }

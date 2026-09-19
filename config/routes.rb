@@ -127,6 +127,9 @@ Rails.application.routes.draw do
     post   "users/:id/followers", to: "users#set_followers",   as: :user_followers
     post   "users/:id/email",     to: "users#update_email",    as: :user_email
     post   "users/:id/tags",      to: "users#update_tags",     as: :user_tags
+    post   "users/:id/warn",      to: "users#warn",            as: :user_warn
+    post   "users/:id/warnings/:warning_id/revoke",
+           to: "users#revoke_warning", as: :user_warning_revoke
     post   "users/:id/impersonate", to: "users#impersonate",   as: :user_impersonate
 
     get  "permissions", to: "permissions#index", as: :permissions

@@ -37,6 +37,8 @@ class User < ApplicationRecord
   has_many :lists, dependent: :destroy
   has_many :list_memberships, dependent: :destroy
 
+  has_many :user_warnings, dependent: :destroy
+
   # Follow requests this account has made, and the ones waiting on it.
   has_many :sent_follow_requests, class_name: "FollowRequest", foreign_key: :requester_id,
            dependent: :destroy, inverse_of: :requester

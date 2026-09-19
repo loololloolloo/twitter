@@ -40,4 +40,23 @@ module BanPolicy
   def ban_duration_choices
     DURATION_CHOICES
   end
+
+  # Warnings expire on the same ladder as bans, plus "no expiry": a warning
+  # that never lapses is the common case, so it is the default rather than one
+  # of the timed options.
+  WARNING_DURATION_CHOICES = [
+    [ "none", "Does not expire" ], [ "30d", "30 days" ],
+    [ "90d", "90 days" ], [ "365d", "1 year" ]
+  ].freeze
+
+  WARNING_SPANS = { "30d" => 30.days, "90d" => 90.days, "365d" => 365.days }.freeze
+
+  def warning_expiry(choice)
+    span = WARNING_SPANS[choice.to_s]
+    span ? Time.current + span : nil
+  end
+
+  def warning_duration_choices
+    WARNING_DURATION_CHOICES
+  end
 end

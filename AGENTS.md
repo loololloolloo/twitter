@@ -30,6 +30,19 @@ the owner and holds every permission.
   - The script reinstalls Ruby if the reset removed it, then starts each port
     that is not already answering and waits until it responds.
 
+## A fresh database has no roles until you seed it
+
+`bin/setup` and `db:prepare` load the schema but never run `db/seeds.rb`, so a
+database created after a reset has empty `roles`, `permissions`,
+`role_permissions` and `site_settings` tables. Signup then dies in
+`RegistrationsController#create` with
+`ActiveRecord::RecordNotFound: Couldn't find Role with [WHERE "roles"."name" = ?]`,
+because the lookup for the first account's owner role finds nothing.
+
+Run `./bin/bundle exec rails db:seed` (idempotent, via `RoleBootstrapper`)
+before anyone signs up. Symptom to recognise: every lookup that joins roles
+fails and no account can be created.
+
 ## Ruby install can vanish on a session reset
 
 A session reset removes the system Ruby: `env: 'ruby': No such file or

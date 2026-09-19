@@ -4,7 +4,8 @@ module Admin
     before_action :load_user, only: [ :show, :ban, :unban, :suspend, :destroy,
                                        :update_role, :toggle_verified, :set_followers,
                                        :update_email, :update_tags, :impersonate,
-                                       :warn, :revoke_warning ]
+                                       :warn, :revoke_warning,
+                                       :add_note, :pin_note, :destroy_note ]
     # Every action that writes to the target account has to clear the owner
     # check. `show` is not in this list: the owner account is still viewable,
     # it just has nothing on it that can change it.
@@ -12,7 +13,8 @@ module Admin
                                                 :update_role, :toggle_verified,
                                                 :set_followers, :update_email,
                                                 :update_tags, :impersonate,
-                                                :warn, :revoke_warning ]
+                                                :warn, :revoke_warning,
+                                                :add_note, :pin_note, :destroy_note ]
 
     def index
       @search = params[:q].to_s.strip
@@ -61,6 +63,77 @@ module Admin
       @next_strike_rung = @user.next_strike_rung
       @warning_choices = warning_duration_choices
       @moderation_history = moderation_history
+      @notes = @user.staff_notes.includes(:author).ordered
+    end
+
+    # Leave an internal note on an account. The note is read-only context for
+    # the next operator: it is attributed and dated, it never notifies the
+    # member and it changes nothing about the account.
+    def add_note
+      unless can?("users.notes")
+        return redirect_to(admin_user_path(@user), alert: "You do not have the users.notes permission.")
+      end
+
+      if @user.id == current_user.id
+        return redirect_to(admin_user_path(@user), alert: "You cannot note your own account.")
+      end
+
+      body = params[:body].to_s.strip
+
+      if body.blank?
+        return redirect_to(admin_user_path(@user), alert: "A note cannot be empty.")
+      end
+
+      if body.length > StaffNote::MAX_BODY
+        return redirect_to(admin_user_path(@user),
+                           alert: "A note is limited to #{StaffNote::MAX_BODY} characters.")
+      end
+
+      note = @user.staff_notes.create!(
+        author: current_user,
+        body: body,
+        pinned: params[:pinned].present?
+      )
+
+      audit!("users.notes", target: "user:#{@user.id}",
+                            detail: "added note ##{note.id}: #{note.body.truncate(120)}")
+      redirect_to admin_user_path(@user), notice: "Note added."
+    end
+
+    # Pin a note so standing context stays at the top of the record however much
+    # incidental commentary accumulates beneath it.
+    def pin_note
+      unless can?("users.notes")
+        return redirect_to(admin_user_path(@user), alert: "You do not have the users.notes permission.")
+      end
+
+      note = @user.staff_notes.find_by(id: params[:note_id])
+      return redirect_to(admin_user_path(@user), alert: "Unknown note.") if note.nil?
+
+      note.update!(pinned: !note.pinned)
+      audit!("users.notes", target: "user:#{@user.id}",
+                            detail: "#{note.pinned ? 'pinned' : 'unpinned'} note ##{note.id}")
+      redirect_to admin_user_path(@user), notice: note.pinned ? "Note pinned." : "Note unpinned."
+    end
+
+    # Remove a note. Deleting is real rather than a tombstone because a note is
+    # a private aside, not a sanction the record has to keep accounting for; the
+    # audit trail keeps the fact and the text of the deletion.
+    def destroy_note
+      unless can?("users.notes")
+        return redirect_to(admin_user_path(@user), alert: "You do not have the users.notes permission.")
+      end
+
+      note = @user.staff_notes.find_by(id: params[:note_id])
+      return redirect_to(admin_user_path(@user), alert: "Unknown note.") if note.nil?
+
+      # The row is gone after this, so the audit detail has to carry what the
+      # note said or the trail would record only that something was deleted.
+      excerpt = note.body.truncate(120)
+      note.destroy!
+      audit!("users.notes", target: "user:#{@user.id}",
+                            detail: "deleted note ##{note.id}: #{excerpt}")
+      redirect_to admin_user_path(@user), notice: "Note deleted."
     end
 
     # Issue a warning. A warning is deliberately not a sanction: it records that
@@ -368,7 +441,9 @@ module Admin
       "ban" => "users.ban", "unban" => "users.ban",
       "set_followers" => "users.followers",
       "update_email" => "users.email",
-      "warn" => "users.warn", "revoke_warning" => "users.warn"
+      "warn" => "users.warn", "revoke_warning" => "users.warn",
+      "add_note" => "users.notes", "pin_note" => "users.notes",
+      "destroy_note" => "users.notes"
     }.freeze
 
     def require_permission_for_action

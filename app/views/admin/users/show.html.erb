@@ -311,6 +311,64 @@
   <% end %>
 </section>
 
+<%# Internal notes. They carry context the audit trail cannot: the trail says
+    what was done, a note says what staff noticed. Unlike `users.tag_note`,
+    which is a single field saved with the tags, these are appended one at a
+    time and attributed, so the account accumulates history instead of losing
+    the previous editor's view. Nothing here reaches the member. The read side
+    is gated as tightly as the write side: a note is private staff context, so
+    holding `users.view` alone is not enough to read it. %>
+<section class="admin-section">
+  <h3 class="panel-title">Internal notes</h3>
+
+  <% if can?('users.notes') %>
+    <p class="section-note">
+      Private to the panel. Notes are attributed and dated, they are never shown
+      to the member, and nothing about the account changes when one is added.
+    </p>
+
+    <% if @notes.present? %>
+      <ol class="note-list">
+        <% @notes.each do |note| %>
+          <li class="note-item <%= 'is-pinned' if note.pinned %>">
+            <div class="note-head">
+              <% if note.pinned %><span class="pill pill-warn">pinned</span><% end %>
+              <strong class="note-author"><%= note.author_label %></strong>
+              <span class="note-when"><%= time_ago(note.created_at) %></span>
+            </div>
+            <p class="note-body"><%= note.body %></p>
+            <div class="note-actions">
+              <%= form_with url: admin_user_note_pin_path(@user, note), method: :post, class: "inline" do %>
+                <button class="btn btn-mini" type="submit"><%= note.pinned ? 'Unpin' : 'Pin' %></button>
+              <% end %>
+              <%= form_with url: admin_user_note_destroy_path(@user, note), method: :delete, class: "inline" do %>
+                <button class="btn btn-mini btn-danger" type="submit"
+                        data-turbo-confirm="Delete this note? Its text is kept in the audit trail.">Delete</button>
+              <% end %>
+            </div>
+          </li>
+        <% end %>
+      </ol>
+    <% else %>
+      <p class="muted">No internal notes on this account.</p>
+    <% end %>
+
+    <%= form_with url: admin_user_note_path(@user), method: :post, class: "stack" do %>
+      <label>Note
+        <textarea name="body" rows="3" required
+                  placeholder="What should the next operator know about this account?"></textarea>
+      </label>
+      <label class="check">
+        <input type="checkbox" name="pinned" value="1">
+        <span>Pin to the top of the record</span>
+      </label>
+      <button class="btn" type="submit">Add note</button>
+    <% end %>
+  <% else %>
+    <p class="muted">Your role cannot read or keep internal notes.</p>
+  <% end %>
+</section>
+
 <h3 class="section-title">Sanctions &amp; staff controls</h3>
 <div class="detail-grid">
   <div class="panel">

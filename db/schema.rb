@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_000002) do
   create_table "audit_logs", force: :cascade do |t|
     t.string "action", null: false
     t.integer "actor_id"
@@ -210,6 +210,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_000001) do
     t.datetime "updated_at", null: false
     t.text "value", default: "", null: false
     t.index ["key"], name: "index_site_settings_on_key", unique: true
+  end
+
+  create_table "staff_notes", force: :cascade do |t|
+    t.integer "author_id"
+    t.text "body", default: "", null: false
+    t.datetime "created_at", null: false
+    t.boolean "pinned", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["user_id", "created_at"], name: "index_staff_notes_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_staff_notes_on_user_id"
   end
 
   create_table "tweet_views", force: :cascade do |t|

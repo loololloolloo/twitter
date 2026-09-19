@@ -130,6 +130,9 @@ Rails.application.routes.draw do
     post   "users/:id/warn",      to: "users#warn",            as: :user_warn
     post   "users/:id/warnings/:warning_id/revoke",
            to: "users#revoke_warning", as: :user_warning_revoke
+    post   "users/:id/notes", to: "users#add_note", as: :user_note
+    post   "users/:id/notes/:note_id/pin", to: "users#pin_note", as: :user_note_pin
+    delete "users/:id/notes/:note_id", to: "users#destroy_note", as: :user_note_destroy
     post   "users/:id/impersonate", to: "users#impersonate",   as: :user_impersonate
 
     get  "permissions", to: "permissions#index", as: :permissions

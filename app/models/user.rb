@@ -39,6 +39,11 @@ class User < ApplicationRecord
 
   has_many :user_warnings, dependent: :destroy
 
+  # Internal notes about this account. They belong to the account record, not
+  # the author, so deleting the account takes them and deleting the author does
+  # not - `author_id` is left alone and the note reads back as "system".
+  has_many :staff_notes, dependent: :destroy
+
   # Follow requests this account has made, and the ones waiting on it.
   has_many :sent_follow_requests, class_name: "FollowRequest", foreign_key: :requester_id,
            dependent: :destroy, inverse_of: :requester

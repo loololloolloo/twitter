@@ -844,3 +844,41 @@ h1, h2, h3 { margin: 0; font-weight: 700; }
 .mod-quiet .mod-detail { text-decoration: line-through; text-decoration-color: var(--ops-faint); }
 
 .warn-summary { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+
+/* ---------------- strike ladder ----------------
+   The escalation ladder beside the warning controls. It is a numbered list,
+   not a progress bar: each rung is a distinct consequence an operator chooses,
+   and the count is the threshold at which staff conventionally reach for it.
+   Reached rungs are filled, upcoming ones are muted so the next step reads as
+   the thing about to happen. */
+.strike-ladder {
+  border: 1px solid var(--ops-line); border-radius: 6px;
+  background: var(--ops-surface-alt);
+  padding: 12px 14px; margin: 4px 0 16px;
+}
+.strike-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.strike-count { font-size: 22px; font-weight: 700; line-height: 1; color: var(--ops-text); }
+.strike-caption { font-size: 12px; color: var(--ops-muted); margin-right: auto; }
+
+.strike-rungs { list-style: none; margin: 0; padding: 0; }
+.strike-rung {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 7px 0; border-top: 1px solid var(--ops-line);
+}
+.strike-rung:first-child { border-top: 0; }
+.strike-threshold {
+  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--ops-surface); color: var(--ops-faint);
+  border: 1px solid var(--ops-line);
+}
+.strike-rung.is-reached .strike-threshold { color: #fff; }
+.strike-warn.is-reached .strike-threshold { background: var(--ops-warn); border-color: var(--ops-warn-line); }
+.strike-bad.is-reached .strike-threshold { background: var(--ops-danger); border-color: var(--ops-danger-line); }
+.strike-body { flex: 1; min-width: 0; }
+.strike-body strong { font-size: 12.5px; color: var(--ops-muted); }
+.strike-rung.is-reached .strike-body strong { color: var(--ops-text); }
+.strike-body p { margin: 2px 0 0; font-size: 12px; color: var(--ops-faint); }
+.strike-rung.is-reached .strike-body p { color: var(--ops-muted); }
+.strike-next { margin: 10px 0 0; font-size: 12px; color: var(--ops-muted); }

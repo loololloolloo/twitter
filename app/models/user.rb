@@ -111,6 +111,25 @@ class User < ApplicationRecord
     ACCOUNT_TAGS.select { |column, _| public_send(column) }.values
   end
 
+  # The running strike count: warnings that still count against the account.
+  # Expired and revoked warnings stay in the table for the history but drop out
+  # here, so the count answers "how much heat is on this account now" rather
+  # than "how many times has it ever been warned".
+  def strike_count
+    user_warnings.active.count
+  end
+
+  # The rung the strike count has reached, or nil below the first warning.
+  def strike_rung
+    StrikeLadder.current(strike_count)
+  end
+
+  # The rung the next warning would reach, so the consequence is visible before
+  # the operator issues it.
+  def next_strike_rung
+    StrikeLadder.next(strike_count)
+  end
+
   # True when the account carries a tag that suppresses its reach. The public
   # timeline and search consult this, so the flags are not just decoration.
   def reach_limited?

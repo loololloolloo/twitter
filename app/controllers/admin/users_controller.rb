@@ -56,7 +56,9 @@ module Admin
       @reports = Report.where(user_id: @user.id).includes(:reporter).recent.limit(20)
       @open_reports = @reports.count(&:open?)
       @warnings = @user.user_warnings.includes(:actor).recent.limit(50)
-      @active_warnings = @warnings.count(&:active?)
+      @active_warnings = @user.strike_count
+      @strike_rung = @user.strike_rung
+      @next_strike_rung = @user.next_strike_rung
       @warning_choices = warning_duration_choices
       @moderation_history = moderation_history
     end
@@ -82,16 +84,20 @@ module Admin
       category = params[:category].presence_in(UserWarning::CATEGORIES.keys) || "other"
       expires = warning_expiry(params[:duration].presence || "none")
 
-      @user.user_warnings.create!(
+      warning = @user.user_warnings.create!(
         actor: current_user,
         category: category,
         reason: reason,
         expires_at: expires
       )
 
+      notify_warning(warning)
+
       label = expires ? "expires in #{humanize_until(expires)}" : "no expiry"
+      rung = @user.strike_rung
       audit!("users.warn", target: "user:#{@user.id}",
-                           detail: "warned (#{category}), #{label}: #{reason}")
+                           detail: "warned (#{category}), #{label}, strike #{@user.strike_count}" \
+                                   "#{rung ? " (#{rung.label})" : ''}: #{reason}")
       redirect_to admin_user_path(@user), notice: "Warning issued."
     end
 
@@ -435,6 +441,23 @@ module Admin
       return "expired" if warning.expired?
 
       warning.expires_at ? "expires #{humanize_until(warning.expires_at)}" : "no expiry"
+    end
+
+    # Tells the member, in their own notifications, that a warning was placed on
+    # the account. The reason is included verbatim because the whole point of a
+    # warning is that the account was told why; a notification that says only
+    # "you were warned" is not a warning. The actor is carried so the notice is
+    # attributed, and the strike count is stated so the member is not surprised
+    # by the next consequence.
+    def notify_warning(warning)
+      count = @user.strike_count
+      rung = @user.strike_rung
+      state = warning.expires_at ? "expires in #{humanize_until(warning.expires_at)}" : "does not expire"
+
+      body = "Warning: #{warning.category_label} (#{state}). Reason: #{warning.reason} " \
+             "Standing warnings: #{count}#{rung ? " (#{rung.label})" : ''}."
+
+      @user.notifications.create!(actor: current_user, kind: "admin", body: body)
     end
   end
 end

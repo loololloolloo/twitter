@@ -247,6 +247,41 @@
     <span class="muted"><%= @warnings.size %> issued in total</span>
   </p>
 
+  <%# The escalation ladder. It is advisory: nothing here fires on its own, but
+      the operator sees the consequence the next warning would reach before
+      issuing it, which is the whole point of keeping a running strike count. %>
+  <div class="strike-ladder">
+    <div class="strike-head">
+      <span class="strike-count"><%= @active_warnings %></span>
+      <span class="strike-caption">standing <%= 'warning'.pluralize(@active_warnings) %></span>
+      <% if @strike_rung %>
+        <span class="pill pill-<%= @strike_rung.tone %>"><%= @strike_rung.label %></span>
+      <% end %>
+    </div>
+
+    <ol class="strike-rungs">
+      <% StrikeLadder.all.each do |rung| %>
+        <% reached = @active_warnings >= rung.strikes %>
+        <li class="strike-rung <%= 'is-reached' if reached %> strike-<%= rung.tone %>">
+          <span class="strike-threshold"><%= rung.strikes %></span>
+          <div class="strike-body">
+            <strong><%= rung.label %></strong>
+            <p><%= rung.consequence %></p>
+          </div>
+        </li>
+      <% end %>
+    </ol>
+
+    <% if @next_strike_rung %>
+      <p class="strike-next">
+        <%= pluralize(@next_strike_rung.strikes - @active_warnings, 'more warning') %>
+        reaches <strong><%= @next_strike_rung.label %></strong>.
+      </p>
+    <% else %>
+      <p class="strike-next">Top of the ladder reached. Escalate before acting.</p>
+    <% end %>
+  </div>
+
   <% if can?('users.warn') && @user.id != current_user.id %>
     <%= form_with url: admin_user_warn_path(@user), method: :post, class: "stack" do %>
       <label>Category

@@ -256,4 +256,75 @@ class AdminWarningsTest < ActionDispatch::IntegrationTest
     assert lapsed.expired?
     refute lapsed.active?
   end
+
+  test "issuing a warning notifies the member with the reason and strike count" do
+    owner = create_user(username: "king", role: "owner")
+    target = create_user(username: "member")
+
+    sign_in(owner)
+    post admin_user_warn_path(target), params: {
+      category: "harassment", reason: "Targeted replies", duration: "none"
+    }
+
+    note = target.notifications.last
+    assert note.present?, "the member should be notified"
+    assert_equal "admin", note.kind
+    assert_equal owner.id, note.actor_id
+    assert_match(/Targeted replies/, note.body)
+    assert_match(/Standing warnings: 1/, note.body)
+  end
+
+  test "a warning that is refused does not notify the member" do
+    owner = create_user(username: "king", role: "owner")
+    target = create_user(username: "member")
+
+    sign_in(owner)
+    post admin_user_warn_path(target), params: { category: "spam", reason: "  " }
+
+    assert_equal 0, target.notifications.count
+  end
+
+  test "the strike count falls when a warning is revoked" do
+    owner = create_user(username: "king", role: "owner")
+    target = create_user(username: "member")
+    warning = UserWarning.create!(user: target, actor: owner, category: "spam", reason: "Standing")
+
+    assert_equal 1, target.strike_count
+
+    sign_in(owner)
+    post admin_user_warning_revoke_path(target, warning)
+
+    assert_equal 0, target.reload.strike_count
+  end
+
+  test "the escalation ladder reads the rung the strike count reaches" do
+    target = create_user(username: "member")
+
+    assert_nil target.strike_rung
+    assert_equal StrikeLadder.all.first, target.next_strike_rung
+
+    UserWarning.create!(user: target, actor: target, category: "spam", reason: "one")
+    assert_equal "Notice", target.reload.strike_rung.label
+    assert_equal "Elevated", target.next_strike_rung.label
+
+    UserWarning.create!(user: target, actor: target, category: "spam", reason: "two")
+    UserWarning.create!(user: target, actor: target, category: "spam", reason: "three")
+    assert_equal "Elevated", target.reload.strike_rung.label
+    assert_equal 2, StrikeLadder.remaining(3)
+    assert_nil StrikeLadder.next(7)
+  end
+
+  test "the user page shows the ladder and the next consequence" do
+    owner = create_user(username: "king", role: "owner")
+    target = create_user(username: "member")
+    UserWarning.create!(user: target, actor: owner, category: "spam", reason: "Standing")
+
+    sign_in(owner)
+    get admin_user_path(target)
+
+    assert_response :success
+    assert_match(/strike-ladder/, response.body)
+    assert_match(/Notice/, response.body)
+    assert_match(/more warnings/, response.body)
+  end
 end

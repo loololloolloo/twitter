@@ -972,7 +972,15 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 /* The admin rail stacks its own cards, so the shared card's bottom margin
    would double up with the rail's gap. */
 .admin-rail .rail-card { margin-bottom: 0; border-radius: 8px; }
-.rail-title { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: var(--dark); }
+/* The rail card titles. 2019 set these at 19px/800, which is what gives the
+   right column its weight against the 15px stream body. */
+.rail-title { margin: 0 0 12px; font-size: 19px; font-weight: 800; color: var(--dark); }
+/* "What's happening" nests its trends under a smaller heading rather than
+   titling the whole card after them, so the nested heading has its own size. */
+.rail-section { margin-top: 4px; }
+.rail-section .rail-heading {
+  margin: 0 0 12px; font-size: 15px; font-weight: 700; color: var(--gray);
+}
 .rail-note { margin: 0 0 10px; color: var(--gray); font-size: 12px; line-height: 1.45; }
 .rail-status { margin: 0 0 10px; }
 .rail-announcement {
@@ -1846,36 +1854,13 @@ html[data-theme="dark"] .row-item:hover { background: rgba(255,255,255,.03); }
 }
 .spark-label { margin-top: 4px; color: var(--gray); font-size: 10px; }
 
-/* Rail blocks: the panel sidebar's own sections below the operator card. They
-   carry live counts and shortcuts, never the section links the top bar already
-   owns, so the two surfaces cannot drift into duplicates. */
-.rail-block {
-  background: var(--white); border: 1px solid var(--xlight-gray);
-  border-radius: 4px; padding: 14px 15px;
-}
-.rail-block + .rail-block { margin-top: 0; }
-.rail-heading {
-  margin: 0 0 10px; font-size: 11px; font-weight: 800;
-  text-transform: uppercase; letter-spacing: .6px; color: var(--gray);
-}
-.rail-stats { list-style: none; margin: 0; padding: 0;
-             display: flex; flex-direction: column; gap: 2px; }
-.rail-stats a {
-  display: flex; align-items: baseline; gap: 6px;
-  padding: 6px 8px; border-radius: 4px;
-  color: var(--gray); font-size: 13px;
-}
-.rail-stats a:hover { background: var(--bg); text-decoration: none; }
-.rail-stats strong {
-  font-size: 16px; font-weight: 700; color: var(--dark);
-  min-width: 26px; display: inline-block;
-}
-.rail-actions-list { display: flex; flex-direction: column; gap: 1px; }
-.rail-actions-list a {
-  display: block; padding: 7px 8px; border-radius: 4px;
-  color: var(--blue-deep); font-size: 13px; font-weight: 700;
-}
-.rail-actions-list a:hover { background: var(--bg); color: var(--blue); text-decoration: none; }
+/* The footer card. 2019 carried no prose here: just the policy links and the
+   copyright, wrapped small and grey so the card closes the column quietly. */
+.rail-about { padding: 12px 16px; }
+.rail-links { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.rail-links a { color: var(--gray); font-size: 13px; }
+.rail-links a:hover { color: var(--blue); text-decoration: underline; }
+.rail-copy { display: block; margin-top: 6px; color: var(--gray); font-size: 13px; }
 
 /* ================= 2019 client features =================
    Bookmarks, lists, protected accounts, follow requests, blocks and mutes,

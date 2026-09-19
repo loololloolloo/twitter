@@ -4,43 +4,47 @@
     when they have their own list (the profile excludes the account being
     viewed); otherwise the shared set is used. %>
 <% people = local_assigns.fetch(:suggestions, nil) || @suggestions %>
-<% heading = local_assigns.fetch(:trends_title, "Trends for you") %>
+<% trends_heading = local_assigns.fetch(:trends_title, "Trends for you") %>
 
 <div class="rail-card rail-search">
   <form class="rail-search-form" action="<%= explore_path %>" method="get" role="search">
     <%= icon('magnifying-glass') %>
-    <input type="text" name="q" placeholder="Search" value="<%= params[:q] %>" aria-label="Search">
+    <input type="text" name="q" placeholder="Search Twitter" value="<%= params[:q] %>" aria-label="Search Twitter">
   </form>
 </div>
 
 <% if @trends.present? %>
   <div class="rail-card">
-    <h3 class="rail-heading"><%= heading %></h3>
-    <ul class="trend-list">
-      <% @trends.first(5).each do |tag, count, authors| %>
-        <li>
-          <a href="<%= explore_path(q: "##{tag}") %>">
-            <span class="trend-tag">#<%= tag %></span>
-            <span class="trend-count">
-              <%= count %> <%= 'Tweet'.pluralize(count) %>
-              &middot; <%= authors %> <%= 'account'.pluralize(authors) %>
-            </span>
-          </a>
-        </li>
-      <% end %>
-    </ul>
-    <% if @trends.size > 5 %>
+    <%# 2019 named this card "What's happening" and nested the trends beneath a
+        "Trends for you" subheading, rather than titling the whole card after
+        the trends themselves. %>
+    <h2 class="rail-title">What's happening</h2>
+    <div class="rail-section">
+      <h3 class="rail-heading"><%= trends_heading %></h3>
+      <ul class="trend-list">
+        <% @trends.first(5).each do |tag, count, authors| %>
+          <li>
+            <a href="<%= explore_path(q: "##{tag}") %>">
+              <span class="trend-tag">#<%= tag %></span>
+              <span class="trend-count">
+                <%= count %> <%= 'Tweet'.pluralize(count) %>
+                &middot; <%= authors %> <%= 'account'.pluralize(authors) %>
+              </span>
+            </a>
+          </li>
+        <% end %>
+      </ul>
       <a class="rail-more" href="<%= explore_path %>">Show more</a>
-    <% end %>
+    </div>
   </div>
 <% end %>
 
 <% if people.present? %>
-  <div class="rail-card">
-    <h3 class="rail-heading">Who to follow</h3>
+  <div class="rail-card rail-follow-card">
+    <h2 class="rail-title">Who to follow</h2>
     <% people.first(3).each do |person| %>
       <div class="suggestion">
-        <a href="<%= profile_path(person.username) %>"><%= pic(person.avatar_path, 40) %></a>
+        <a href="<%= profile_path(person.username) %>"><%= pic(person.avatar_path, 48) %></a>
         <div class="suggestion-body">
           <a href="<%= profile_path(person.username) %>"><%= person.display_name %></a>
           <span>@<%= person.username %></span>
@@ -54,14 +58,12 @@
   </div>
 <% end %>
 
-<div class="rail-card">
-  <h3 class="rail-heading">About</h3>
-  <p class="rail-note">A look at the Twitter web client.</p>
+<div class="rail-card rail-about">
   <nav class="rail-links">
     <a href="<%= about_path %>">About</a>
-    <a href="<%= help_path %>">Help</a>
-    <a href="<%= tos_path %>">Terms</a>
-    <a href="<%= privacy_path %>">Privacy</a>
+    <a href="<%= help_path %>">Help Center</a>
+    <a href="<%= tos_path %>">Terms of Service</a>
+    <a href="<%= privacy_path %>">Privacy Policy</a>
   </nav>
-  <span class="rail-copy">&copy; <%= @site_name %></span>
+  <span class="rail-copy">&copy; <%= Time.current.year %> <%= @site_name %></span>
 </div>

@@ -125,3 +125,14 @@ namespaced per worker there.
 - The composer's two media controls share a `.compose-tools` group which owns
   the `margin-right: auto`. Do not move that gap onto `.media-btn`, or the
   second control is pushed across to the Tweet button.
+- Pushing: the `origin` URL originally embedded a token that has since died, so
+  a bare `git push` stalled on a hidden password prompt and never landed the
+  work. The remote is now the plain HTTPS URL with a `credential.helper` that
+  reads `$GITHUB_TOKEN` at push time, so no secret is stored in `.git/config`.
+  Use `GIT_TERMINAL_PROMPT=0 git push origin <branch>` and it either works or
+  fails loudly. The automation clones fresh from `origin` each run, so anything
+  left uncommitted is both invisible to the next run and lost on a reset -
+  commit and push before finishing.
+- Migrations must not be timestamped in the future: the sandbox clock can lag
+  the date you would guess. A future timestamp makes `db:migrate` fail with
+  `InvalidMigrationTimestampError`.

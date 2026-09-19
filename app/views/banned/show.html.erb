@@ -29,6 +29,30 @@
       <p class="banned-note">Access is restored automatically when the suspension ends.</p>
     <% end %>
 
+    <%# Contesting the ban is the member's only move while the gate is closed.
+        The form carries no account id, so it can only ever file against the
+        signed-in account. %>
+    <div class="banned-appeal">
+      <% pending_appeal = @ban.appeals.pending.order(created_at: :desc).first %>
+      <% if pending_appeal %>
+        <p class="banned-note">
+          Your appeal was sent <%= time_ago(pending_appeal.created_at) %> and is waiting for review.
+        </p>
+      <% else %>
+        <h2 class="banned-appeal-title">Appeal this decision</h2>
+        <p class="banned-note">
+          If you think this was a mistake, tell us why. An operator who did not
+          make the original decision will review it.
+        </p>
+        <%= form_with url: appeals_path, method: :post, class: "banned-appeal-form" do %>
+          <label for="appeal-body">Why should this be reviewed?</label>
+          <textarea id="appeal-body" name="body" rows="4" maxlength="4000"
+                    placeholder="Give us the context we should consider."></textarea>
+          <button class="btn btn-primary" type="submit">Submit appeal</button>
+        <% end %>
+      <% end %>
+    </div>
+
     <a class="btn btn-primary banned-logout" href="<%= logout_path %>">Log out</a>
   </div>
 </div>

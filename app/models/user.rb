@@ -44,6 +44,11 @@ class User < ApplicationRecord
   # not - `author_id` is left alone and the note reads back as "system".
   has_many :staff_notes, dependent: :destroy
 
+  # Appeals this account has filed against a ban or suspension. They belong to
+  # the account, so deleting it takes them; the operators in the decided/
+  # sanction columns are deliberately not foreign keys.
+  has_many :appeals, dependent: :destroy
+
   # Follow requests this account has made, and the ones waiting on it.
   has_many :sent_follow_requests, class_name: "FollowRequest", foreign_key: :requester_id,
            dependent: :destroy, inverse_of: :requester

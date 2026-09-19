@@ -24,6 +24,8 @@ class Permission < ApplicationRecord
     "tweets.pin"         => "Pin tweets",
     "reports.view"       => "View reported content",
     "reports.resolve"    => "Resolve reports",
+    "appeals.view"       => "View the appeals queue",
+    "appeals.decide"     => "Decide member appeals",
     "settings.edit"      => "Edit site settings",
     "audit.view"         => "View the audit log",
     "backup.export"      => "Export a database backup",

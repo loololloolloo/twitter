@@ -10,7 +10,7 @@ class ApplicationController < ActionController::Base
   # Controllers that stay reachable while an account is banned. Everything else
   # redirects to the ban screen so the reason and the log out button are never
   # hidden behind a wall.
-  BAN_GATE_EXEMPT = %w[sessions registrations banned].freeze
+  BAN_GATE_EXEMPT = %w[sessions registrations banned appeals].freeze
 
   before_action :load_current_user
   before_action :enforce_ban

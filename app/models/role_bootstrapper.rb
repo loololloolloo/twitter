@@ -8,10 +8,11 @@ module RoleBootstrapper
       admin.access users.view users.suspend users.ban users.delete users.verify
       users.followers users.email users.tags users.warn users.notes
       tweets.view tweets.delete tweets.pin reports.view
-      reports.resolve audit.view backup.export maintenance.run
+      reports.resolve appeals.view appeals.decide
+      audit.view backup.export maintenance.run
       lookup.run escalations.view sessions.view relations.view lists.view
     ],
-    "moderator" => %w[admin.access users.view users.tags users.warn users.notes tweets.view reports.view reports.resolve lookup.run escalations.view],
+    "moderator" => %w[admin.access users.view users.tags users.warn users.notes tweets.view reports.view reports.resolve appeals.view appeals.decide lookup.run escalations.view],
     "user" => []
   }.freeze
 

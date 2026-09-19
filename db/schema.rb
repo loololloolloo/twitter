@@ -10,7 +10,24 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_140000) do
+  create_table "appeals", force: :cascade do |t|
+    t.text "body", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "decided_at"
+    t.integer "decided_by_id"
+    t.text "decision_note", default: "", null: false
+    t.integer "sanction_actor_id"
+    t.string "sanction_kind", default: "ban", null: false
+    t.string "sanction_reason", default: "", null: false
+    t.string "state", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["state", "created_at"], name: "index_appeals_on_state_and_created_at"
+    t.index ["state"], name: "index_appeals_on_state"
+    t.index ["user_id"], name: "index_appeals_on_user_id"
+  end
+
   create_table "audit_logs", force: :cascade do |t|
     t.string "action", null: false
     t.integer "actor_id"

@@ -98,6 +98,12 @@
             <span class="rail-group-count"><%= count_label(Tweet.count) %></span>
           </a>
         <% end %>
+        <% if can?('appeals.view') %>
+          <a href="<%= admin_appeals_path(state: 'pending') %>" class="<%= 'is-active' if controller_name == 'appeals' %>">
+            <%= icon('shield-halved') %><span class="rail-label">Appeals</span>
+            <span class="rail-group-count"><%= count_label(Appeal.pending.count) %></span>
+          </a>
+        <% end %>
       </div>
 
       <div class="rail-group">

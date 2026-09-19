@@ -10,6 +10,11 @@ Rails.application.routes.draw do
 
   get "banned", to: "banned#show"
 
+  # A banned member contests the ban here. The ban gate keeps them out of every
+  # other endpoint, so this one stays reachable while banned; the request has
+  # no user id, so it can only ever file against the signed-in account.
+  post "appeals", to: "appeals#create", as: :appeals
+
   # Core
   get "home",          to: "timelines#home"
   # New timeline entries since a given time, polled by the open home page.
@@ -153,6 +158,11 @@ Rails.application.routes.draw do
 
     get  "reports", to: "reports#index", as: :reports
     post "reports/:id/resolve", to: "reports#resolve", as: :report_resolve
+
+    # Appeals contest a ban another operator imposed. The queue is read and
+    # decided here; the decision is a POST because it is final for the appeal.
+    get  "appeals",              to: "appeals#index",  as: :appeals
+    post "appeals/:id/decide",   to: "appeals#decide", as: :appeal_decide
 
     get "audit",  to: "audit#index",   as: :audit
     get "audit/export", to: "audit#export", as: :audit_export

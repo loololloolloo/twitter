@@ -1,0 +1,101 @@
+<div class="page-head">
+  <div>
+    <h1>Appeals</h1>
+    <p class="page-note">
+      Members contesting a ban. Deciding an appeal is a second look at a
+      decision another operator already took, so the operator who imposed the
+      sanction is not the one who decides it.
+    </p>
+  </div>
+</div>
+
+<nav class="state-tabs">
+  <% (Appeal::STATES + ["all"]).each do |state| %>
+    <a class="state-tab <%= 'active' if @state == state %>"
+       href="<%= admin_appeals_path(state: state) %>">
+      <%= state == "all" ? "All" : state.capitalize %>
+      <span class="state-count"><%= state == "all" ? @all_count : @counts[state] %></span>
+    </a>
+  <% end %>
+</nav>
+
+<% if @appeals.present? %>
+  <% @appeals.each do |appeal| %>
+    <article class="report-item">
+      <div class="report-main">
+        <div class="report-who">
+          <%= pic(appeal.user.avatar_path, 32) %>
+          <span class="report-subject">@<%= appeal.user.username %></span>
+          <span class="tag <%= appeal.pending? ? 'tag-info' : 'tag-quiet' %>">
+            <%= appeal.sanction_label %> appeal
+          </span>
+          <span class="report-when"><%= time_ago(appeal.created_at) %></span>
+        </div>
+
+        <p class="report-detail">
+          Filed by
+          <strong>@<%= appeal.user.username %></strong>
+          against the <%= appeal.sanction_label.downcase %>
+          <% if appeal.sanction_actor %>
+            issued by <strong>@<%= appeal.sanction_actor.username %></strong>
+          <% else %>
+            (sanctioning operator not recorded)
+          <% end %>.
+        </p>
+
+        <% if appeal.sanction_reason.present? %>
+          <p class="report-detail muted">Sanction reason: <%= appeal.sanction_reason %></p>
+        <% end %>
+
+        <blockquote class="report-quote"><%= appeal.body %></blockquote>
+      </div>
+
+      <div class="report-side">
+        <% if appeal.pending? %>
+          <% barred = appeal.barred_for?(current_user) %>
+          <% if barred %>
+            <%# The screen has to say why an operator is excluded, not just hide
+                the controls. A silent omission reads as a bug. %>
+            <div class="caution">
+              <p class="caution-text">You cannot decide this appeal</p>
+              <p class="caution-sub"><%= appeal.bar_reason(current_user) %></p>
+            </div>
+          <% elsif can?('appeals.decide') %>
+            <%= form_with url: admin_appeal_decide_path(appeal), method: :post, class: "stack" do %>
+              <label>Outcome
+                <select name="decision">
+                  <% Appeal::DECISIONS.each do |key, label| %>
+                    <option value="<%= key %>"><%= label %></option>
+                  <% end %>
+                </select>
+              </label>
+              <label>Rationale
+                <input type="text" name="note" placeholder="Why this outcome?">
+              </label>
+              <div class="action-row">
+                <button class="btn btn-primary" type="submit">Record decision</button>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="muted">You cannot decide appeals.</p>
+          <% end %>
+        <% else %>
+          <p>
+            <span class="pill <%= appeal.state == 'upheld' ? 'pill-bad' : 'pill-ok' %>">
+              <%= appeal.decision_label %>
+            </span>
+          </p>
+          <p class="muted">
+            by <%= appeal.decided_by ? "@#{appeal.decided_by.username}" : "system" %>
+            <%= time_ago(appeal.decided_at) %>
+          </p>
+          <% if appeal.decision_note.present? %>
+            <p class="report-detail"><%= appeal.decision_note %></p>
+          <% end %>
+        <% end %>
+      </div>
+    </article>
+  <% end %>
+<% else %>
+  <p class="muted">Nothing in this queue.</p>
+<% end %>

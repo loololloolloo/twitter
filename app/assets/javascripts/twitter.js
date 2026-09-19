@@ -75,6 +75,121 @@ $(function () {
   $(document).on('change', '[data-media-input]', function () {
     var chosen = this.files && this.files.length > 0;
     $(this).closest('form').find('[data-alt-wrap]').prop('hidden', !chosen).toggle(!!chosen);
+    // Picking a photo or video clears any GIF that was staged, since a post
+    // carries one attachment and leaving both set would silently drop one.
+    if (chosen) { clearGif($(this).closest('form')); }
+  });
+
+  // The GIF panel. Opening it is purely local: the link is resolved by the
+  // server on submit, so the panel never has to reach a third party and a
+  // pasted link that cannot be embedded is reported as a normal form error.
+  function clearGif($form) {
+    $form.find('[data-gif-url]').val('');
+    $form.find('[data-gif-url-hidden]').val('');
+    $form.find('[data-gif-file]').val('');
+    $form.find('[data-gif-note]').prop('hidden', true).text('');
+  }
+
+  $(document).on('click', '[data-gif-open]', function () {
+    var $panel = $(this).closest('form').find('[data-gif-panel]');
+    $panel.prop('hidden', !$panel.prop('hidden'));
+    if (!$panel.prop('hidden')) { $panel.find('[data-gif-url]').trigger('focus'); }
+  });
+
+  $(document).on('click', '[data-gif-close]', function () {
+    $(this).closest('[data-gif-panel]').prop('hidden', true);
+  });
+
+  // A link stages itself in the hidden field that is actually submitted.
+  // Staging it here rather than reading the text input on submit means the
+  // value that reaches the server is the one the reader last confirmed.
+  $(document).on('click', '[data-gif-use-link]', function () {
+    var $form = $(this).closest('form');
+    var value = $.trim($form.find('[data-gif-url]').val());
+    var $note = $form.find('[data-gif-note]');
+    if (!value) {
+      $note.prop('hidden', false).text('Paste a GIF link first.');
+      return;
+    }
+    $form.find('[data-gif-url-hidden]').val(value);
+    $form.find('[data-gif-file]').val('');
+    $note.prop('hidden', false).text('GIF link added. Post it with your Tweet.');
+  });
+
+  // Choosing a GIF file stages nothing: it submits as an ordinary upload, so
+  // the link field and its hidden value are cleared to avoid sending both.
+  $(document).on('change', '[data-gif-file]', function () {
+    var $form = $(this).closest('form');
+    var chosen = this.files && this.files.length > 0;
+    if (chosen) {
+      $form.find('[data-gif-url]').val('');
+      $form.find('[data-gif-url-hidden]').val('');
+      $form.find('[data-media-input]').val('');
+      $form.find('[data-gif-note]').prop('hidden', false).text('GIF file added.');
+    } else {
+      $form.find('[data-gif-note]').prop('hidden', true).text('');
+    }
+  });
+
+  // The poll builder. Opening the panel reveals the two starting choices; a
+  // choice already typed is kept while the panel is closed, so closing it by
+  // accident does not discard the draft.
+  $(document).on('click', '[data-poll-open]', function () {
+    var $panel = $(this).closest('form').find('[data-poll-panel]');
+    $panel.prop('hidden', !$panel.prop('hidden'));
+    if (!$panel.prop('hidden')) { $panel.find('.poll-input').first().trigger('focus'); }
+  });
+
+  $(document).on('click', '[data-poll-close]', function () {
+    $(this).closest('[data-poll-panel]').prop('hidden', true);
+  });
+
+  // "Add choice" reveals the next hidden choice, and disappears once all four
+  // are shown, since four is the maximum a poll can carry.
+  $(document).on('click', '[data-poll-add]', function () {
+    var $panel = $(this).closest('[data-poll-panel]');
+    var $hidden = $panel.find('[data-poll-choice][hidden]').first();
+    if (!$hidden.length) return;
+    $hidden.prop('hidden', false).removeAttr('hidden');
+    $hidden.find('.poll-input').trigger('focus');
+    if (!$panel.find('[data-poll-choice][hidden]').length) { $(this).prop('hidden', true); }
+  });
+
+  // The emoji picker inserts at the caret rather than at the end, which is
+  // what the client did: typing around emoji should not move the cursor to
+  // the end of the draft. The panel stays open so several can be added.
+  $(document).on('click', '[data-emoji-open]', function () {
+    var $panel = $(this).closest('form').find('[data-emoji-panel]');
+    $panel.prop('hidden', !$panel.prop('hidden'));
+  });
+
+  $(document).on('click', '[data-emoji-close]', function () {
+    $(this).closest('[data-emoji-panel]').prop('hidden', true);
+  });
+
+  $(document).on('click', '.emoji-item', function () {
+    var $form = $(this).closest('form');
+    var $box = $form.find('.tweet-box');
+    if (!$box.length) return;
+
+    var glyph = $(this).data('emoji');
+    var el = $box.get(0);
+    var start = typeof el.selectionStart === 'number' ? el.selectionStart : null;
+    var end = typeof el.selectionEnd === 'number' ? el.selectionEnd : null;
+
+    if (start === null) {
+      // No selection support: append, which is still better than dropping it.
+      el.value = el.value + glyph;
+    } else {
+      el.value = el.value.slice(0, start) + glyph + el.value.slice(end);
+      el.selectionStart = el.selectionEnd = start + glyph.length;
+    }
+
+    // The counter and the draft-length rules both read the value, so the same
+    // event the user typing would fire has to be fired here, or the counter
+    // goes stale and the Tweet button keeps the wrong enabled state.
+    $box.trigger('input');
+    el.focus();
   });
 
   // Copying a permalink. The link is read from the data attribute rather than

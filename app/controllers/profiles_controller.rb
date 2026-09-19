@@ -56,14 +56,14 @@ class ProfilesController < ApplicationController
     # account's own media and the right rail carries suggestions. Both are
     # loaded here rather than lazily so the page arrives complete.
     @photo_strip = Tweet.visible.readable_by(current_user).where(user_id: @user.id)
-                        .where.not(media_path: [ nil, "" ])
+                        .with_media
                         .recent.limit(3)
 
     @suggestions = profile_suggestions
 
     if @active == "media"
       @media = Tweet.visible.readable_by(current_user).where(user_id: @user.id)
-                     .where.not(media_path: [ nil, "" ])
+                     .with_media
                      .recent.limit(60)
     elsif @active == "likes"
       @tweets = Tweet.visible.readable_by(current_user)

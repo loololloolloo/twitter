@@ -66,18 +66,48 @@ class TimelinesController < ApplicationController
     render json: { count: 0, html: "", newest: nil, counts: {} }
   end
 
+  # The Explore landing screen carries five sections; a search carries five
+  # result tabs. They share one action because 2019 reached each by adding a
+  # parameter to the same screen, but each has its own set of names, and the
+  # landing sections are only reachable with no query.
+  EXPLORE_SECTIONS = %w[for-you trending news sports entertainment].freeze
+  EXPLORE_TABS = %w[top latest people photos videos].freeze
+
+  # Section headings and the tags each one gathers. 2019 filed trends into
+  # verticals; this build has no trend category table, so a section is the
+  # terms its own posts use. Matching is by tag or keyword against the stored
+  # text, which is enough to make News read as news and Sports as sports
+  # without inventing a categorised trend list the data cannot back.
+  EXPLORE_SECTION_TERMS = {
+    "news" => { "heading" => "News", "sub" => "Current events",
+                "terms" => %w[news breaking report update election politics government court] },
+    "sports" => { "heading" => "Sports", "sub" => "Sports talk",
+                  "terms" => %w[sports game match team win victory score goal league nba nfl mlb soccer football basketball] },
+    "entertainment" => { "heading" => "Entertainment", "sub" => "Entertainment",
+                         "terms" => %w[movie film music album song concert show series actor actress celebrity art] }
+  }.freeze
+
   def explore
     require_login! || return
 
     @query = params[:q].to_s.strip
     @trends = Tweet.top_trends
-    # The 2019 search screen had tabs: Top, Latest, People, Photos and Videos.
-    # `top` and `latest` differ in ordering rather than in what they match.
-    @tab = params[:tab].presence_in(%w[top latest people photos]) || "top"
+
+    # With a query the screen is a search and shows the result tabs. Without
+    # one it is the Explore landing screen and shows the section strip, so the
+    # two never mix: a query at a section name, or a landing view of "Photos",
+    # would be a tab the reader cannot reach any other way.
+    if @query.present?
+      @mode = "search"
+      @tab = params[:tab].presence_in(EXPLORE_TABS) || "top"
+    else
+      @mode = "landing"
+      @tab = params[:tab].presence_in(EXPLORE_SECTIONS) || "for-you"
+    end
 
     scope = Tweet.visible.readable_by(current_user).includes(:user, retweet_of: :user, quote_of: :user)
 
-    if @query.present?
+    if @mode == "search"
       # A leading # narrows to hashtags; an @ narrows to accounts. Both are
       # matched against the stored text, which is how the classic search worked.
       term = @query.delete_prefix("@").delete_prefix("#")
@@ -85,17 +115,12 @@ class TimelinesController < ApplicationController
       scope = scope.where("tweets.body LIKE ?", "%##{term}%") if @query.start_with?("#")
     end
 
-    @tweets =
-      case @tab
-      when "latest" then scope.recent.limit(60)
-      when "photos" then scope.where.not(media_path: [ nil, "" ]).recent.limit(60)
-      else
-        # "Top" ranks by engagement rather than recency, which is what the tab
-        # advertised: the posts people reacted to, not merely the newest.
-        scope.recent.limit(200).to_a
-             .sort_by { |t| -(t.like_count + t.favourite_count + t.retweet_count + t.reply_count) }
-             .first(60)
-      end
+    @tweets = @mode == "search" ? search_results(scope) : section_results(scope, @tab)
+
+    # The vertical sections carry a heading and a subtitle; For you and
+    # Trending do not, so the view can tell whether a section has its own
+    # framing to render.
+    @section = @mode == "landing" ? EXPLORE_SECTION_TERMS[@tab] : nil
 
     @people =
       if @query.present?
@@ -112,6 +137,55 @@ class TimelinesController < ApplicationController
   end
 
   private
+
+  # A search tab's posts. "Top" ranks by engagement rather than recency, which
+  # is what the tab advertised: the posts people reacted to, not the newest.
+  def search_results(scope)
+    case @tab
+    when "latest" then scope.recent.limit(60)
+    when "photos" then scope.with_media.recent.limit(60)
+    # Videos is its own tab in 2019, so it filters to posts whose attachment is
+    # a video rather than merely to posts that have some attachment.
+    when "videos" then scope.videos.recent.limit(60)
+    else
+      scope.recent.limit(200).to_a
+           .sort_by { |t| -(t.like_count + t.favourite_count + t.retweet_count + t.reply_count) }
+           .first(60)
+    end
+  end
+
+  # An Explore section's posts. "For you" is the personalised stream - the
+  # accounts the reader follows, falling back to the site-wide stream so a new
+  # account sees something rather than an empty section. "Trending" is the
+  # newest posts carrying any trend tag. The vertical sections match their own
+  # term list, and each falls back to the site-wide stream when nothing
+  # matches, so a section reads as a view of the site rather than as a dead end.
+  def section_results(scope, section)
+    case section
+    when "for-you"
+      following = current_user.following.select(:id)
+      personal = scope.where(user_id: following).recent.limit(60)
+      personal.to_a.presence || scope.recent.limit(60)
+    when "trending"
+      tags = @trends.map(&:first)
+      return scope.recent.limit(60) if tags.empty?
+
+      # Every trend tag must be matched as a literal hashtag, not as a bare
+      # word, so #rails does not also pick up "guardrails".
+      clauses = tags.map { "tweets.body LIKE ?" }
+      binds = tags.map { |tag| "%##{tag}%" }
+      matched = scope.where(clauses.join(" OR "), *binds).recent.limit(60)
+      matched.to_a.presence || scope.recent.limit(60)
+    else
+      terms = EXPLORE_SECTION_TERMS.fetch(section) { nil }
+      return scope.recent.limit(60) if terms.nil?
+
+      clauses = terms["terms"].flat_map { [ "tweets.body LIKE ?", "tweets.body LIKE ?" ] }
+      binds = terms["terms"].flat_map { |word| [ "%##{word}%", "%#{word}%" ] }
+      matched = scope.where(clauses.join(" OR "), *binds).recent.limit(60)
+      matched.to_a.presence || scope.recent.limit(60)
+    end
+  end
 
   # The home timeline. Original posts from everyone appear, which is what the
   # classic client did: the home page was the site-wide stream. A retweet,

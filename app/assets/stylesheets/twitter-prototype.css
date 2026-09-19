@@ -153,7 +153,8 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
 }
 .compose textarea:focus { border-color: var(--blue); }
 .compose-bar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; margin-top: 8px; }
-.media-btn { display: flex; align-items: center; cursor: pointer; margin-right: auto; }
+.compose-tools { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+.media-btn { display: flex; align-items: center; cursor: pointer; }
 .media-btn input { display: none; }
 .media-btn:hover .ico { opacity: 1; }
 .counter { color: var(--gray); font-size: 13px; font-weight: 700; }

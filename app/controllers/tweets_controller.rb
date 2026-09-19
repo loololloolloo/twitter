@@ -55,9 +55,33 @@ class TweetsController < ApplicationController
     body = params[:body].to_s.strip
     media = params[:media]
     has_media = media.present? && media.respond_to?(:original_filename) && media.original_filename.present?
+
+    # A GIF arrives either as a chosen file or as a pasted link. The file goes
+    # through the normal upload path; the link is resolved to an embeddable URL
+    # first, and only stored once it resolves, so a post never points at a link
+    # the renderer would have to fetch or guess at.
+    gif_file = params[:gif_file]
+    has_gif_file = gif_file.present? && gif_file.respond_to?(:original_filename) && gif_file.original_filename.present?
+    media = gif_file if !has_media && has_gif_file
+    has_media = has_media || has_gif_file
+
+    gif_url = nil
+    if params[:gif_url].present? && !has_media
+      gif_url = GifLink.resolve(params[:gif_url])
+      if gif_url.nil?
+        redirect_back fallback_location: home_path, alert: "That GIF link could not be used."
+        return
+      end
+    end
+
     quote_of_id = params[:quote_of_id].presence
 
-    if body.empty? && !has_media && quote_of_id.blank?
+    # A poll is built before the emptiness check so a poll-only post counts as
+    # content. The builder returns nil for a half-filled poll, which then falls
+    # back to the ordinary empty-post rule rather than saving a broken poll.
+    poll = Poll.build_for(nil, options: params.dig(:poll, :options), duration: params.dig(:poll, :duration))
+
+    if body.empty? && !has_media && gif_url.blank? && quote_of_id.blank? && poll.nil?
       redirect_back fallback_location: home_path, alert: "Your tweet was empty."
       return
     end
@@ -87,7 +111,8 @@ class TweetsController < ApplicationController
     media_path = Uploads.store(media, current_user.id)
 
     if has_media && media_path.nil?
-      redirect_back fallback_location: home_path, alert: "That image type is not supported."
+      redirect_back fallback_location: home_path,
+                    alert: "That file type is not supported. Attach an image (PNG, JPG, GIF or WebP) or a video (MP4 or WebM)."
       return
     end
 
@@ -97,8 +122,16 @@ class TweetsController < ApplicationController
       parent: parent,
       quote_of: quoted,
       media_path: media_path,
+      media_url: gif_url,
       alt_text: params[:alt_text].to_s.strip.first(1000).presence
     )
+
+    # The poll is attached after the post exists, because it carries the post's
+    # id. It was built before only to decide whether the post had any content.
+    if poll
+      poll.tweet = tweet
+      poll.save!
+    end
 
     if parent && parent.user_id != current_user.id
       Notification.create!(user: parent.user, actor: current_user, kind: "reply",

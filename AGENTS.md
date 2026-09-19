@@ -117,3 +117,11 @@ namespaced per worker there.
   sweeps both surfaces and fails if any view reintroduces `content_for :title`.
   The favicon files live in `public/clever-favicon*.png` and are linked
   directly rather than through the asset pipeline.
+- Icons are inlined from `app/assets/images/icons` and recoloured with
+  `fill: currentColor`, applied blanket-style to `.ico path/g/circle/rect` in
+  all three sheets. A stroked icon that should stay hollow (the GIF box) must
+  carry its own `style="fill:none"` on that element, because an inline style
+  beats every stylesheet no matter which design is loaded.
+- The composer's two media controls share a `.compose-tools` group which owns
+  the `margin-right: auto`. Do not move that gap onto `.media-btn`, or the
+  second control is pushed across to the Tweet button.

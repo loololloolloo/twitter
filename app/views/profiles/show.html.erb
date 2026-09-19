@@ -198,7 +198,18 @@
         <div class="media-rail">
           <% @media.each do |tweet| %>
             <a class="media-cell" href="<%= tweet_path(tweet) %>">
-              <img src="/uploads/<%= tweet.media_path %>" alt="<%= tweet.alt_text.to_s %>">
+              <% if tweet.video? %>
+                <%# A video in the grid shows its first frame with the play glyph
+                    over it, which is how the 2019 media grid distinguished the
+                    two. Loading the metadata rather than the file keeps a grid
+                    of videos cheap. %>
+                <video class="media-cell-video" preload="metadata"
+                       src="/uploads/<%= tweet.media_path %>"></video>
+                <span class="media-play" aria-label="Video"><%= icon('play') %></span>
+              <% else %>
+                <img src="<%= tweet.media_url.presence || "/uploads/#{tweet.media_path}" %>"
+                     alt="<%= tweet.alt_text.to_s %>" loading="lazy">
+              <% end %>
             </a>
           <% end %>
         </div>

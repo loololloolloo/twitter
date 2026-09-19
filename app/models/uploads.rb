@@ -7,6 +7,33 @@ module Uploads
   ROOT = Rails.root.join("public", "uploads")
   ALLOWED_IMAGE_EXT = %w[.png .jpg .jpeg .gif .webp].freeze
 
+  # 2019 shipped native video in the composer. The set is deliberately small:
+  # these are the containers a browser can play directly, so a stored video
+  # never needs transcoding to be viewable.
+  ALLOWED_VIDEO_EXT = %w[.mp4 .m4v .mov .webm].freeze
+
+  ALLOWED_EXT = (ALLOWED_IMAGE_EXT + ALLOWED_VIDEO_EXT).freeze
+
+  # Whether a stored path is a video, decided from its extension rather than
+  # from the upload's content type: the stored name is generated here, so the
+  # extension is the one trusted piece of metadata on disk.
+  def self.video?(relative)
+    relative.present? && ALLOWED_VIDEO_EXT.include?(File.extname(relative.to_s).downcase)
+  end
+
+  # The MIME type for a stored path, from the same extension map. The <source>
+  # element uses it so the browser does not have to guess a container, which it
+  # cannot do reliably for a file it has only just been handed.
+  CONTENT_TYPES = {
+    ".mp4" => "video/mp4", ".m4v" => "video/mp4", ".mov" => "video/quicktime",
+    ".webm" => "video/webm", ".png" => "image/png", ".jpg" => "image/jpeg",
+    ".jpeg" => "image/jpeg", ".gif" => "image/gif", ".webp" => "image/webp"
+  }.freeze
+
+  def self.content_type(relative)
+    CONTENT_TYPES[File.extname(relative.to_s).downcase] || "application/octet-stream"
+  end
+
   def self.store(file, user_id, scope: "media")
     return nil if file.blank? || !file.respond_to?(:original_filename)
 
@@ -14,7 +41,7 @@ module Uploads
     return nil if original.blank?
 
     ext = File.extname(original).downcase
-    return nil unless ALLOWED_IMAGE_EXT.include?(ext)
+    return nil unless ALLOWED_EXT.include?(ext)
 
     relative = "#{scope}/#{user_id}_#{SecureRandom.hex(8)}#{ext}"
     destination = ROOT.join(relative)

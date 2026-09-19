@@ -213,7 +213,8 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
 /* Placeholder prompt is a grey hint in the original, not full-strength text. */
 .compose textarea::placeholder { color: #8899a6; }
 .compose-bar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; margin-top: 8px; }
-.media-btn { display: flex; align-items: center; cursor: pointer; margin-right: auto; }
+.compose-tools { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+.media-btn { display: flex; align-items: center; cursor: pointer; }
 .media-btn input { display: none; }
 .media-btn:hover .ico { opacity: 1; }
 .counter { color: #8899a6; font-size: 13px; font-weight: 700; }

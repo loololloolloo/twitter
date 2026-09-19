@@ -2,17 +2,35 @@
   <section class="col-main">
     <div class="stream-head">
       <div class="stream-head-title">
-        <h1><% if @query.present? %>Results for &ldquo;<%= @query %>&rdquo;<% else %>Explore<% end %></h1>
+        <h1><% if @mode == "search" %>Results for &ldquo;<%= @query %>&rdquo;<% else %>Explore<% end %></h1>
+        <% if @mode == "landing" && @section %>
+          <span class="stream-head-sub"><%= @section["sub"] %></span>
+        <% end %>
       </div>
     </div>
 
-    <%# The 2019 search screen split its results across tabs. They are views of
-        the same query rather than separate pages, so each one is a link back to
-        this screen with a different `tab`. The tabs only appear once there is a
-        query, since there is nothing to narrow before that. %>
-    <% if @query.present? %>
+    <%# The Explore landing screen and a search share this action but not their
+        tabs. Landing shows the 2019 sections (For you, Trending, News, Sports,
+        Entertainment); a search shows the result tabs (Top, Latest, People,
+        Photos, Videos). Only one strip is ever rendered, so a reader never sees
+        a tab that belongs to the other screen. %>
+    <% if @mode == "landing" %>
       <ul class="profile-tabs">
-        <% { "top" => "Top", "latest" => "Latest", "people" => "People", "photos" => "Photos" }.each do |key, label| %>
+        <% { "for-you" => "For you", "trending" => "Trending", "news" => "News",
+             "sports" => "Sports", "entertainment" => "Entertainment" }.each do |key, label| %>
+          <li class="pt-item <%= 'is-active' if @tab == key %>">
+            <% if @tab == key %>
+              <span><%= label %></span>
+            <% else %>
+              <a href="<%= explore_path(tab: key) %>"><%= label %></a>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% elsif @query.present? %>
+      <ul class="profile-tabs">
+        <% { "top" => "Top", "latest" => "Latest", "people" => "People",
+             "photos" => "Photos", "videos" => "Videos" }.each do |key, label| %>
           <li class="pt-item <%= 'is-active' if @tab == key %>">
             <% if @tab == key %>
               <span><%= label %></span>
@@ -22,6 +40,34 @@
           </li>
         <% end %>
       </ul>
+    <% end %>
+
+    <% if @mode == "landing" %>
+      <%# A section leads with the trends it can offer, which is what 2019 did:
+          the landing sections were ways into the trend list rather than bare
+          timelines. For you and Trending show the whole list; a vertical shows
+          only the trends whose tag belongs to it. %>
+      <% section_trends = @tab == "for-you" || @tab == "trending" ? @trends : (@section ? @trends.select { |tag, _, _| @section["terms"].any? { |w| tag.include?(w) } } : []) %>
+      <% if section_trends.present? %>
+        <div class="section-card">
+          <h2><%= @tab == "trending" || @tab == "for-you" ? "Trends for you" : @section["heading"] %></h2>
+          <ul class="row-list">
+            <% section_trends.first(5).each do |tag, count, authors| %>
+              <li class="row-item">
+                <div class="row-body">
+                  <div class="row-title">
+                    <a class="row-name" href="<%= explore_path(q: "##{tag}") %>">#<%= tag %></a>
+                  </div>
+                  <span class="row-handle">
+                    <%= count %> <%= 'Tweet'.pluralize(count) %>
+                    &middot; <%= authors %> <%= 'account'.pluralize(authors) %>
+                  </span>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
     <% end %>
 
     <% if @query.present? && @people.present? && %w[top people].include?(@tab) %>

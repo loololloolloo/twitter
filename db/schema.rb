@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_20_130000) do
   create_table "audit_logs", force: :cascade do |t|
     t.string "action", null: false
     t.integer "actor_id"
@@ -150,6 +150,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_000002) do
     t.index ["key"], name: "index_permissions_on_key", unique: true
   end
 
+  create_table "poll_options", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "label", default: "", null: false
+    t.integer "poll_id", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["poll_id", "position"], name: "index_poll_options_on_poll_id_and_position"
+  end
+
+  create_table "poll_votes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "poll_id", null: false
+    t.integer "poll_option_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["poll_id", "user_id"], name: "index_poll_votes_on_poll_id_and_user_id", unique: true
+    t.index ["poll_option_id"], name: "index_poll_votes_on_poll_option_id"
+  end
+
+  create_table "polls", force: :cascade do |t|
+    t.datetime "closes_at"
+    t.datetime "created_at", null: false
+    t.integer "tweet_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["tweet_id"], name: "index_polls_on_tweet_id", unique: true
+  end
+
   create_table "profile_views", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "user_id", null: false
@@ -242,6 +269,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_000002) do
     t.boolean "is_deleted", default: false, null: false
     t.boolean "is_pinned", default: false, null: false
     t.string "media_path"
+    t.string "media_url"
     t.integer "parent_id"
     t.datetime "pinned_at"
     t.integer "quote_of_id"

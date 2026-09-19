@@ -42,13 +42,103 @@
       </div>
 
       <div class="compose-bar">
-        <label class="media-btn" title="Add a photo">
-          <%= icon('image') %>
-          <input type="file" name="media" accept="image/*" data-media-input>
-        </label>
+        <%# The 2019 toolbar led with media. Images and video go through the
+            file picker; GIF is its own control because a GIF commonly arrives
+            as a link to a Tenor or Giphy page rather than as a file, and the
+            client embedded it rather than making you download it first.
+            Both controls sit in one group so they stay together on the left;
+            the flexible gap belongs to the group rather than to either button,
+            or a second button would be pushed over beside Tweet. %>
+        <div class="compose-tools">
+          <label class="media-btn" title="Add photos or video">
+            <%= icon('image') %>
+            <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" data-media-input>
+          </label>
+          <button type="button" class="media-btn" title="Add a GIF" data-gif-open>
+            <%= icon('gif') %>
+          </button>
+          <%# Poll and emoji complete the 2019 toolbar, which read photo, GIF,
+              poll, emoji. Emoji took the slot the location button used to hold. %>
+          <button type="button" class="media-btn" title="Add a poll" data-poll-open>
+            <%= icon('chart-simple') %>
+          </button>
+          <button type="button" class="media-btn" title="Add an emoji" data-emoji-open>
+            <span class="emoji-glyph" aria-hidden="true">&#x1F600;</span>
+          </button>
+        </div>
         <span class="tweet-counter counter" data-counter-output><%= @max_len %></span>
         <button class="btn primary-btn tweet-btn" type="submit">Tweet</button>
       </div>
+
+      <%# The emoji picker. A short palette of the faces and symbols the 2019
+          picker opened with; choosing one inserts it at the caret rather than
+          replacing the draft, and the picker stays open so several can be
+          added in a row. %>
+      <div class="emoji-panel" data-emoji-panel hidden>
+        <div class="emoji-head">
+          <span>Emoji</span>
+          <button type="button" class="gif-close" data-emoji-close aria-label="Close"><%= icon('xmark') %></button>
+        </div>
+        <div class="emoji-grid">
+          <% %w[😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 😉 😍 😘 😗 😙 😚 😋 😜 😝 🤗 🤔 🤨 😐 😑 😶 🙄 😏 😣 😥 😮 🤐 😯 😪 😴 😌 😛 😕 🙁 😞 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 😨 😰 😥 😓 🤢 🤮 🤧 😷 🤒 🤕 🤠 😎 🤓 🧐 🤡 🥳 🥰 🤝 👍 👎 👏 🙌 🙏 💪 🔥 ✨ 🎉 💯 ❤️ 🧡 💛 💚 💙 💜 🖤].each do |glyph| %>
+            <button type="button" class="emoji-item" data-emoji="<%= glyph %>"><%= glyph %></button>
+          <% end %>
+        </div>
+      </div>
+
+      <%# The poll builder. Two choices are shown from the start because that is
+          the minimum a poll can have; Add choice reveals the remaining two, and
+          the control disappears once all four are in use. %>
+      <div class="poll-panel" data-poll-panel hidden>
+        <div class="gif-head">
+          <span>Add a poll</span>
+          <button type="button" class="gif-close" data-poll-close aria-label="Close"><%= icon('xmark') %></button>
+        </div>
+        <div class="poll-choices" data-poll-choices>
+          <% 4.times do |index| %>
+            <div class="poll-choice" <%= "hidden" if index >= 2 %> data-poll-choice>
+              <input type="text" name="poll[options][]" class="poll-input" autocomplete="off"
+                     maxlength="<%= Poll::MAX_LABEL %>" placeholder="Choice <%= index + 1 %>"
+                     aria-label="Poll choice <%= index + 1 %>">
+            </div>
+          <% end %>
+        </div>
+        <div class="poll-foot">
+          <button type="button" class="btn poll-add" data-poll-add>Add choice</button>
+          <label class="poll-duration">
+            Poll length
+            <select name="poll[duration]" aria-label="Poll length">
+              <% { "5m" => "5 minutes", "30m" => "30 minutes", "1h" => "1 hour",
+                   "1d" => "1 day", "3d" => "3 days", "1w" => "1 week" }.each do |key, label| %>
+                <option value="<%= key %>" <%= "selected" if key == "1d" %>><%= label %></option>
+              <% end %>
+            </select>
+          </label>
+          <button type="button" class="btn poll-remove" data-poll-close>Remove poll</button>
+        </div>
+        <p class="gif-note" data-poll-note hidden></p>
+      </div>
+
+      <%# The GIF panel. A pasted link is embedded directly; a chosen file is
+          uploaded like any other attachment. Both end in the same `media_path`,
+          so a posted GIF is an ordinary attachment wherever it came from. %>
+      <div class="gif-panel" data-gif-panel hidden>
+        <div class="gif-head">
+          <span>Add a GIF</span>
+          <button type="button" class="gif-close" data-gif-close aria-label="Close"><%= icon('xmark') %></button>
+        </div>
+        <input type="text" class="gif-url" data-gif-url autocomplete="off"
+               placeholder="Paste a GIF link (Tenor, Giphy, ...)" aria-label="GIF link">
+        <div class="gif-actions">
+          <button type="button" class="btn gif-use-link" data-gif-use-link>Use link</button>
+          <label class="gif-file">
+            <%= icon('image') %> Choose a GIF file
+            <input type="file" name="gif_file" accept="image/gif" data-gif-file>
+          </label>
+        </div>
+        <p class="gif-note" data-gif-note hidden></p>
+      </div>
+      <input type="hidden" name="gif_url" data-gif-url-hidden>
     </div>
   <% end %>
 </div>

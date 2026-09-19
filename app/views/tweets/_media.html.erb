@@ -1,0 +1,22 @@
+<%# One media attachment: either a file stored on disk (`media_path`) or an
+    embedded GIF from a link (`media_url`). The 2019 client played video inline
+    in the stream rather than opening it elsewhere, so a video gets a <video>
+    element with the browser's own controls; everything else is an <img>.
+    Deciding here means the stream, the permalink and a quoted post all render
+    an attachment the same way, and a video is never shown as a broken image.
+    `preload="metadata"` gives the element its first frame as a still without
+    pulling the whole file, and it does not autoplay: a timeline full of
+    self-starting video is not what 2019 shipped. %>
+<% url = attached.media_url.presence %>
+<% video = url.nil? && Uploads.video?(attached.media_path) %>
+<% src = url || "/uploads/#{attached.media_path}" %>
+<div class="tweet-media">
+  <% if video %>
+    <video class="tweet-video" controls preload="metadata">
+      <source src="<%= src %>" type="<%= Uploads.content_type(attached.media_path) %>">
+      Sorry, your browser cannot play this video.
+    </video>
+  <% else %>
+    <img src="<%= src %>" alt="<%= attached.alt_text.to_s %>" loading="lazy">
+  <% end %>
+</div>

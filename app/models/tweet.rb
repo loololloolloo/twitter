@@ -12,6 +12,9 @@ class Tweet < ApplicationRecord
   has_many :quotes, class_name: "Tweet", foreign_key: :quote_of_id, dependent: :destroy
   has_many :tweet_views, dependent: :destroy
   has_many :bookmarks, dependent: :destroy
+  # A post carries at most one poll, and it belongs to the post: deleting the
+  # post takes its choices and votes with it.
+  has_one  :poll, dependent: :destroy
 
   # Permanently banned accounts are filtered out of every timeline: their
   # profile withholds their information, so surfacing their posts elsewhere
@@ -33,6 +36,31 @@ class Tweet < ApplicationRecord
   # Posts that are neither retweets nor quotes: the "original posts" a profile's
   # default tab and the counts are built from.
   scope :originals, -> { where(retweet_of_id: nil, quote_of_id: nil) }
+
+  # Posts carrying an attachment of any kind. A post has media when it has
+  # either a stored file or an embedded link, and both count for the media
+  # tabs, so this is a scope rather than a `media_path` check at each site.
+  scope :with_media, -> { where.not(media_path: [ nil, "" ]).or(where.not(media_url: [ nil, "" ])) }
+
+  # Posts carrying a video file. The extension is the only signal available in
+  # SQL, so the pattern is built from the same list the uploader accepts and
+  # cannot drift from it. The list is a frozen constant of literal extensions,
+  # interpolated rather than bound: an array bind would be taken as a row value.
+  scope :videos, -> {
+    likes = Uploads::ALLOWED_VIDEO_EXT.map { |ext| "tweets.media_path LIKE '%#{ext}'" }.join(" OR ")
+    where(media_url: [ nil, "" ]).where("(#{likes})")
+  }
+
+  # Whether this post carries an attachment: a stored file or an embedded link.
+  def media_attached?
+    media_path.present? || media_url.present?
+  end
+
+  # Whether the attachment is a video, so a view can choose a player over an
+  # image without repeating the extension test.
+  def video?
+    media_url.blank? && Uploads.video?(media_path)
+  end
 
   # Removes the posts of accounts the viewer has blocked (either way) or muted,
   # and the posts of protected accounts the viewer does not follow. Applied to

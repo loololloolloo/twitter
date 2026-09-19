@@ -492,10 +492,19 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
   display: flex; align-items: center; gap: 12px; justify-content: flex-end;
   margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--xlight-gray);
 }
-.media-btn { display: flex; align-items: center; cursor: pointer; margin-right: auto; }
+/* The media controls form one left-aligned group. The `auto` gap lives here so
+   the group owns the free space; putting it on a `.media-btn` instead would
+   strand the second control over by the Tweet button. */
+.compose-tools { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+.media-btn { display: flex; align-items: center; cursor: pointer; }
 .media-btn input { display: none; }
 .media-btn .ico { width: 20px; height: 20px; color: var(--blue); opacity: 1; }
 .media-btn:hover .ico { opacity: .75; }
+/* The GIF control is a button rather than a label, so it needs the browser's
+   default button chrome cleared to sit beside the media icon. */
+button.media-btn {
+  background: none; border: 0; padding: 0; font: inherit; line-height: 0;
+}
 .counter { color: var(--gray); font-size: 14px; font-weight: 400; }
 .counter.over { color: var(--red); font-weight: 700; }
 /* Tweet button: the redesign's fully rounded filled pill, disabled until there
@@ -582,6 +591,16 @@ html[data-theme="dark"] .tweet:hover { background: rgba(255,255,255,.03); }
               word-wrap: break-word; white-space: pre-wrap; }
 .mention, .hashtag { color: var(--blue); }
 .tweet-media img { max-width: 100%; border-radius: 16px; border: 1px solid var(--xlight-gray); margin-bottom: 8px; }
+
+/* Video sits in the stream like a picture, with the browser's own controls
+   because 2019 played it inline. Capped so a landscape clip cannot push the
+   whole timeline off screen. */
+.tweet-media video,
+.tweet-video {
+  display: block; max-width: 100%; max-height: 510px; width: auto;
+  border-radius: 16px; border: 1px solid var(--xlight-gray); margin-bottom: 8px;
+  background: #000;
+}
 
 /* Engagement row. 2015 rendered these as small grey icons with the count
    beside them, colouring on hover. */
@@ -1270,7 +1289,9 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 }
 
 /* Icons are unfilled SVGs, so they pick up `color` from their container
-   instead of needing a hue-rotate filter to fake each palette entry. */
+   instead of needing a hue-rotate filter to fake each palette entry. The
+   `fill: currentColor` is a blanket default, so a stroked icon that wants a
+   hollow shape must set its own `fill:none` on that element. */
 .ico { color: var(--gray); }
 .ico path, .ico g, .ico circle, .ico rect { fill: currentColor; }
 .act:hover .ico { color: var(--blue); }
@@ -1486,8 +1507,18 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
   margin-top: 10px;
 }
-.media-cell { display: block; aspect-ratio: 1 / 1; overflow: hidden; background: var(--xlight-gray); }
+.media-cell { display: block; position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: var(--xlight-gray); }
 .media-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* A video cell shows its first frame plus a play badge, which is how the 2019
+   grid marked the two apart at a glance. */
+.media-cell-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-play {
+  position: absolute; left: 6px; bottom: 6px; width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .65); border-radius: 50%;
+}
+.media-play .ico { width: 12px; height: 12px; color: var(--white); opacity: 1; }
 
 /* ---------------- banned screen ---------------- */
 .banned-page {
@@ -2042,3 +2073,135 @@ html[data-theme="dark"] .quote-card:hover { background: rgba(255,255,255,.03); }
 }
 .activity-table th { font-weight: 400; color: var(--gray); }
 .activity-table td { text-align: right; font-weight: 700; color: var(--dark); }
+
+/* ---------------- GIF picker ---------------- */
+/* The 2019 GIF control opened a small panel beneath the composer rather than a
+   full dialog: a link is pasted or a file is chosen, and the panel closes. */
+.gif-panel {
+  margin-top: 10px; padding: 12px; border: 1px solid var(--xlight-gray);
+  border-radius: 16px; background: var(--card);
+}
+.gif-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px; font-size: 15px; font-weight: 800; color: var(--dark);
+}
+.gif-close {
+  display: flex; background: none; border: 0; padding: 2px; cursor: pointer; line-height: 0;
+}
+.gif-close .ico { width: 16px; height: 16px; color: var(--gray); opacity: 1; }
+.gif-close:hover .ico { color: var(--dark); }
+.gif-url {
+  width: 100%; box-sizing: border-box; padding: 9px 12px; font-size: 15px;
+  font-family: inherit; color: var(--dark);
+  border: 1px solid var(--xlight-gray); border-radius: 8px; background: var(--card);
+}
+.gif-url:focus { outline: none; border-color: var(--blue); }
+.gif-actions {
+  display: flex; align-items: center; gap: 12px; margin-top: 10px;
+  flex-wrap: wrap;
+}
+.gif-use-link {
+  padding: 7px 16px; font-size: 14px; font-weight: 700; color: var(--white);
+  background: var(--blue); border: 0; border-radius: 999px; cursor: pointer;
+}
+.gif-use-link:hover { background: #1a91da; }
+.gif-file {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  font-size: 14px; font-weight: 700; color: var(--blue);
+}
+.gif-file input { display: none; }
+.gif-file .ico { width: 16px; height: 16px; opacity: 1; }
+.gif-file:hover { text-decoration: underline; }
+.gif-note { margin: 8px 0 0; font-size: 13px; color: var(--gray); }
+
+/* The emoji picker. 2019 opened a compact grid beneath the composer; it stays
+   open so several can be inserted in a row. The face glyph is a character
+   rather than an icon, so it needs no recolouring and inherits the font. */
+.emoji-panel {
+  margin-top: 10px; padding: 12px; border: 1px solid var(--xlight-gray);
+  border-radius: 16px; background: var(--card);
+}
+.emoji-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px; font-size: 15px; font-weight: 800; color: var(--dark);
+}
+.emoji-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 2px; max-height: 216px; overflow-y: auto;
+}
+.emoji-item {
+  display: flex; align-items: center; justify-content: center;
+  height: 36px; padding: 0; font-size: 20px; line-height: 1;
+  background: none; border: 0; border-radius: 8px; cursor: pointer;
+}
+.emoji-item:hover { background: var(--bg); }
+/* The toolbar glyph is a face character, so it is sized to match the 20px
+   icons beside it rather than being an SVG. */
+.emoji-glyph { font-size: 18px; line-height: 1; }
+button.media-btn:hover .emoji-glyph { opacity: .75; }
+
+/* The poll builder. The choices are stacked inputs; two show at once because
+   two is the minimum a poll can carry. */
+.poll-panel {
+  margin-top: 10px; padding: 12px; border: 1px solid var(--xlight-gray);
+  border-radius: 16px; background: var(--card);
+}
+.poll-choices { display: flex; flex-direction: column; gap: 8px; }
+.poll-choice[hidden] { display: none; }
+.poll-input {
+  width: 100%; box-sizing: border-box; padding: 9px 12px; font-size: 15px;
+  font-family: inherit; color: var(--dark);
+  border: 1px solid var(--xlight-gray); border-radius: 8px; background: var(--card);
+}
+.poll-input:focus { outline: none; border-color: var(--blue); }
+.poll-foot {
+  display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap;
+}
+.poll-add {
+  padding: 7px 16px; font-size: 14px; font-weight: 700; color: var(--blue);
+  background: none; border: 1px solid var(--blue); border-radius: 999px; cursor: pointer;
+}
+.poll-add:hover { background: rgba(29,161,242,.1); }
+.poll-duration {
+  font-size: 13px; color: var(--gray); display: inline-flex;
+  align-items: center; gap: 6px;
+}
+.poll-duration select {
+  font-family: inherit; font-size: 13px; color: var(--dark);
+  padding: 5px 8px; border: 1px solid var(--xlight-gray);
+  border-radius: 8px; background: var(--card);
+}
+.poll-remove {
+  margin-left: auto; padding: 7px 14px; font-size: 14px; font-weight: 700;
+  color: var(--red); background: none; border: 0; cursor: pointer;
+}
+.poll-remove:hover { text-decoration: underline; }
+
+/* A poll on a posted tweet: the choices as result bars, or as buttons before
+   the reader has voted. */
+.poll { margin-top: 10px; }
+.poll-options { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.poll-choice-btn {
+  display: block; width: 100%; box-sizing: border-box; padding: 11px 14px;
+  font-family: inherit; font-size: 15px; font-weight: 400; color: var(--blue);
+  text-align: center; background: none; cursor: pointer;
+  border: 1px solid var(--blue); border-radius: 999px;
+}
+.poll-choice-btn:hover { background: rgba(29,161,242,.1); }
+.poll-result {
+  position: relative; display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; border-radius: 999px; overflow: hidden;
+  background: var(--bg);
+}
+.poll-bar {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: rgba(29,161,242,.18); border-radius: 999px;
+}
+.poll-label { position: relative; flex: 1 1 auto; min-width: 0; font-size: 15px; color: var(--dark); }
+.poll-share { position: relative; flex: 0 0 auto; font-size: 15px; font-weight: 700; color: var(--dark); }
+.poll-option.is-leading .poll-label,
+.poll-option.is-leading .poll-share { font-weight: 700; }
+.poll-meta {
+  display: flex; align-items: center; gap: 6px; margin-top: 8px;
+  font-size: 13px; color: var(--gray);
+}

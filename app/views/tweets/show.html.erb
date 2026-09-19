@@ -43,9 +43,17 @@
             <p class="tweet-text tweet-text-lead"><%= linkify(@tweet.body) %></p>
           <% end %>
 
-          <% if @tweet.media_path.present? %>
-            <div class="tweet-media permalink-media">
-              <img src="/uploads/<%= @tweet.media_path %>" alt="<%= @tweet.alt_text.to_s %>">
+          <% if @tweet.media_attached? %>
+            <div class="permalink-media">
+              <%= render "tweets/media", attached: @tweet %>
+            </div>
+          <% end %>
+
+          <%# The focused tweet carries its poll in the same place as the stream
+              does, above the action row. %>
+          <% if @tweet.poll %>
+            <div class="permalink-poll">
+              <%= render "tweets/poll", poll: @tweet.poll, tweet: @tweet %>
             </div>
           <% end %>
 
@@ -59,8 +67,8 @@
                 <span class="quote-handle">@<%= @tweet.quote_of.user.username %></span>
               </div>
               <p class="quote-text"><%= linkify(@tweet.quote_of.body) %></p>
-              <% if @tweet.quote_of.media_path.present? %>
-                <div class="tweet-media"><img src="/uploads/<%= @tweet.quote_of.media_path %>" alt="<%= @tweet.quote_of.alt_text.to_s %>"></div>
+              <% if @tweet.quote_of.media_attached? %>
+                <%= render "tweets/media", attached: @tweet.quote_of %>
               <% end %>
             </a>
           <% end %>

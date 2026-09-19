@@ -60,10 +60,15 @@
         <p class="tweet-text"><%= linkify(show_body.body) %></p>
       <% end %>
 
-      <% if show_body.media_path.present? %>
-        <div class="tweet-media">
-          <img src="/uploads/<%= show_body.media_path %>" alt="<%= show_body.alt_text.to_s %>">
-        </div>
+      <% if show_body.media_attached? %>
+        <%= render "tweets/media", attached: show_body %>
+      <% end %>
+
+      <%# A poll sits beneath the body and above the action bar, which is where
+          the web client placed it. It is rendered from the post whose body is
+          shown, so a retweeted poll is the original's poll. %>
+      <% if show_body.poll %>
+        <%= render "tweets/poll", poll: show_body.poll, tweet: show_body %>
       <% end %>
 
       <%# A quoted post is rendered as a card beneath the quoting body, which is
@@ -82,8 +87,8 @@
           <% if quoted.body.present? %>
             <p class="quote-text"><%= linkify(quoted.body) %></p>
           <% end %>
-          <% if quoted.media_path.present? %>
-            <div class="tweet-media"><img src="/uploads/<%= quoted.media_path %>" alt="<%= quoted.alt_text.to_s %>"></div>
+          <% if quoted.media_attached? %>
+            <%= render "tweets/media", attached: quoted %>
           <% end %>
         </a>
       <% end %>

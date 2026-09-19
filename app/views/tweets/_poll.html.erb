@@ -1,0 +1,46 @@
+<%# A poll on a post. 2019 showed the choices as a stack of rows; before the
+    reader votes they are buttons that cast a vote, and afterwards they are
+    result bars carrying the share. The result is shown when the reader has
+    voted or the poll has closed, which is the rule the client used: an open
+    poll the reader has not voted in must not reveal how others voted.
+    `poll` is the poll; `tweet` is the post it belongs to (for the fallback
+    redirect). %>
+<% poll = local_assigns[:poll] %>
+<% tweet = local_assigns[:tweet] %>
+<% votes = poll.total_votes %>
+<% voted = signed_in? && poll.voted_by?(current_user) %>
+<% show_results = voted || poll.closed? %>
+<% shares = show_results ? poll.shares : {} %>
+<% winner = poll.winning_option_id %>
+<div class="poll" data-poll="<%= poll.id %>">
+  <ul class="poll-options">
+    <% poll.poll_options.each do |option| %>
+      <% share = shares[option.id].to_i %>
+      <% is_winner = show_results && votes.positive? && option.id == winner %>
+      <li class="poll-option <%= 'is-leading' if is_winner %>">
+        <% if show_results %>
+          <%# The bar is behind the label as a width percentage rather than a
+              separate element, so a long label still fits and is not clipped. %>
+          <div class="poll-result" role="img" aria-label="<%= share %>%">
+            <span class="poll-bar" style="width: <%= share %>%"></span>
+            <span class="poll-label"><%= option.label %></span>
+            <span class="poll-share"><%= share %>%</span>
+          </div>
+        <% else %>
+          <%= form_with url: poll_option_vote_path(option), method: :post, class: "inline" do %>
+            <button class="poll-choice-btn" type="submit"><%= option.label %></button>
+          <% end %>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+  <div class="poll-meta">
+    <span class="poll-total">
+      <%= count_label(votes) %> <%= 'vote'.pluralize(votes) %>
+    </span>
+    <span class="poll-dot">&middot;</span>
+    <span class="poll-when">
+      <% if poll.closed? %>Final results<% else %><%= poll_time_left(poll) %><% end %>
+    </span>
+  </div>
+</div>

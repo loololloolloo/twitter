@@ -109,6 +109,15 @@ module ApplicationHelper
     value == value.round ? value.round.to_s : format("%.1f", value)
   end
 
+  # How long a poll still has to run, as "3 days left". The wording is the
+  # 2019 one; the count itself comes from the same rounding as a ban expiry so
+  # a poll set for a week does not read as "6 days" a second later.
+  def poll_time_left(poll)
+    return "Final results" if poll.closed?
+
+    "#{humanize_until(poll.closes_at)} left"
+  end
+
   def time_ago(value)
     return "" if value.blank?
 

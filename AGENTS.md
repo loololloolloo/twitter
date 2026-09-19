@@ -103,6 +103,12 @@ namespaced per worker there.
   and the user page renders only the read-only card when it fails. Rank is not
   sufficient on its own — an admin outranks a plain member, so a rank-only role
   guard would let them demote the owner to `user` and take the instance.
+- Internal staff notes (`StaffNote`) are private context, distinct from the
+  single overwriting `users.tag_note`. They append, carry author and date, and
+  change nothing about the account. Both the list and the form are gated on
+  `users.notes` — do not gate only the form, or an operator holding `users.view`
+  alone can read every note. Deleting a note is real, so the audit detail has
+  to carry the text or the trail records a deletion with nothing to read.
 - The browser tab says "Clever | Login" on every page and the favicon is the
   Clever mark, so the site does not announce itself in the tab strip, a
   bookmark list or a saved-session list. No view may set a page title of its

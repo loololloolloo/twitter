@@ -56,6 +56,15 @@ module ApplicationHelper
     tag.img(src: asset_path("icons/twitter-bird.svg"), alt: "Twitter")
   end
 
+  # The console's own mark: the bird inlined rather than used as an <img> so the
+  # bar can draw it in whatever colour the chrome needs.
+  def bird_mark
+    path = Rails.root.join("app", "assets", "images", "icons", "twitter-bird.svg")
+    return "".html_safe unless path.exist?
+
+    path.read.gsub(/<!--.*?-->/m, "").sub("<svg ", '<svg class="brand-bird" ').html_safe
+  end
+
   # "Joined March 2012" rather than a bare timestamp.
   def joined(value)
     return value if value.blank?

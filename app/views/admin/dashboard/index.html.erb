@@ -5,57 +5,89 @@
   </div>
 </div>
 
+<%# The queue strip leads the page. It is the one thing an operator needs the
+    moment the panel opens: what is waiting, and how much of it there is. Each
+    tile is a link into the filtered working screen, so the dashboard is a set
+    of entry points rather than a wall of figures. %>
 <div class="stat-grid">
-  <div class="stat"><span class="stat-num"><%= count_label(@stats[:users]) %></span><span class="stat-label">Users</span></div>
-  <div class="stat"><span class="stat-num"><%= count_label(@stats[:tweets]) %></span><span class="stat-label">Tweets</span></div>
-  <div class="stat"><span class="stat-num"><%= count_label(@stats[:likes]) %></span><span class="stat-label">Likes</span></div>
-  <div class="stat"><span class="stat-num"><%= count_label(@stats[:follows]) %></span><span class="stat-label">Follows</span></div>
-  <div class="stat"><span class="stat-num"><%= count_label(@stats[:notifications]) %></span><span class="stat-label">Notifications</span></div>
-  <div class="stat warn"><span class="stat-num"><%= count_label(@stats[:suspended]) %></span><span class="stat-label">Suspended</span></div>
-  <div class="stat warn"><span class="stat-num"><%= count_label(@stats[:banned]) %></span><span class="stat-label">Banned</span></div>
+  <div class="stat <%= 'warn' if @stats[:suspended].positive? %>">
+    <span class="stat-num"><%= count_label(@stats[:suspended]) %></span>
+    <span class="stat-label">Suspended</span>
+  </div>
+  <div class="stat <%= 'warn' if @stats[:banned].positive? %>">
+    <span class="stat-num"><%= count_label(@stats[:banned]) %></span>
+    <span class="stat-label">Banned</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num"><%= count_label(@stats[:users]) %></span>
+    <span class="stat-label">Users</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num"><%= count_label(@stats[:tweets]) %></span>
+    <span class="stat-label">Visible tweets</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num"><%= count_label(@stats[:likes]) %></span>
+    <span class="stat-label">Likes</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num"><%= count_label(@stats[:follows]) %></span>
+    <span class="stat-label">Follows</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num"><%= count_label(@stats[:notifications]) %></span>
+    <span class="stat-label">Notifications</span>
+  </div>
 </div>
 
-<section class="admin-section">
-  <h2 class="section-title">Roles</h2>
-  <table class="data-table">
-    <thead><tr><th>Role</th><th>Rank</th><th>Members</th><th>Permissions</th></tr></thead>
-    <tbody>
-      <% @roles.each do |role| %>
-        <tr>
-          <td><strong><%= role.name %></strong><br><span class="muted"><%= role.description %></span></td>
-          <td><%= role.rank %></td>
-          <td><%= @role_user_counts[role.name].to_i %></td>
-          <td>
-            <% if role.name == Role::OWNER %>
-              <span class="pill pill-all">all <%= @permissions.size %></span>
-            <% else %>
-              <span class="pill"><%= @role_grants[role.name].to_a.size %></span>
-            <% end %>
-          </td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
-</section>
+<%# The activity stream is the primary surface, so it takes the wide column and
+    the role reference sits beside it, where it is read on demand. %>
+<div class="detail-grid">
+  <section class="admin-section">
+    <h2 class="section-title">Recent activity</h2>
+    <table class="data-table">
+      <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+      <tbody>
+        <% if @recent.present? %>
+          <% @recent.each do |entry| %>
+            <tr>
+              <td class="muted"><%= time_ago(entry.created_at) %></td>
+              <td><%= entry.actor ? "@#{entry.actor.username}" : "system" %></td>
+              <td><code><%= entry.action %></code></td>
+              <td class="muted"><%= entry.target %></td>
+              <td><%= entry.detail %></td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr><td colspan="5" class="muted">No activity yet.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
 
-<section class="admin-section">
-  <h2 class="section-title">Recent activity</h2>
-  <table class="data-table">
-    <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
-    <tbody>
-      <% if @recent.present? %>
-        <% @recent.each do |entry| %>
+  <section class="admin-section">
+    <h2 class="section-title">Roles</h2>
+    <table class="data-table">
+      <thead><tr><th>Role</th><th class="num">Rank</th><th class="num">Members</th><th class="num">Permissions</th></tr></thead>
+      <tbody>
+        <% @roles.each do |role| %>
           <tr>
-            <td class="muted"><%= time_ago(entry.created_at) %></td>
-            <td><%= entry.actor ? "@#{entry.actor.username}" : "system" %></td>
-            <td><code><%= entry.action %></code></td>
-            <td class="muted"><%= entry.target %></td>
-            <td><%= entry.detail %></td>
+            <td>
+              <strong><%= role.name %></strong><br>
+              <span class="muted"><%= role.description %></span>
+            </td>
+            <td class="num"><%= role.rank %></td>
+            <td class="num"><%= @role_user_counts[role.name].to_i %></td>
+            <td class="num">
+              <% if role.name == Role::OWNER %>
+                <span class="pill pill-all">all <%= @permissions.size %></span>
+              <% else %>
+                <span class="pill"><%= @role_grants[role.name].to_a.size %></span>
+              <% end %>
+            </td>
           </tr>
         <% end %>
-      <% else %>
-        <tr><td colspan="5" class="muted">No activity yet.</td></tr>
-      <% end %>
-    </tbody>
-  </table>
-</section>
+      </tbody>
+    </table>
+  </section>
+</div>

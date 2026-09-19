@@ -1,0 +1,66 @@
+<div class="page-head">
+  <div>
+    <h1>Sessions</h1>
+    <p class="page-note">
+      Every signed-in browser on the site. A hijacked account usually shows up
+      here first, as a token the owner does not recognise.
+    </p>
+  </div>
+</div>
+
+<form class="admin-filter" action="<%= admin_sessions_path %>" method="get">
+  <input type="hidden" name="state" value="<%= @only_active ? 'active' : 'all' %>">
+  <input type="text" name="q" value="<%= @search %>"
+         placeholder="Search by handle, email or token" autocomplete="off">
+  <select name="state">
+    <option value="active" <%= 'selected' if @only_active %>>Active only</option>
+    <option value="all" <%= 'selected' unless @only_active %>>All sessions</option>
+  </select>
+  <button class="btn btn-primary" type="submit">Filter</button>
+</form>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Token</th><th>Account</th><th>Role</th>
+      <th>Expires</th><th>State</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% if @sessions.present? %>
+      <% @sessions.each do |session_row| %>
+        <tr class="<%= 'row-suspended' if session_row.expires_at <= Time.current %>">
+          <td><code><%= session_row.token.first(16) %>&hellip;</code></td>
+          <td>
+            <a href="<%= admin_user_path(session_row.user) %>">@<%= session_row.user.username %></a>
+            <br><span class="muted">user #<%= session_row.user.id %></span>
+          </td>
+          <td><%= session_row.user.role.name %></td>
+          <td><%= session_row.expires_at.strftime('%d %b %Y %H:%M') %></td>
+          <td>
+            <% if session_row.expires_at > Time.current %>
+              <span class="pill pill-ok">active</span>
+            <% else %>
+              <span class="pill pill-bad">expired</span>
+            <% end %>
+          </td>
+          <td>
+            <div class="action-row">
+              <%= button_to "End session", admin_session_path(session_row), method: :delete,
+                            class: "btn btn-mini btn-danger",
+                            form_class: "inline",
+                            data: { confirm: "End this session for @#{session_row.user.username}?" } %>
+              <%= button_to "End all for @#{session_row.user.username}",
+                            admin_session_revoke_user_path(session_row.user), method: :post,
+                            class: "btn btn-mini",
+                            form_class: "inline",
+                            data: { confirm: "End every session for @#{session_row.user.username}?" } %>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    <% else %>
+      <tr><td colspan="6" class="muted">No sessions matched.</td></tr>
+    <% end %>
+  </tbody>
+</table>

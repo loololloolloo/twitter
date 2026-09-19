@@ -5,6 +5,7 @@ class AdminController < ApplicationController
   before_action :require_login!
   before_action :require_admin_panel!
   before_action :load_open_report_count
+  before_action :load_toolbar_counts
 
   layout "admin"
 
@@ -18,6 +19,14 @@ class AdminController < ApplicationController
     return unless can?("reports.view")
 
     @open_reports_nav = Report.open.count
+  end
+
+  # The toolbar tabs carry their own live counts. Each is gated on the
+  # permission that lets the operator open the tab, so nobody is shown a number
+  # for a queue they cannot reach.
+  def load_toolbar_counts
+    @escalation_count = User.where(requires_review: true).count if can?("escalations.view")
+    @active_session_count = Session.active.count if can?("sessions.view")
   end
 
   def require_admin_panel!

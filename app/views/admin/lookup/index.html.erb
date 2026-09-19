@@ -1,0 +1,155 @@
+<div class="page-head">
+  <div>
+    <h1>Lookup</h1>
+    <p class="page-note">
+      Resolve a concrete identifier to the record it names. Search the accounts
+      list by name; use this when you already have an id, an address or a token.
+    </p>
+  </div>
+</div>
+
+<form class="admin-filter" action="<%= admin_lookup_path %>" method="get">
+  <select name="source">
+    <% Admin::LookupController::SOURCES.each do |key, label| %>
+      <option value="<%= key %>" <%= 'selected' if @source == key %>><%= label %></option>
+    <% end %>
+  </select>
+  <input type="text" name="q" value="<%= @query %>"
+         placeholder="Paste an id, @handle, email address or session token"
+         autocomplete="off" autofocus>
+  <button class="btn btn-primary" type="submit">Look up</button>
+</form>
+
+<% if @query.present? %>
+  <% if @result %>
+    <%# An exact hit on an id or token is the strongest answer available, so it
+        is shown first and on its own rather than buried in a result list. %>
+    <h2 class="section-title">Exact match</h2>
+    <div class="lookup-hit">
+      <span class="lookup-hit-kind">exact</span>
+      <div class="lookup-hit-body">
+        <% case @source %>
+        <% when "users" %>
+          <%= pic(@result.avatar_path, 48) %>
+          <div>
+            <p class="lookup-hit-title">
+              @<%= @result.username %>
+              <span class="tag tag-quiet">user #<%= @result.id %></span>
+            </p>
+            <p class="lookup-hit-meta">
+              <%= @result.display_name %> &middot; <%= @result.email %> &middot;
+              <%= @result.role.name %> &middot; joined <%= @result.created_at.strftime('%d %b %Y') %>
+            </p>
+          </div>
+        <% when "tweets" %>
+          <div>
+            <p class="lookup-hit-title">
+              Post <code>#<%= @result.id %></code>
+              <span class="tag tag-quiet">@<%= @result.user.username %></span>
+            </p>
+            <p class="lookup-hit-meta"><%= truncate(@result.body.to_s, length: 160) %></p>
+          </div>
+        <% when "lists" %>
+          <div>
+            <p class="lookup-hit-title">
+              <%= @result.name %>
+              <span class="tag tag-quiet">list #<%= @result.id %></span>
+              <span class="tag <%= @result.is_private ? 'tag-limit' : 'tag-quiet' %>">
+                <%= @result.is_private ? 'private' : 'public' %>
+              </span>
+            </p>
+            <p class="lookup-hit-meta">
+              Owned by @<%= @result.user.username %> &middot; <%= @result.member_count %> member(s)
+            </p>
+          </div>
+        <% when "sessions" %>
+          <div>
+            <p class="lookup-hit-title">
+              Session <code><%= @result.token.first(12) %>&hellip;</code>
+              <span class="tag tag-quiet">@<%= @result.user.username %></span>
+              <span class="tag <%= @result.expires_at > Time.current ? 'tag-info' : 'tag-alert' %>">
+                <%= @result.expires_at > Time.current ? 'active' : 'expired' %>
+              </span>
+            </p>
+            <p class="lookup-hit-meta">
+              User #<%= @result.user.id %> &middot; expires <%= @result.expires_at.strftime('%d %b %Y %H:%M') %>
+            </p>
+          </div>
+        <% end %>
+      </div>
+      <% if @source == "users" %>
+        <a class="btn btn-primary" href="<%= admin_user_path(@result) %>">Open account</a>
+      <% elsif @source == "tweets" %>
+        <a class="btn" href="<%= tweet_path(@result) %>">Open post</a>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @matches.any? %>
+    <h2 class="section-title"><%= @result ? "Other matches" : "Matches" %></h2>
+    <table class="data-table">
+      <% case @source %>
+      <% when "users" %>
+        <thead><tr><th class="id">ID</th><th>Account</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% @matches.each do |user| %>
+            <tr>
+              <td class="id"><%= user.id %></td>
+              <td><strong>@<%= user.username %></strong><br><span class="muted"><%= user.email %></span></td>
+              <td><%= user.role.name %></td>
+              <td>
+                <% if user.is_banned %><span class="pill pill-warn">banned</span>
+                <% elsif user.is_suspended %><span class="pill pill-warn">suspended</span>
+                <% else %><span class="pill">active</span><% end %>
+              </td>
+              <td><a class="btn btn-mini" href="<%= admin_user_path(user) %>">Open</a></td>
+            </tr>
+          <% end %>
+        </tbody>
+      <% when "tweets" %>
+        <thead><tr><th class="id">ID</th><th>Author</th><th>Body</th><th>When</th><th></th></tr></thead>
+        <tbody>
+          <% @matches.each do |tweet| %>
+            <tr>
+              <td class="id"><%= tweet.id %></td>
+              <td>@<%= tweet.user.username %></td>
+              <td><%= truncate(tweet.body.to_s, length: 80) %></td>
+              <td class="muted"><%= time_ago(tweet.created_at) %></td>
+              <td><a class="btn btn-mini" href="<%= tweet_path(tweet) %>">Open</a></td>
+            </tr>
+          <% end %>
+        </tbody>
+      <% when "lists" %>
+        <thead><tr><th class="id">ID</th><th>Name</th><th>Owner</th><th>Visibility</th><th class="num">Members</th></tr></thead>
+        <tbody>
+          <% @matches.each do |list| %>
+            <tr>
+              <td class="id"><%= list.id %></td>
+              <td><%= list.name %></td>
+              <td>@<%= list.user.username %></td>
+              <td><span class="pill"><%= list.is_private ? 'private' : 'public' %></span></td>
+              <td class="num"><%= list.member_count %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      <% when "sessions" %>
+        <thead><tr><th>Token</th><th>Account</th><th>Expires</th><th></th></tr></thead>
+        <tbody>
+          <% @matches.each do |session_row| %>
+            <tr>
+              <td><code><%= session_row.token.first(16) %>&hellip;</code></td>
+              <td>@<%= session_row.user.username %></td>
+              <td class="muted"><%= session_row.expires_at.strftime('%d %b %Y %H:%M') %></td>
+              <td>
+                <%= button_to "End", admin_session_path(session_row), method: :delete,
+                              class: "btn btn-mini btn-danger" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      <% end %>
+    </table>
+  <% elsif @result.nil? %>
+    <p class="muted">Nothing matched &ldquo;<%= @query %>&rdquo; in <%= Admin::LookupController::SOURCES[@source] %>.</p>
+  <% end %>
+<% end %>

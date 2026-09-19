@@ -7,7 +7,10 @@
     panel does not read "Admin". The favicon is set to match. %>
 <title>Clever | Login</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<%= stylesheet_link_tag "twitter" %>
+<%# The panel ships its own stylesheet rather than the consumer client's, so
+    dropping the timeline's look is structural: its rules are not loaded here
+    at all and cannot leak into the console. %>
+<%= stylesheet_link_tag "admin-ops" %>
 <link rel="icon" type="image/png" sizes="32x32" href="/clever-favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/clever-favicon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/clever-favicon-180.png">
@@ -15,102 +18,137 @@
 </head>
 <body class="admin-body">
 
-<%# The panel keeps its global bar for cross-cutting destinations, and the rail
-    below it carries the section navigation. Both are kept deliberate: the bar is
-    where "Back to site" and the panel's own tabs live, the rail is where the
-    working areas live. %>
+<%# The blue workspace bar. The mark identifies the system, the section links
+    run across the middle, and the operator sits on the right. %>
 <header class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="<%= admin_root_path %>" title="Admin / <%= @site_name %>"><%= bird %></a>
+    <a class="brand" href="<%= admin_root_path %>" aria-label="Operations console">
+      <%= bird_mark %>
+    </a>
+
+    <%# The toolbar's tabs are the tools an operator reaches for while working,
+        not the places they navigate to. The rail owns "where am I"; this row
+        owns "what do I do with this". The two lists are kept deliberately
+        disjoint so neither is a copy of the other. %>
     <nav class="topnav">
-      <a href="<%= admin_root_path %>" class="<%= 'active' if controller_name == 'dashboard' %>">Dashboard</a>
-      <% if can?('users.view') %><a href="<%= admin_users_path %>" class="<%= 'active' if controller_name == 'users' %>">Users</a><% end %>
-      <% if can?('reports.view') %>
-        <a href="<%= admin_reports_path %>" class="<%= 'active' if controller_name == 'reports' %>">
-          Reports<% if defined?(@open_reports_nav) && @open_reports_nav.to_i.positive? %><span class="nav-count"><%= @open_reports_nav %></span><% end %>
+      <% if can?('lookup.run') %>
+        <a href="<%= admin_lookup_path %>" class="<%= 'active' if controller_name == 'lookup' %>">Lookup</a>
+      <% end %>
+      <% if can?('escalations.view') %>
+        <a href="<%= admin_escalations_path %>" class="<%= 'active' if controller_name == 'escalations' %>">
+          Escalations<% if @escalation_count.to_i.positive? %><span class="nav-count"><%= @escalation_count %></span><% end %>
         </a>
       <% end %>
-      <% if can?('users.permissions') %><a href="<%= admin_permissions_path %>" class="<%= 'active' if controller_name == 'permissions' %>">Roles</a><% end %>
-      <% if can?('tweets.view') %><a href="<%= admin_tweets_path %>" class="<%= 'active' if controller_name == 'tweets' %>">Tweets</a><% end %>
-      <% if can?('audit.view') %><a href="<%= admin_audit_path %>" class="<%= 'active' if controller_name == 'audit' %>">Audit log</a><% end %>
-      <% if can?('admin.access') %><a href="<%= admin_insights_path %>" class="<%= 'active' if controller_name == 'insights' %>">Insights</a><% end %>
-      <% if can?('maintenance.run') %><a href="<%= admin_tools_path %>" class="<%= 'active' if controller_name == 'tools' %>">Tools</a><% end %>
-      <% if can?('settings.edit') %><a href="<%= admin_settings_path %>" class="<%= 'active' if controller_name == 'settings' %>">Settings</a><% end %>
+      <% if can?('sessions.view') %>
+        <a href="<%= admin_sessions_path %>" class="<%= 'active' if controller_name == 'sessions' %>">
+          Sessions<% if @active_session_count.to_i.positive? %><span class="nav-count"><%= count_label(@active_session_count) %></span><% end %>
+        </a>
+      <% end %>
+      <% if can?('relations.view') %>
+        <a href="<%= admin_relations_path %>" class="<%= 'active' if controller_name == 'relations' %>">Relations</a>
+      <% end %>
+      <% if can?('lists.view') %>
+        <a href="<%= admin_lists_path %>" class="<%= 'active' if controller_name == 'lists' %>">Lists</a>
+      <% end %>
     </nav>
+
     <div class="topbar-right">
-      <%= link_to "Back to site", home_path, class: "account-link" %>
+      <a class="topbar-link" href="<%= home_path %>">Back to site</a>
+      <span class="operator-chip">
+        <%= pic(current_user.avatar_path, 24) %>
+        <span class="operator-chip-name">@<%= current_user.username %></span>
+        <span class="role-chip"><%= current_user.role.name %></span>
+      </span>
     </div>
   </div>
 </header>
 
 <div class="admin-shell">
   <aside class="admin-rail">
-      <%# The rail is not a second copy of the top bar. The section links live up
-          there alone; what the rail carries is the operator's own card, a live
-          at-a-glance count of the queues they can act on, and a handful of quick
-          actions that are shortcuts rather than destinations. %>
-      <section class="operator-card">
-        <div class="operator-identity">
-          <%= pic(current_user.avatar_path, 48) %>
-          <div class="operator-names">
-            <span class="operator-name"><%= current_user.display_name %></span>
-            <span class="operator-handle">@<%= current_user.username %></span>
-          </div>
-        </div>
+    <%# The rail is the working navigation. Its groups lead with the queues an
+        operator works through, then the reference surfaces, then the controls.
+        Each row carries the live count for its queue where there is one, so the
+        rail answers "what needs attention" without opening anything. %>
+    <nav class="rail-nav">
+      <div class="rail-group">
+        <h3 class="rail-group-title">Queues</h3>
+        <a href="<%= admin_users_path %>" class="<%= 'is-active' if controller_name == 'users' %>">
+          <%= icon('users') %><span class="rail-label">Accounts</span>
+          <span class="rail-group-count"><%= count_label(User.count) %></span>
+        </a>
+        <% if can?('users.view') %>
+          <a href="<%= admin_users_path(status: 'suspended') %>">
+            <%= icon('ban') %><span class="rail-label">Suspended</span>
+            <span class="rail-group-count"><%= count_label(User.where(is_suspended: true).count) %></span>
+          </a>
+          <a href="<%= admin_users_path(status: 'banned') %>">
+            <%= icon('lock') %><span class="rail-label">Banned</span>
+            <span class="rail-group-count"><%= count_label(User.where(is_banned: true).count) %></span>
+          </a>
+        <% end %>
+        <% if can?('reports.view') %>
+          <a href="<%= admin_reports_path(state: 'open') %>" class="<%= 'is-active' if controller_name == 'reports' %>">
+            <%= icon('flag') %><span class="rail-label">Reports</span>
+            <span class="rail-group-count"><%= count_label(Report.open.count) %></span>
+          </a>
+        <% end %>
+        <% if can?('tweets.view') %>
+          <a href="<%= admin_tweets_path %>" class="<%= 'is-active' if controller_name == 'tweets' %>">
+            <%= icon('comment') %><span class="rail-label">Posts</span>
+            <span class="rail-group-count"><%= count_label(Tweet.count) %></span>
+          </a>
+        <% end %>
+      </div>
 
-        <dl class="operator-facts">
-          <div class="operator-fact">
-            <dt>Role</dt>
-            <dd><span class="pill pill-role"><%= current_user.role.name %></span></dd>
-          </div>
-          <div class="operator-fact">
-            <dt>Account</dt>
-            <dd>
-              <% if current_user.owner? %><span class="pill pill-ok">owner</span><% end %>
-              <span class="muted">since <%= joined(current_user.created_at) %></span>
-            </dd>
-          </div>
-        </dl>
+      <div class="rail-group">
+        <h3 class="rail-group-title">Reference</h3>
+        <% if can?('audit.view') %>
+          <a href="<%= admin_audit_path %>" class="<%= 'is-active' if controller_name == 'audit' %>">
+            <%= icon('clock') %><span class="rail-label">Audit log</span>
+          </a>
+        <% end %>
+        <% if can?('admin.access') %>
+          <a href="<%= admin_insights_path %>" class="<%= 'is-active' if controller_name == 'insights' %>">
+            <%= icon('chart-simple') %><span class="rail-label">Insights</span>
+          </a>
+        <% end %>
+        <% if can?('users.permissions') %>
+          <a href="<%= admin_permissions_path %>" class="<%= 'is-active' if controller_name == 'permissions' %>">
+            <%= icon('sliders') %><span class="rail-label">Roles</span>
+          </a>
+        <% end %>
+      </div>
 
-        <a class="btn operator-profile" href="<%= profile_path(current_user.username) %>">View profile</a>
-      </section>
+      <div class="rail-group">
+        <h3 class="rail-group-title">Controls</h3>
+        <% if can?('maintenance.run') %>
+          <a href="<%= admin_tools_path %>" class="<%= 'is-active' if controller_name == 'tools' %>">
+            <%= icon('wrench') %><span class="rail-label">Tools</span>
+          </a>
+        <% end %>
+        <% if can?('settings.edit') %>
+          <a href="<%= admin_settings_path %>" class="<%= 'is-active' if controller_name == 'settings' %>">
+            <%= icon('gear') %><span class="rail-label">Settings</span>
+          </a>
+        <% end %>
+        <% if can?('backup.export') %>
+          <a href="<%= admin_backup_path %>">
+            <%= icon('bookmark-solid') %><span class="rail-label">Export backup</span>
+          </a>
+        <% end %>
+      </div>
+    </nav>
 
-      <%# Live counts. Each is gated on the permission that lets the operator do
-          something about it, so nobody is shown a queue they cannot open. %>
-      <section class="rail-block">
-        <h3 class="rail-heading">At a glance</h3>
-        <ul class="rail-stats">
-          <% if can?('users.view') %>
-            <li><a href="<%= admin_users_path %>"><strong><%= count_label(User.count) %></strong> accounts</a></li>
-            <li><a href="<%= admin_users_path(status: 'suspended') %>"><strong><%= count_label(User.where(is_suspended: true).count) %></strong> suspended</a></li>
-          <% end %>
-          <% if can?('reports.view') %>
-            <li>
-              <a href="<%= admin_reports_path(state: 'open') %>">
-                <strong><%= count_label(Report.open.count) %></strong> open reports
-              </a>
-            </li>
-          <% end %>
-          <% if can?('tweets.view') %>
-            <li><a href="<%= admin_tweets_path %>"><strong><%= count_label(Tweet.count) %></strong> posts</a></li>
-          <% end %>
-        </ul>
-      </section>
-
-      <%# Shortcuts, not destinations. Each jumps straight to the working screen
-          for the thing an operator most often needs to do next. %>
-      <% if can?('users.view') || can?('reports.view') || can?('maintenance.run') %>
-        <section class="rail-block">
-          <h3 class="rail-heading">Quick actions</h3>
-          <div class="rail-actions-list">
-            <% if can?('users.view') %><a href="<%= admin_users_path(status: 'banned') %>">Review banned accounts</a><% end %>
-            <% if can?('reports.resolve') %><a href="<%= admin_reports_path(state: 'open') %>">Work the report queue</a><% end %>
-            <% if can?('tweets.view') %><a href="<%= admin_tweets_path %>">Moderate recent posts</a><% end %>
-            <% if can?('maintenance.run') %><a href="<%= admin_tools_path(tab: 'content') %>">Bulk content cleanups</a><% end %>
-            <% if can?('backup.export') %><a href="<%= admin_backup_path %>">Export a backup</a><% end %>
-          </div>
-        </section>
-      <% end %>
+    <%# The operator, pinned to the foot of the rail: who this session is
+        acting as, and how to get back to the public site. %>
+    <div class="rail-operator">
+      <%= pic(current_user.avatar_path, 40) %>
+      <div class="rail-operator-names">
+        <span class="rail-operator-name"><%= current_user.display_name %></span>
+        <span class="rail-operator-handle">@<%= current_user.username %></span>
+      </div>
+      <span class="rail-operator-role pill pill-role"><%= current_user.role.name %></span>
+    </div>
   </aside>
 
   <main class="admin-main">

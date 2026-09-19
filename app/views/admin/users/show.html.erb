@@ -1,54 +1,62 @@
 <%= review_caution(@user) %>
 
-<div class="admin-user-head">
-  <div class="admin-user-id">
-    <%= pic(@user.avatar_path, 48) %>
-    <div class="admin-user-names">
-      <h1 class="admin-user-handle">@<%= @user.username %></h1>
-      <p class="admin-user-real">
+<%# The record header. It is the account's identity and its standing, sized to
+    be read at a glance: who it is, what it is, and the one number that decides
+    whether the controls below are live. %>
+<section class="record-head">
+  <div class="record-id">
+    <%= pic(@user.avatar_path, 64) %>
+    <div class="record-names">
+      <h1 class="record-handle">@<%= @user.username %></h1>
+      <p class="record-real">
         <%= @user.display_name %>
         <% if @user.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
       </p>
+      <div class="tag-row">
+        <span class="tag tag-quiet">user #<%= @user.id %></span>
+        <span class="tag <%= @user.is_banned || @user.is_suspended ? 'tag-alert' : 'tag-quiet' %>">
+          <%= @user.is_banned ? 'banned' : (@user.is_suspended ? 'suspended' : 'active') %>
+        </span>
+        <span class="tag tag-quiet"><%= @user.role.name %></span>
+        <% if @user.is_verified %><span class="tag tag-info">verified</span><% end %>
+        <%= account_tag_chips(@user) %>
+        <% if @open_reports.positive? %>
+          <span class="tag tag-alert"><%= @open_reports %> open report<%= 's' if @open_reports != 1 %></span>
+        <% end %>
+      </div>
     </div>
   </div>
 
-  <div class="tag-row">
-    <span class="tag tag-quiet">user #<%= @user.id %></span>
-    <span class="tag <%= @user.is_banned || @user.is_suspended ? 'tag-alert' : 'tag-quiet' %>">
-      <%= @user.is_banned ? 'banned' : (@user.is_suspended ? 'suspended' : 'active') %>
-    </span>
-    <span class="tag tag-quiet"><%= @user.role.name %></span>
-    <% if @user.is_verified %><span class="tag tag-info">verified</span><% end %>
-    <%= account_tag_chips(@user) %>
-    <% if @open_reports.positive? %>
-      <span class="tag tag-alert"><%= @open_reports %> open report<%= 's' if @open_reports != 1 %></span>
-    <% end %>
+  <div class="record-facts">
+    <span class="record-fact"><span class="record-fact-label">Email</span>
+      <strong><%= @user.email.presence || 'none' %></strong></span>
+    <span class="record-fact"><span class="record-fact-label">Joined</span>
+      <strong><%= @user.created_at.strftime('%d %b %Y') %></strong></span>
+    <span class="record-fact"><span class="record-fact-label">Last login</span>
+      <strong><%= @user.last_login_at ? time_ago(@user.last_login_at) : 'never' %></strong></span>
+    <span class="record-fact"><span class="record-fact-label">Followers</span>
+      <strong><%= count_label(@user.follower_count) %></strong></span>
+    <span class="record-fact"><span class="record-fact-label">Posts</span>
+      <strong><%= @user.tweet_count %></strong></span>
+    <span class="record-fact"><span class="record-fact-label">Permissions</span>
+      <strong><%= @held.size %> / <%= @permissions.size %></strong></span>
   </div>
 
-  <p class="admin-user-meta">
-    <span>Email <strong><%= @user.email.presence || 'none' %></strong></span>
-    <span>Joined <strong><%= @user.created_at.strftime('%d %b %Y') %></strong></span>
-    <span>Last login <strong><%= @user.last_login_at ? time_ago(@user.last_login_at) : 'never' %></strong></span>
-    <span>Followers <strong><%= count_label(@user.follower_count) %></strong></span>
-    <span>Tweets <strong><%= @user.tweet_count %></strong></span>
-    <span>Permission set <strong><%= @held.size %> / <%= @permissions.size %></strong></span>
-  </p>
-
-  <p class="admin-user-links">
+  <p class="record-links">
     <a class="btn btn-mini" href="<%= profile_path(@user.username) %>">View public profile</a>
     <% if may_manage?(@user) && can?('users.impersonate') && @user.id != current_user.id && outranks?(@user) %>
       <%= form_with url: admin_user_impersonate_path(@user), method: :post, class: "inline" do %>
         <button class="btn btn-mini" type="submit">Sign in as @<%= @user.username %></button>
       <% end %>
     <% end %>
-    <a class="btn btn-mini" href="<%= admin_users_path %>">Back to users</a>
+    <a class="btn btn-mini" href="<%= admin_users_path %>">Back to accounts</a>
     <% if @open_reports.positive? && can?('reports.view') %>
       <a class="btn btn-mini btn-danger" href="<%= admin_reports_path(state: 'open') %>">
         <%= @open_reports %> open report<%= 's' if @open_reports != 1 %>
       </a>
     <% end %>
   </p>
-</div>
+</section>
 
 <%# Everything below this point writes to the account. When the viewer cannot
     manage it - which is the case for every account but the owner looking at
@@ -56,44 +64,8 @@
     no ban, suspend, role, verify or delete controls. What is left is the plain
     read-only card, so there is nothing on the page to alter the account with. %>
 <% if may_manage?(@user) %>
-<section class="admin-section">
-  <h2 class="section-title">Account tags</h2>
-  <p class="section-note">
-    Visibility limits and escalation flags. None of these remove the account;
-    they record how it should be treated. Every change is written to the audit
-    trail.
-  </p>
 
-  <% if can?('users.tags') %>
-    <%= form_with url: admin_user_tags_path(@user), method: :post do %>
-      <div class="stack">
-        <div class="tag-editor">
-          <% User::ACCOUNT_TAGS.each do |column, label| %>
-            <% on = @user.public_send(column) %>
-            <label class="tag-toggle <%= 'on' if on %>">
-              <input type="checkbox" name="<%= column %>" value="1" <%= 'checked' if on %>>
-              <%= label %>
-            </label>
-          <% end %>
-        </div>
-
-        <label>Note
-          <input type="text" name="tag_note" value="<%= @user.tag_note %>"
-                 placeholder="Why these tags? (shown to other operators)">
-        </label>
-
-        <button class="btn btn-primary" type="submit">Save tags</button>
-      </div>
-    <% end %>
-  <% else %>
-    <div class="stack">
-      <p>Your role cannot change account tags.</p>
-      <p><%= account_tag_chips(@user) %></p>
-      <p class="muted"><%= @user.tag_note.presence || 'No note.' %></p>
-    </div>
-  <% end %>
-</section>
-
+<h2 class="group-title">Identity &amp; access</h2>
 <div class="detail-grid">
   <div class="panel">
     <h3 class="panel-title">Account state</h3>
@@ -157,6 +129,54 @@
   </div>
 
   <div class="panel">
+    <h3 class="panel-title">Profile picture</h3>
+    <p><%= pic(@user.avatar_path, 48) %></p>
+    <p class="muted"><%= @user.avatar_path.present? ? 'Has a picture.' : 'Using the default.' %></p>
+  </div>
+</div>
+
+<h2 class="group-title">Visibility &amp; escalation</h2>
+<section class="admin-section">
+  <h2 class="section-title">Account tags</h2>
+  <p class="section-note">
+    Visibility limits and escalation flags. None of these remove the account;
+    they record how it should be treated. Every change is written to the audit
+    trail.
+  </p>
+
+  <% if can?('users.tags') %>
+    <%= form_with url: admin_user_tags_path(@user), method: :post do %>
+      <div class="stack">
+        <div class="tag-editor">
+          <% User::ACCOUNT_TAGS.each do |column, label| %>
+            <% on = @user.public_send(column) %>
+            <label class="tag-toggle <%= 'on' if on %>">
+              <input type="checkbox" name="<%= column %>" value="1" <%= 'checked' if on %>>
+              <%= label %>
+            </label>
+          <% end %>
+        </div>
+
+        <label>Note
+          <input type="text" name="tag_note" value="<%= @user.tag_note %>"
+                 placeholder="Why these tags? (shown to other operators)">
+        </label>
+
+        <button class="btn btn-primary" type="submit">Save tags</button>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="stack">
+      <p>Your role cannot change account tags.</p>
+      <p><%= account_tag_chips(@user) %></p>
+      <p class="muted"><%= @user.tag_note.presence || 'No note.' %></p>
+    </div>
+  <% end %>
+</section>
+
+<h2 class="group-title">Moderation</h2>
+<div class="detail-grid">
+  <div class="panel">
     <h3 class="panel-title">Ban</h3>
     <% if @user.is_banned %>
       <p><strong>Reason:</strong> <%= @user.ban_reason.presence || 'none given' %></p>
@@ -192,12 +212,6 @@
         <% end %>
       <% end %>
     <% end %>
-  </div>
-
-  <div class="panel">
-    <h3 class="panel-title">Profile picture</h3>
-    <p><%= pic(@user.avatar_path, 48) %></p>
-    <p class="muted"><%= @user.avatar_path.present? ? 'Has a picture.' : 'Using the default.' %></p>
   </div>
 
   <div class="panel">
@@ -242,61 +256,68 @@
   </div>
 </div>
 
-<h2 class="section-title">Permissions from role</h2>
+<h2 class="group-title">Access</h2>
+<h3 class="section-title">Permissions from role</h3>
 <div class="perm-chips">
   <% @permissions.each do |permission| %>
     <span class="chip <%= @held.include?(permission.key) ? 'chip-on' : 'chip-off' %>"><%= permission.key %></span>
   <% end %>
 </div>
 
-<h2 class="section-title">Recent tweets</h2>
-<table class="data-table">
-  <thead><tr><th>ID</th><th>Body</th><th>When</th><th></th></tr></thead>
-  <tbody>
-    <% if @tweets.present? %>
-      <% @tweets.each do |tweet| %>
-        <tr>
-          <td class="muted"><%= tweet.id %></td>
-          <td><%= tweet.body.presence || '(media)' %></td>
-          <td class="muted"><%= time_ago(tweet.created_at) %></td>
-          <td>
-            <% if can?('tweets.delete') %>
-              <%= form_with url: admin_tweet_path(tweet), method: :delete do %>
-                <button class="btn btn-mini btn-danger" type="submit">Delete</button>
+<h2 class="group-title">Activity</h2>
+<h3 class="section-title">Recent posts</h3>
+<section class="admin-section">
+  <table class="data-table">
+    <thead><tr><th class="id">ID</th><th>Body</th><th>When</th><th></th></tr></thead>
+    <tbody>
+      <% if @tweets.present? %>
+        <% @tweets.each do |tweet| %>
+          <tr>
+            <td class="id"><%= tweet.id %></td>
+            <td><%= tweet.body.presence || '(media)' %></td>
+            <td class="muted"><%= time_ago(tweet.created_at) %></td>
+            <td>
+              <% if can?('tweets.delete') %>
+                <%= form_with url: admin_tweet_path(tweet), method: :delete, class: "inline" do %>
+                  <button class="btn btn-mini btn-danger" type="submit">Delete</button>
+                <% end %>
               <% end %>
-            <% end %>
-          </td>
-        </tr>
+            </td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr><td colspan="4" class="muted">No posts.</td></tr>
       <% end %>
-    <% else %>
-      <tr><td colspan="4" class="muted">No tweets.</td></tr>
-    <% end %>
-  </tbody>
-</table>
+    </tbody>
+  </table>
+</section>
 
-<h2 class="section-title">Audit trail for this user</h2>
-<table class="data-table">
-  <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead>
-  <tbody>
-    <% if @log.present? %>
-      <% @log.each do |entry| %>
-        <tr>
-          <td class="muted"><%= time_ago(entry.created_at) %></td>
-          <td><%= entry.actor ? "@#{entry.actor.username}" : "system" %></td>
-          <td><code><%= entry.action %></code></td>
-          <td><%= entry.detail %></td>
-        </tr>
+<h3 class="section-title">Audit trail for this account</h3>
+<section class="admin-section">
+  <table class="data-table">
+    <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead>
+    <tbody>
+      <% if @log.present? %>
+        <% @log.each do |entry| %>
+          <tr>
+            <td class="muted"><%= time_ago(entry.created_at) %></td>
+            <td><%= entry.actor ? "@#{entry.actor.username}" : "system" %></td>
+            <td><code><%= entry.action %></code></td>
+            <td><%= entry.detail %></td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr><td colspan="4" class="muted">No entries.</td></tr>
       <% end %>
-    <% else %>
-      <tr><td colspan="4" class="muted">No entries.</td></tr>
-    <% end %>
-  </tbody>
-</table>
+    </tbody>
+  </table>
+</section>
 
 <% else %>
 <%# The read-only card. It is the same account facts the editable screen shows,
     with none of the controls: an operator who cannot manage this account still
     sees who it is, what it is, and how it is doing, and nothing more. %>
+<h2 class="group-title">Identity &amp; access</h2>
 <div class="detail-grid">
   <div class="panel">
     <h3 class="panel-title">Account state</h3>
@@ -309,7 +330,7 @@
     <p>Verified: <% if @user.is_verified %><span class="pill">yes</span><% else %><span class="pill">no</span><% end %></p>
     <p>Last login: <span class="muted"><%= @user.last_login_at.presence || 'never' %></span></p>
     <p>Followers: <strong><%= count_label(@user.follower_count) %></strong></p>
-    <p>Tweets: <strong><%= @user.tweet_count %></strong></p>
+    <p>Posts: <strong><%= @user.tweet_count %></strong></p>
   </div>
 
   <div class="panel">

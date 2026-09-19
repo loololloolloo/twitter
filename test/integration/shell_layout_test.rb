@@ -64,9 +64,9 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, 'class="admin-rail"'
     assert_includes response.body, 'class="admin-shell"'
-    # The sidebar is filled with live counts and shortcuts, not a second copy of
-    # the top bar's section links.
-    assert_includes response.body, 'class="rail-block"'
+    # The sidebar is a sectioned navigation column, not a second copy of the
+    # toolbar's working tools.
+    assert_includes response.body, 'class="rail-group"'
     assert_no_match(/class="admin-nav"/, response.body)
   end
 

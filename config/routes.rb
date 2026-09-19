@@ -152,6 +152,22 @@ Rails.application.routes.draw do
     # confirmation and destroys nothing.
     get "insights", to: "insights#index", as: :insights
 
+    # The toolbar's own working surfaces. These are deliberately not the same
+    # thing as the rail's queues: the rail says what is waiting, the toolbar
+    # says what can be resolved once something specific is in hand.
+    get  "lookup",  to: "lookup#index", as: :lookup
+
+    get  "escalations", to: "escalations#index", as: :escalations
+
+    get    "sessions",           to: "sessions#index",           as: :sessions
+    delete "sessions/:id",       to: "sessions#destroy",         as: :session
+    post   "sessions/user/:id",  to: "sessions#destroy_for_user", as: :session_revoke_user
+
+    get "relations", to: "relations#index", as: :relations
+
+    get   "lists",      to: "lists#index",  as: :lists
+    patch "lists/:id",  to: "lists#update", as: :list
+
     # Maintenance. Every destructive action is a POST so it cannot be reached
     # by following a link, and each is confirmed and audited by the controller.
     get  "tools",                   to: "tools#show",              as: :tools

@@ -7,12 +7,12 @@
 </form>
 
 <table class="data-table">
-  <thead><tr><th>ID</th><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+  <thead><tr><th class="id">ID</th><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
   <tbody>
     <% if @entries.present? %>
       <% @entries.each do |entry| %>
         <tr>
-          <td class="muted"><%= entry.id %></td>
+          <td class="id"><%= entry.id %></td>
           <td class="muted"><%= time_ago(entry.created_at) %></td>
           <td><%= entry.actor ? "@#{entry.actor.username}" : "system" %></td>
           <td><code><%= entry.action %></code></td>

@@ -65,11 +65,6 @@
           <a href="<%= users_path %>" class="side-more-item <%= 'is-active' if controller_name == 'people' %>">
             <%= icon('users') %><span>People</span>
           </a>
-          <% if can?('admin.access') %>
-            <a href="<%= admin_root_path %>" class="side-more-item">
-              <%= icon('shield-halved') %><span>Admin panel</span>
-            </a>
-          <% end %>
           <a href="<%= settings_path %>" class="side-more-item <%= 'is-active' if controller_name == 'settings' %>">
             <%= icon('gear') %><span>Settings and privacy</span>
           </a>

@@ -16,13 +16,13 @@
 
 <table class="data-table">
   <thead>
-    <tr><th>ID</th><th>Author</th><th>Body</th><th>Likes</th><th>Replies</th><th>When</th><th></th></tr>
+    <tr><th class="id">ID</th><th>Author</th><th>Body</th><th class="num">Likes</th><th class="num">Replies</th><th>When</th><th></th></tr>
   </thead>
   <tbody>
     <% if @tweets.present? %>
       <% @tweets.each do |tweet| %>
         <tr class="<%= 'row-suspended' if tweet.is_deleted %>">
-          <td class="muted"><%= tweet.id %></td>
+          <td class="id"><%= tweet.id %></td>
           <td>
             <a href="<%= profile_path(tweet.user.username) %>">@<%= tweet.user.username %></a>
             <% if tweet.user.reach_limited? %>
@@ -34,8 +34,8 @@
             <%= tweet.body.presence || '(media)' %>
             <% if tweet.is_deleted %><span class="tag tag-alert">deleted</span><% end %>
           </td>
-          <td><%= tweet.like_count %></td>
-          <td><%= tweet.reply_count %></td>
+          <td class="num"><%= tweet.like_count %></td>
+          <td class="num"><%= tweet.reply_count %></td>
           <td class="muted"><%= time_ago(tweet.created_at) %></td>
           <td>
             <a class="btn btn-mini" href="<%= tweet_path(tweet) %>">View</a>

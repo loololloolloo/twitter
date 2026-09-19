@@ -13,6 +13,12 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin/tweets
     /admin/audit
     /admin/insights
+    /admin/tools
+    /admin/lookup
+    /admin/escalations
+    /admin/sessions
+    /admin/relations
+    /admin/lists
   ].freeze
 
   test "every admin page renders for the owner" do
@@ -67,10 +73,18 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     get admin_tweets_path
     assert_response :success
 
-    # Not granted: audit, backup, settings, permissions
-    [ admin_audit_path, admin_settings_path, admin_permissions_path ].each do |path|
+    # Not granted: audit, backup, settings, permissions, sessions
+    [ admin_audit_path, admin_settings_path, admin_permissions_path,
+      admin_sessions_path, admin_relations_path, admin_lists_path ].each do |path|
       get path
       assert_redirected_to admin_root_path, "#{path} should be refused for a moderator"
+    end
+
+    # Granted to a moderator: the lookup and escalation surfaces, which are the
+    # read-only tools a front-line reviewer needs.
+    [ admin_lookup_path, admin_escalations_path ].each do |path|
+      get path
+      assert_response :success, "#{path} should be reachable for a moderator"
     end
   end
 

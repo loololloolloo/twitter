@@ -1,0 +1,53 @@
+<div class="page-head">
+  <div>
+    <h1>Lists</h1>
+    <p class="page-note">
+      Member lists across the site. A list is otherwise only visible to its
+      owner, so an abusive name or a very large curation is only findable here.
+    </p>
+  </div>
+</div>
+
+<form class="admin-filter" action="<%= admin_lists_path %>" method="get">
+  <input type="text" name="q" value="<%= @search %>"
+         placeholder="Search name, description or owner" autocomplete="off">
+  <select name="visibility">
+    <option value="">Any visibility</option>
+    <option value="public" <%= 'selected' if @visibility == 'public' %>>Public</option>
+    <option value="private" <%= 'selected' if @visibility == 'private' %>>Private</option>
+  </select>
+  <button class="btn btn-primary" type="submit">Filter</button>
+</form>
+
+<table class="data-table">
+  <thead>
+    <tr><th class="id">ID</th><th>List</th><th>Owner</th><th class="num">Members</th><th>Visibility</th><th></th></tr>
+  </thead>
+  <tbody>
+    <% if @lists.present? %>
+      <% @lists.each do |list| %>
+        <tr>
+          <td class="id"><%= list.id %></td>
+          <td>
+            <strong><%= list.name %></strong>
+            <% if list.description.present? %><br><span class="muted"><%= list.description %></span><% end %>
+          </td>
+          <td><a href="<%= admin_user_path(list.user) %>">@<%= list.user.username %></a></td>
+          <td class="num"><%= @member_counts[list.id].to_i %></td>
+          <td>
+            <% if list.is_private %><span class="pill">private</span>
+            <% else %><span class="pill pill-ok">public</span><% end %>
+          </td>
+          <td>
+            <%= button_to(list.is_private ? "Make public" : "Make private",
+                          admin_list_path(list), method: :patch,
+                          params: { is_private: list.is_private ? "0" : "1" },
+                          class: "btn btn-mini") %>
+          </td>
+        </tr>
+      <% end %>
+    <% else %>
+      <tr><td colspan="6" class="muted">No lists matched.</td></tr>
+    <% end %>
+  </tbody>
+</table>

@@ -1,0 +1,99 @@
+<div class="page-head">
+  <div>
+    <h1>Escalations</h1>
+    <p class="page-note">
+      Accounts that are handled differently from the rest. Kept out of the
+      ordinary accounts list so they are reviewed as a group.
+    </p>
+  </div>
+</div>
+
+<nav class="admin-tabs">
+  <a href="<%= admin_escalations_path(tab: 'review') %>"
+     class="admin-tab <%= 'is-active' if @tab == 'review' %>">
+    Consult before acting <span class="state-count"><%= @review.size %></span>
+  </a>
+  <a href="<%= admin_escalations_path(tab: 'limits') %>"
+     class="admin-tab <%= 'is-active' if @tab == 'limits' %>">
+    Visibility limits <span class="state-count"><%= @limits.size %></span>
+  </a>
+</nav>
+
+<% if @tab == "review" %>
+  <div class="caution">
+    <p class="caution-text">Do not take action on these accounts without consulting SIP-PES</p>
+    <p class="caution-sub">
+      Each account below is tagged for escalation. Confirm the decision with the
+      policy team before suspending, banning or deleting.
+    </p>
+  </div>
+
+  <% if @review.any? %>
+    <table class="data-table">
+      <thead>
+        <tr><th class="id">ID</th><th>Account</th><th>Role</th><th>Note</th><th>Tagged</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% @review.each do |user| %>
+          <tr>
+            <td class="id"><%= user.id %></td>
+            <td>
+              <strong>@<%= user.username %></strong>
+              <% if user.is_verified %><span class="verified-badge"><%= icon('verified') %></span><% end %>
+              <br><span class="muted"><%= user.display_name %></span>
+            </td>
+            <td><%= user.role.name %></td>
+            <td>
+              <% if user.tag_note.present? %><%= user.tag_note %>
+              <% else %><span class="muted">No note recorded.</span><% end %>
+            </td>
+            <td class="muted"><%= time_ago(user.updated_at) %></td>
+            <td><a class="btn btn-mini" href="<%= admin_user_path(user) %>">Open</a></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No accounts are tagged for escalation.</p>
+  <% end %>
+<% else %>
+  <div class="panel">
+    <h3 class="panel-title">What a visibility limit does</h3>
+    <p class="muted">
+      The account still works and can still post. A search or trends blacklist
+      keeps it out of discovery, and do-not-amplify keeps it out of other
+      people's timelines. Nothing here suspends anyone.
+    </p>
+  </div>
+
+  <% if @limits.any? %>
+    <table class="data-table">
+      <thead>
+        <tr><th class="id">ID</th><th>Account</th><th>Limits in force</th><th>Note</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% @limits.each do |user| %>
+          <tr>
+            <td class="id"><%= user.id %></td>
+            <td>
+              <strong>@<%= user.username %></strong><br>
+              <span class="muted"><%= user.display_name %></span>
+            </td>
+            <td>
+              <div class="tag-row">
+                <%= account_tag_chips(user) %>
+              </div>
+            </td>
+            <td>
+              <% if user.tag_note.present? %><%= user.tag_note %>
+              <% else %><span class="muted">No note recorded.</span><% end %>
+            </td>
+            <td><a class="btn btn-mini" href="<%= admin_user_path(user) %>">Open</a></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No accounts carry a visibility limit.</p>
+  <% end %>
+<% end %>

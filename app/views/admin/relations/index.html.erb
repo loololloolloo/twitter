@@ -1,0 +1,71 @@
+<div class="page-head">
+  <div>
+    <h1>Relations</h1>
+    <p class="page-note">
+      The block and mute graph. Neither side of an arrangement is visible from a
+      profile, so the pattern has to be read from the rows.
+    </p>
+  </div>
+</div>
+
+<nav class="admin-tabs">
+  <a href="<%= admin_relations_path(tab: 'blocks', q: @search.presence) %>"
+     class="admin-tab <%= 'is-active' if @tab == 'blocks' %>">Blocks</a>
+  <a href="<%= admin_relations_path(tab: 'mutes', q: @search.presence) %>"
+     class="admin-tab <%= 'is-active' if @tab == 'mutes' %>">Mutes</a>
+</nav>
+
+<form class="admin-filter" action="<%= admin_relations_path %>" method="get">
+  <input type="hidden" name="tab" value="<%= @tab %>">
+  <input type="text" name="q" value="<%= @search %>"
+         placeholder="Filter by either account's handle" autocomplete="off">
+  <button class="btn btn-primary" type="submit">Filter</button>
+</form>
+
+<% if @tab == "blocks" %>
+  <p class="section-note">
+    A block is mutual: neither account sees the other anywhere. Blocking also
+    removes any follow between them.
+  </p>
+  <table class="data-table">
+    <thead><tr><th class="id">ID</th><th>Blocker</th><th></th><th>Blocked</th><th>When</th></tr></thead>
+    <tbody>
+      <% if @rows.present? %>
+        <% @rows.each do |block| %>
+          <tr>
+            <td class="id"><%= block.id %></td>
+            <td><a href="<%= admin_user_path(block.blocker) %>">@<%= block.blocker.username %></a></td>
+            <td class="muted">&rarr;</td>
+            <td><a href="<%= admin_user_path(block.blocked) %>">@<%= block.blocked.username %></a></td>
+            <td class="muted"><%= time_ago(block.created_at) %></td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr><td colspan="5" class="muted">No blocks matched.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="section-note">
+    A mute is one-way and private: the muted account is never told and keeps its
+    follow. Only the muter stops seeing it.
+  </p>
+  <table class="data-table">
+    <thead><tr><th class="id">ID</th><th>Muted by</th><th></th><th>Muted</th><th>When</th></tr></thead>
+    <tbody>
+      <% if @rows.present? %>
+        <% @rows.each do |mute| %>
+          <tr>
+            <td class="id"><%= mute.id %></td>
+            <td><a href="<%= admin_user_path(mute.muter) %>">@<%= mute.muter.username %></a></td>
+            <td class="muted">&rarr;</td>
+            <td><a href="<%= admin_user_path(mute.muted) %>">@<%= mute.muted.username %></a></td>
+            <td class="muted"><%= time_ago(mute.created_at) %></td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr><td colspan="5" class="muted">No mutes matched.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

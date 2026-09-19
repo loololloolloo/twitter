@@ -1,4 +1,15 @@
-<h2 class="section-title">Users</h2>
+<div class="page-head">
+  <div>
+    <h1>Accounts</h1>
+    <p class="page-note">
+      Every account on the site. Filter to the population you are working on;
+      the row leads with the id so a username can be resolved to a record.
+    </p>
+  </div>
+  <% if can?('lookup.run') %>
+    <a class="btn" href="<%= admin_lookup_path %>">Look up an exact id</a>
+  <% end %>
+</div>
 
 <form class="admin-filter" action="<%= admin_users_path %>" method="get">
   <input type="text" name="q" placeholder="Search username, name or email" value="<%= @search %>">
@@ -25,30 +36,39 @@
 
 <table class="data-table">
   <thead>
-    <tr><th>User</th><th>Role</th><th>Followers</th><th>Tweets</th><th>Status</th><th></th></tr>
+    <tr>
+      <th class="id">ID</th><th>Account</th><th>Role</th>
+      <th class="num">Followers</th><th class="num">Posts</th>
+      <th>Signals</th><th></th>
+    </tr>
   </thead>
   <tbody>
     <% if @users.present? %>
       <% @users.each do |user| %>
-        <tr>
+        <tr class="<%= 'row-suspended' if user.is_banned || user.is_suspended %>">
+          <td class="id"><%= user.id %></td>
           <td>
             <strong><%= user.display_name %></strong>
             <% if user.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
             <br><span class="muted">@<%= user.username %> &middot; <%= user.email %></span>
           </td>
-          <td><%= user.role.name %></td>
-          <td><%= count_label(user.follower_count) %></td>
-          <td><%= user.tweet_count %></td>
+          <td><span class="pill pill-role"><%= user.role.name %></span></td>
+          <td class="num"><%= count_label(user.follower_count) %></td>
+          <td class="num"><%= user.tweet_count %></td>
           <td>
-            <% if user.is_banned %><span class="pill pill-warn">banned</span><% end %>
-            <% if user.is_suspended %><span class="pill pill-warn">suspended</span><% end %>
-            <% unless user.is_banned || user.is_suspended %><span class="pill">active</span><% end %>
+            <div class="tag-row">
+              <% if user.is_banned %><span class="pill pill-warn">banned</span><% end %>
+              <% if user.is_suspended %><span class="pill pill-warn">suspended</span><% end %>
+              <% unless user.is_banned || user.is_suspended %><span class="pill">active</span><% end %>
+              <% if user.requires_review %><span class="pill pill-bad" title="Consult before acting">escalation</span><% end %>
+              <% if user.reach_limited? %><span class="pill pill-warn" title="Visibility limit in force">limited</span><% end %>
+            </div>
           </td>
-          <td><a class="btn" href="<%= admin_user_path(user) %>">Manage</a></td>
+          <td><a class="btn btn-mini" href="<%= admin_user_path(user) %>">Manage</a></td>
         </tr>
       <% end %>
     <% else %>
-      <tr><td colspan="6" class="muted">No users matched.</td></tr>
+      <tr><td colspan="7" class="muted">No accounts matched.</td></tr>
     <% end %>
   </tbody>
 </table>

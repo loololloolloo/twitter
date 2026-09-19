@@ -44,6 +44,16 @@
 
     <div class="account-popover-divider"></div>
 
+    <%# The way into the operations console. It lives here rather than in the
+        sidebar's More list so entering the panel is an act taken from the
+        account menu, next to the other "as this account" actions, and only the
+        accounts that hold the permission see the row at all. %>
+    <% if can?('admin.access') %>
+      <a class="account-popover-row" href="<%= admin_root_path %>">
+        <%= icon('shield-halved') %><span>Operations console</span>
+      </a>
+    <% end %>
+
     <a class="account-popover-row" href="<%= settings_path %>">
       <%= icon('gear') %><span>Settings and privacy</span>
     </a>

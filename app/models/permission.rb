@@ -25,6 +25,14 @@ class Permission < ApplicationRecord
     "settings.edit"      => "Edit site settings",
     "audit.view"         => "View the audit log",
     "backup.export"      => "Export a database backup",
-    "maintenance.run"    => "Run maintenance tasks"
+    "maintenance.run"    => "Run maintenance tasks",
+    # The lookup surfaces. These are read-only, but they expose raw account
+    # records and session state, so they are granted deliberately rather than
+    # folded into admin.access.
+    "lookup.run"         => "Look up accounts and records by identifier",
+    "escalations.view"   => "View the escalation and visibility-limit queue",
+    "sessions.view"      => "View and revoke active sessions",
+    "relations.view"     => "View the block and mute graph",
+    "lists.view"         => "View and moderate member lists"
   }.freeze
 end

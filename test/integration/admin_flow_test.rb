@@ -11,7 +11,7 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
     get admin_root_path
     assert_response :success
 
-    assert_match(/operator-card/, response.body)
+    assert_match(/rail-operator/, response.body)
     assert_match(/@owner_one/, response.body)
     assert_match(/pill-role/, response.body)
     # The old inline "Signed in as ... role: ... permissions" string is gone.
@@ -23,11 +23,13 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
     sign_in(owner)
 
     get admin_root_path
-    # The panel keeps both surfaces: the section links are in the top bar, and the
-    # rail carries counts and shortcuts rather than repeating them.
+    # The panel keeps both surfaces, and they carry different things: the
+    # toolbar holds the working tools, the rail holds the queues and reference
+    # screens. The rail does not repeat a toolbar tab.
     assert_match(%r{<nav class="topnav">}, response.body)
+    assert_match(%r{href="/admin/lookup"}, response.body)
+    assert_match(%r{class="rail-group"}, response.body)
     assert_match(%r{href="/admin/audit"}, response.body)
-    assert_match(%r{class="rail-block"}, response.body)
     refute_match(%r{<nav class="admin-nav"}, response.body)
   end
 
@@ -37,7 +39,7 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
 
     get admin_root_path
 
-    assert_match(/class="operator-card"/, response.body)
+    assert_match(/class="rail-operator"/, response.body)
     assert_match(/@boss/, response.body)
     assert_match(/pill-role/, response.body)
     # The old card reported a permission total as "n of m"; it was removed as

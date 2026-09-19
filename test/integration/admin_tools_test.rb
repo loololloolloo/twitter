@@ -20,15 +20,29 @@ class AdminToolsTest < ActionDispatch::IntegrationTest
     assert_match(/Announcement/, response.body)
   end
 
-  test "the panel rail is a sidebar that does not repeat the top bar" do
+  test "the panel rail is a sectioned sidebar that does not repeat the toolbar" do
     get admin_tools_path
     assert_match(/class="admin-rail"/, response.body)
-    # The rail carries counts and shortcuts, not the section links, which live
-    # in the top bar alone. Duplicating them was the bug this guards.
-    assert_match(/class="rail-block"/, response.body)
-    assert_match(/At a glance/, response.body)
-    assert_match(/Quick actions/, response.body)
+    # The rail is the site's navigation, grouped into Queues, Reference and
+    # Controls. The toolbar above it carries the working tools instead, so the
+    # two lists do not duplicate each other.
+    assert_match(/class="rail-group"/, response.body)
+    assert_match(/Queues/, response.body)
+    assert_match(/Reference/, response.body)
+    assert_match(/Controls/, response.body)
     refute_match(/class="admin-nav"/, response.body)
+  end
+
+  test "the toolbar carries the working tools and the rail carries the queues" do
+    get admin_tools_path
+
+    # Tools and Lookup are toolbar tabs; Accounts and Reports are rail rows.
+    assert_match(%r{href="/admin/lookup"}, response.body)
+    assert_match(%r{href="/admin/escalations"}, response.body)
+    assert_match(%r{href="/admin/sessions"}, response.body)
+    assert_match(%r{href="/admin/relations"}, response.body)
+    assert_match(%r{href="/admin/lists"}, response.body)
+    assert_match(%r{href="/admin/reports\?state=open"}, response.body)
   end
 
   test "a destructive task is refused without the confirmation word" do

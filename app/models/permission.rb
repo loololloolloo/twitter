@@ -26,6 +26,8 @@ class Permission < ApplicationRecord
     "reports.resolve"    => "Resolve reports",
     "appeals.view"       => "View the appeals queue",
     "appeals.decide"     => "Decide member appeals",
+    "verification.view"  => "View the verification request queue",
+    "verification.decide" => "Approve or deny verification requests",
     "settings.edit"      => "Edit site settings",
     "audit.view"         => "View the audit log",
     "backup.export"      => "Export a database backup",

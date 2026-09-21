@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_20_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_21_000001) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -350,6 +350,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_20_140000) do
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["role_id"], name: "index_users_on_role_id"
     t.index ["username"], name: "index_users_on_username", unique: true
+  end
+
+  create_table "verification_requests", force: :cascade do |t|
+    t.text "body", default: "", null: false
+    t.string "category", default: "other", null: false
+    t.datetime "created_at", null: false
+    t.datetime "decided_at"
+    t.text "decision_note", default: "", null: false
+    t.integer "reviewed_by_id"
+    t.string "state", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["state", "created_at"], name: "index_verification_requests_on_state_and_created_at"
+    t.index ["state"], name: "index_verification_requests_on_state"
+    t.index ["user_id"], name: "index_verification_requests_on_user_id"
   end
 
   add_foreign_key "audit_logs", "users", column: "actor_id"

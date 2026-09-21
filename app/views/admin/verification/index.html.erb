@@ -1,0 +1,159 @@
+<div class="page-head">
+  <div>
+    <h1>Verification requests</h1>
+    <p class="page-note">
+      Members asking for the verified badge. Approving a request is what grants
+      the badge, so the decision is the grant: read the requester's signals
+      below before you click, because the badge is a public claim the account
+      holds until it is taken away.
+    </p>
+  </div>
+</div>
+
+<nav class="state-tabs">
+  <% (VerificationRequest::STATES + ["all"]).each do |state| %>
+    <a class="state-tab <%= 'active' if @state == state %>"
+       href="<%= admin_verification_path(state: state) %>">
+      <%= state == "all" ? "All" : state.capitalize %>
+      <span class="state-count"><%= state == "all" ? @all_count : @counts[state] %></span>
+    </a>
+  <% end %>
+</nav>
+
+<% if @requests.present? %>
+  <% @requests.each do |request| %>
+    <% applicant = request.user %>
+    <article class="report-item">
+      <div class="report-main">
+        <div class="report-who">
+          <%= pic(applicant.avatar_path, 32) %>
+          <span class="report-subject">@<%= applicant.username %></span>
+          <span class="tag <%= request.pending? ? 'tag-info' : 'tag-quiet' %>">
+            <%= request.category_label %>
+          </span>
+          <span class="report-when"><%= time_ago(request.created_at) %></span>
+        </div>
+
+        <p class="report-detail">
+          <strong><%= applicant.display_name %></strong>
+          <% if applicant.is_verified %>
+            <span class="verified-badge"><%= icon('verified') %></span>
+          <% end %>
+          is asking to be verified as <strong><%= request.category_label.downcase %></strong>.
+        </p>
+
+        <blockquote class="report-quote"><%= request.body %></blockquote>
+
+        <%# The account signals. The request body is the member's own case; this
+            row is what the account actually shows, so the decision is not made
+            on the applicant's wording alone. %>
+        <div class="signal-row">
+          <span class="signal">
+            <span class="signal-label">Account age</span>
+            <strong><%= request_account_age(applicant) %></strong>
+          </span>
+          <span class="signal">
+            <span class="signal-label">Posts</span>
+            <strong><%= count_label(applicant.tweet_count) %></strong>
+          </span>
+          <span class="signal">
+            <span class="signal-label">Followers</span>
+            <strong><%= count_label(applicant.follower_count) %></strong>
+          </span>
+          <span class="signal">
+            <span class="signal-label">Following</span>
+            <strong><%= count_label(applicant.following_count) %></strong>
+          </span>
+          <span class="signal">
+            <span class="signal-label">Last login</span>
+            <strong><%= applicant.last_login_at ? time_ago(applicant.last_login_at) : "never" %></strong>
+          </span>
+          <span class="signal">
+            <span class="signal-label">Standing warnings</span>
+            <strong><%= applicant.strike_count %></strong>
+          </span>
+          <span class="signal">
+            <span class="signal-label">Open reports</span>
+            <strong><%= Report.open.where(user_id: applicant.id).count %></strong>
+          </span>
+          <span class="signal">
+            <span class="signal-label">Role</span>
+            <strong><%= applicant.role.name %></strong>
+          </span>
+        </div>
+
+        <%# Anything about the account that should give an operator pause is
+            stated here, next to the decision, rather than buried on the record. %>
+        <% if applicant.reach_limited? || applicant.requires_review || applicant.is_suspended || applicant.is_banned %>
+          <div class="caution">
+            <p class="caution-text">Signals on this account before you decide</p>
+            <p class="caution-sub">
+              <% flags = [] %>
+              <% flags << "carries a visibility limit (search or trends blacklist, or do-not-amplify)" if applicant.reach_limited? %>
+              <% flags << "is tagged for escalation: consult SIP-PES before acting" if applicant.requires_review %>
+              <% flags << "is currently suspended" if applicant.is_suspended %>
+              <% flags << "is currently banned" if applicant.is_banned %>
+              <%= flags.join("; ").capitalize %>.
+            </p>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="report-side">
+        <% if request.pending? %>
+          <% barred = request.barred_for?(current_user) %>
+          <% if barred %>
+            <%# The screen states why an operator is excluded, rather than
+                hiding the controls and leaving them to guess. %>
+            <div class="caution">
+              <p class="caution-text">You cannot decide this request</p>
+              <p class="caution-sub"><%= request.bar_reason(current_user) %></p>
+            </div>
+          <% elsif !may_manage?(applicant) %>
+            <div class="caution">
+              <p class="caution-text">Approval is barred for this account</p>
+              <p class="caution-sub">
+                The @<%= applicant.username %> account can only be changed by
+                signing in as it.
+              </p>
+            </div>
+          <% elsif can?('verification.decide') %>
+            <%= form_with url: admin_verification_decide_path(request), method: :post, class: "stack" do %>
+              <label>Outcome
+                <select name="decision">
+                  <% VerificationRequest::DECISIONS.each do |key, label| %>
+                    <option value="<%= key %>"><%= label %></option>
+                  <% end %>
+                </select>
+              </label>
+              <label>Reason
+                <input type="text" name="note"
+                       placeholder="Why? Required to deny, kept on the record.">
+              </label>
+              <div class="action-row">
+                <button class="btn btn-primary" type="submit">Record decision</button>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="muted">You cannot decide verification requests.</p>
+          <% end %>
+        <% else %>
+          <p>
+            <span class="pill <%= request.state == 'approved' ? 'pill-ok' : 'pill-bad' %>">
+              <%= request.decision_label %>
+            </span>
+          </p>
+          <p class="muted">
+            by <%= request.reviewed_by ? "@#{request.reviewed_by.username}" : "system" %>
+            <%= time_ago(request.decided_at) %>
+          </p>
+          <% if request.decision_note.present? %>
+            <p class="report-detail"><%= request.decision_note %></p>
+          <% end %>
+        <% end %>
+      </div>
+    </article>
+  <% end %>
+<% else %>
+  <p class="muted">Nothing in this queue.</p>
+<% end %>

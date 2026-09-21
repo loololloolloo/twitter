@@ -280,6 +280,46 @@
               <button class="btn primary-btn" type="submit">Save changes</button>
             <% end %>
           </div>
+
+          <%# The member's side of the verification queue. A request is filed
+              here and read by an operator on /admin/verification; the badge is
+              granted by that decision, never by this form. %>
+          <div class="settings-block">
+            <h3 class="settings-block-title">Verified badge</h3>
+            <% if current_user.is_verified %>
+              <p class="settings-block-note">
+                Your account carries the verified badge. Nothing here changes it;
+                the badge is granted and removed by the site's review team.
+              </p>
+            <% elsif current_user.verification_requests.pending.exists? %>
+              <p class="settings-block-note">
+                Your request is waiting for review. You will get a notification
+                with the outcome.
+              </p>
+            <% else %>
+              <p class="settings-block-note">
+                The badge is for notable accounts that people might be looking
+                for. Ask for it here; the review team reads the request and your
+                account's signals, then notifies you either way.
+              </p>
+              <%= form_with url: verification_requests_path, method: :post, class: "settings-form" do %>
+                <div class="settings-field">
+                  <label for="settings-verify-category">What are you asking to be verified as?</label>
+                  <select id="settings-verify-category" name="category">
+                    <% VerificationRequest::CATEGORIES.each do |key, label| %>
+                      <option value="<%= key %>"><%= label %></option>
+                    <% end %>
+                  </select>
+                </div>
+                <div class="settings-field">
+                  <label for="settings-verify-body">Why should your account carry the badge?</label>
+                  <textarea id="settings-verify-body" name="body" maxlength="2000"
+                            placeholder="Links to press coverage, an official site, or other evidence."></textarea>
+                </div>
+                <button class="btn primary-btn" type="submit">Request verification</button>
+              <% end %>
+            <% end %>
+          </div>
         <% end %>
       </div>
     </div>

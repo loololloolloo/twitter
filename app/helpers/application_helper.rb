@@ -118,6 +118,19 @@ module ApplicationHelper
     "#{humanize_until(poll.closes_at)} left"
   end
 
+  # Account age in the round units an operator reads at a glance. The exact
+  # date is on the account record; what matters next to a decision is roughly
+  # how established the account is.
+  def request_account_age(user)
+    return "unknown" if user.created_at.blank?
+
+    days = (Time.current - user.created_at.to_time).to_i / 86_400
+    return "#{days}d" if days < 30
+    return "#{days / 30}mo" if days < 365
+
+    "#{days / 365}y"
+  end
+
   def time_ago(value)
     return "" if value.blank?
 

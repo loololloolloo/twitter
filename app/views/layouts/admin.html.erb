@@ -104,6 +104,12 @@
             <span class="rail-group-count"><%= count_label(Appeal.pending.count) %></span>
           </a>
         <% end %>
+        <% if can?('verification.view') %>
+          <a href="<%= admin_verification_path(state: 'pending') %>" class="<%= 'is-active' if controller_name == 'verification' %>">
+            <%= icon('verified') %><span class="rail-label">Verification</span>
+            <span class="rail-group-count"><%= count_label(VerificationRequest.pending.count) %></span>
+          </a>
+        <% end %>
       </div>
 
       <div class="rail-group">

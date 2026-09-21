@@ -49,6 +49,10 @@ class User < ApplicationRecord
   # sanction columns are deliberately not foreign keys.
   has_many :appeals, dependent: :destroy
 
+  # Requests this account has filed for the verified badge. They belong to the
+  # account, so deleting it takes them.
+  has_many :verification_requests, dependent: :destroy
+
   # Follow requests this account has made, and the ones waiting on it.
   has_many :sent_follow_requests, class_name: "FollowRequest", foreign_key: :requester_id,
            dependent: :destroy, inverse_of: :requester

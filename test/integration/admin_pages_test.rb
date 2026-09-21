@@ -17,6 +17,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin/lookup
     /admin/escalations
     /admin/appeals
+    /admin/verification
     /admin/sessions
     /admin/relations
     /admin/lists
@@ -84,7 +85,8 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     # Granted to a moderator: the lookup and escalation surfaces, which are the
     # read-only tools a front-line reviewer needs, plus the appeals queue they
     # work decisions from.
-    [ admin_lookup_path, admin_escalations_path, admin_appeals_path ].each do |path|
+    [ admin_lookup_path, admin_escalations_path, admin_appeals_path,
+      admin_verification_path ].each do |path|
       get path
       assert_response :success, "#{path} should be reachable for a moderator"
     end

@@ -38,6 +38,10 @@ Rails.application.routes.draw do
   # Protecting an account is a privacy setting rather than a moderation one.
   patch "settings/privacy", to: "settings#privacy", as: :privacy_settings
 
+  # A member asks for the verified badge. There is no user id in the path, so a
+  # request can only ever be filed against the signed-in account.
+  post "verification-requests", to: "verification_requests#create", as: :verification_requests
+
   # Saved posts. Private to the signed-in account, so the index is only ever
   # its own list.
   get    "bookmarks",            to: "bookmarks#index",   as: :bookmarks
@@ -163,6 +167,11 @@ Rails.application.routes.draw do
     # decided here; the decision is a POST because it is final for the appeal.
     get  "appeals",              to: "appeals#index",  as: :appeals
     post "appeals/:id/decide",   to: "appeals#decide", as: :appeal_decide
+
+    # Verification requests. Approving one grants the badge, so the decision is
+    # a POST; the queue itself is read-only.
+    get  "verification",             to: "verification#index",  as: :verification
+    post "verification/:id/decide",  to: "verification#decide", as: :verification_decide
 
     get "audit",  to: "audit#index",   as: :audit
     get "audit/export", to: "audit#export", as: :audit_export

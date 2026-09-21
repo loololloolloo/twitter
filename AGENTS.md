@@ -61,6 +61,28 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ruby3.3 ruby3.3-dev
 The `mkdir` matters: the reset also removes `/var/lib/apt/lists/partial`, and
 without it `apt-get update` fails with "List directory ... is missing".
 
+## Nothing restarts the servers, and no watchdog can be installed to
+
+The reset is a **container restart**, not just a file wipe: uptime resets to
+minutes and `/home` plus every system path are rebuilt from the image. Only
+`/workspace` survives, which is why the repo and `vendor/bundle` come back but
+the Ruby interpreter does not. `/login` returning 502 on both forwarded hosts is
+the tell.
+
+There is no way to make the servers come back on their own:
+
+- no cron (`crontab` is absent), no systemd (`systemctl` reports `offline`), no
+  `supervisord`, no `/etc/rc.local`;
+- a hook in `~/.bashrc` or `~/.profile` is useless because `/home` is wiped and
+  non-interactive shells do not source them anyway;
+- anything installed outside `/workspace` is erased by the same restart.
+
+So recovery is always manual: run `./bin/serve`, then `db:migrate` if the
+restart landed after a migration was committed but before it was applied.
+`bin/serve` will report HTTP 500 on both ports in that window; the migration is
+the fix, not another restart. Worth re-running `./bin/serve` after any period of
+inactivity rather than assuming the site is still up.
+
 Debian trixie ships 3.3.8, which matches the vendored bundle, and `bundler`
 2.5.22 comes with it - the same version `bin/bundle` loads. After install,
 `./bin/bundle check` should report the dependencies are satisfied and no

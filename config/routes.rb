@@ -153,6 +153,13 @@ Rails.application.routes.draw do
     get  "settings", to: "settings#edit",   as: :settings
     post "settings", to: "settings#update"
 
+    # The blocked-terms list. Reads are open to any operator holding
+    # settings.view; the two writes are POST because they change what every
+    # reader sees, and each rebuilds the matcher the timeline matches against.
+    get  "blocked-terms",            to: "blocked_terms#index",  as: :blocked_terms
+    post "blocked-terms",            to: "blocked_terms#create"
+    post "blocked-terms/:id/toggle", to: "blocked_terms#toggle", as: :blocked_term_toggle
+
     get    "tweets",     to: "tweets#index",   as: :tweets
     delete "tweets/:id", to: "tweets#destroy", as: :tweet
     post   "tweets/:id/pin",   to: "tweets#pin",   as: :tweet_pin

@@ -143,6 +143,12 @@
             <%= icon('gear') %><span class="rail-label">Settings</span>
           </a>
         <% end %>
+        <% if can?('settings.view') %>
+          <a href="<%= admin_blocked_terms_path %>" class="<%= 'is-active' if controller_name == 'blocked_terms' %>">
+            <%= icon('eye-slash') %><span class="rail-label">Blocked terms</span>
+            <span class="rail-group-count"><%= count_label(BlockedTerm.active.count) %></span>
+          </a>
+        <% end %>
         <% if can?('backup.export') %>
           <a href="<%= admin_backup_path %>">
             <%= icon('bookmark-solid') %><span class="rail-label">Export backup</span>

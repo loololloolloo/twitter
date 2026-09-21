@@ -21,8 +21,32 @@ class Tweet < ApplicationRecord
   # would contradict it. Timed bans are excluded from this list because they
   # lift themselves and are resolved by `User#resolve_ban!`.
   scope :visible, lambda {
-    where(is_deleted: false)
+    scope = where(is_deleted: false)
       .where.not(user_id: User.where(is_banned: true, ban_permanent: true).select(:id))
+
+    # Posts matching a "hide" blocked term are dropped here, alongside the other
+    # visibility rules, so every timeline inherits the rule from one place. The
+    # term list is compiled and cached, so this is a bound NOT (...) rather than
+    # a rescan of the world per request. "Flag" terms deliberately do not appear
+    # here: a flagged post stays visible and is only marked in the panel.
+    condition = BlockedTerm.matcher.hide_sql
+    condition ? scope.where("NOT (#{condition.first})", *condition.last) : scope
+  }
+
+  # Posts matching any of the given terms. The SQL is compiled by BlockedTerm
+  # and shared with the timeline's exclusion, so a term that hides a post here
+  # and a term that lists it there can never disagree.
+  scope :matching_terms, lambda { |terms|
+    condition = BlockedTerm.like_condition(terms)
+    condition ? where(condition.first, *condition.last) : none
+  }
+
+  # Posts matching a term in flag mode, read from the compiled matcher rather
+  # than re-reading the list, so the review screen and the timeline agree about
+  # which terms are in force.
+  scope :matching_flags, lambda {
+    condition = BlockedTerm.matcher.flag_sql
+    condition ? where(condition.first, *condition.last) : none
   }
   scope :roots,   -> { visible.where(parent_id: nil) }
   scope :recent,  -> { order(created_at: :desc, id: :desc) }

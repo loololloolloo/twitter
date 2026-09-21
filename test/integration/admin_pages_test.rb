@@ -10,6 +10,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin/users
     /admin/permissions
     /admin/settings
+    /admin/blocked-terms
     /admin/tweets
     /admin/audit
     /admin/insights

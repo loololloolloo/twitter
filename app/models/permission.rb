@@ -29,6 +29,11 @@ class Permission < ApplicationRecord
     "verification.view"  => "View the verification request queue",
     "verification.decide" => "Approve or deny verification requests",
     "settings.edit"      => "Edit site settings",
+    # The blocked-terms list is split from settings.edit because reading it is
+    # harmless and useful to a moderator, while changing it alters what every
+    # reader sees. The hide mode in particular removes posts site-wide.
+    "settings.view"      => "View the site settings and content filters",
+    "settings.blocked_terms" => "Manage the blocked terms list",
     "audit.view"         => "View the audit log",
     "backup.export"      => "Export a database backup",
     "maintenance.run"    => "Run maintenance tasks",

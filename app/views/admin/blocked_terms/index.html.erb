@@ -1,0 +1,148 @@
+<div class="page-head">
+  <div>
+    <h1>Blocked terms</h1>
+    <p class="page-note">
+      Terms the site acts on. Each term carries its own mode, because the two
+      modes have very different effects and are not interchangeable.
+    </p>
+  </div>
+</div>
+
+<%# The two modes are the whole decision, so the effect of each is stated in
+    plain words before the form rather than left to the label in the table. %>
+<div class="panel">
+  <h3 class="panel-title">What each mode does</h3>
+  <p class="muted">
+    <strong>Hide</strong> removes every matching post from every timeline for
+    every reader, including the author's profile. <strong>Flag</strong> leaves
+    the post where it is and only marks it here for review. Hiding is the
+    larger change by far, so it is chosen deliberately per term.
+  </p>
+  <p class="muted">
+    The list is compiled once and reused until it changes, so a new or edited
+    term takes effect on the next page load without rescanning posts on every
+    request.
+  </p>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">Add a term</h3>
+  <% if can?('settings.blocked_terms') %>
+    <%= form_with url: admin_blocked_terms_path, method: :post, class: "stack" do %>
+      <label>Term
+        <input type="text" name="term" maxlength="<%= BlockedTerm::MAX_TERM %>"
+               placeholder="Text to match, matched anywhere in the post" required>
+      </label>
+      <label>Effect
+        <select name="mode">
+          <% BlockedTerm::MODES.each do |key, label| %>
+            <%# "flag" is preselected: hiding is the larger change and should be
+                a deliberate choice, never the one the form lands on by default. %>
+            <option value="<%= key %>" <%= "selected" if key == "flag" %>><%= label %></option>
+          <% end %>
+        </select>
+      </label>
+      <label>Category
+        <select name="category">
+          <% BlockedTerm::CATEGORIES.each do |key, label| %>
+            <option value="<%= key %>"><%= label %></option>
+          <% end %>
+        </select>
+      </label>
+      <label>Note (optional)
+        <input type="text" name="note" placeholder="Why this term is on the list">
+      </label>
+      <button class="btn btn-primary" type="submit">Add term</button>
+    <% end %>
+  <% else %>
+    <p class="muted">You can see the list but not change it.</p>
+  <% end %>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">
+    The list
+    <span class="muted"><%= @active_count %> active &middot; <%= @hide_count %> hiding &middot; <%= @flag_count %> flagging</span>
+  </h3>
+
+  <% if @terms.present? %>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="id">ID</th><th>Term</th><th>Effect on the site</th><th>Category</th>
+          <th class="num">Matches now</th><th>State</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @terms.each do |term| %>
+          <tr class="<%= 'row-muted' unless term.active %>">
+            <td class="id"><%= term.id %></td>
+            <td>
+              <code><%= term.term %></code>
+              <% if term.note.present? %><br><span class="muted"><%= term.note %></span><% end %>
+            </td>
+            <td>
+              <% if term.mode == "hide" %>
+                <span class="tag tag-alert">hides from every timeline</span>
+              <% else %>
+                <span class="tag tag-info">flags for review, post stays up</span>
+              <% end %>
+            </td>
+            <td class="muted"><%= term.category_label %></td>
+            <%# The exact count, not the compacted form: this column exists to
+                show the blast radius of setting a term, and "1.5K" hides it. %>
+            <td class="num"><%= number_with_delimiter(term.matching_post_count) %></td>
+            <td>
+              <% if term.active %>
+                <span class="tag tag-quiet">active</span>
+              <% else %>
+                <span class="tag tag-quiet">off</span>
+              <% end %>
+            </td>
+            <td>
+              <% if can?('settings.blocked_terms') %>
+                <%= button_to(term.active ? "Turn off" : "Turn on", admin_blocked_term_toggle_path(term),
+                              class: "btn btn-mini", form_class: "inline") %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No terms on the list.</p>
+  <% end %>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">
+    Posts matching a flag
+    <span class="muted"><%= @flag_count.zero? ? "no flag terms" : "newest 50" %></span>
+  </h3>
+  <p class="muted">
+    A flag term leaves its posts up, so this is where they are reviewed. A
+    hidden post is already gone from the site and is counted against its term
+    above rather than listed here.
+  </p>
+
+  <% if @flagged_posts.present? %>
+    <table class="data-table">
+      <thead>
+        <tr><th class="id">ID</th><th>Author</th><th>Body</th><th>When</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% @flagged_posts.each do |tweet| %>
+          <tr>
+            <td class="id"><%= tweet.id %></td>
+            <td><a href="<%= profile_path(tweet.user.username) %>">@<%= tweet.user.username %></a></td>
+            <td><%= tweet.body.presence || '(media)' %></td>
+            <td class="muted"><%= time_ago(tweet.created_at) %></td>
+            <td><a class="btn btn-mini" href="<%= tweet_path(tweet) %>">View</a></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No posts match a flag term right now.</p>
+  <% end %>
+</div>

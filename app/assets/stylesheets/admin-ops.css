@@ -402,6 +402,9 @@ h1, h2, h3 { margin: 0; font-weight: 700; }
 .data-table td code { background: transparent; padding: 0; }
 .row-suspended { background: var(--ops-danger-bg); }
 .row-suspended:hover { background: var(--ops-danger-bg) !important; }
+/* A row that is simply inactive, e.g. a term switched off. Distinct from
+   .row-suspended, which flags a live sanction rather than a dormant rule. */
+.row-muted { color: var(--ops-muted); }
 
 /* ---------------- state chips ---------------- */
 .pill, .chip, .tag, .role-badge {

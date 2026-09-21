@@ -153,3 +153,13 @@ namespaced per worker there.
 - Migrations must not be timestamped in the future: the sandbox clock can lag
   the date you would guess. A future timestamp makes `db:migrate` fail with
   `InvalidMigrationTimestampError`.
+- **`db:migrate` silently loads `schema.rb` instead of running your migration
+  when the database is missing.** A fresh `db:drop db:create` followed by
+  `db:migrate` runs `db:prepare`, which loads the schema and inserts every
+  migration version into `schema_migrations` - so the new migration never
+  executes and the database does not match the migration file. The tell is a
+  new migration that appears to run cleanly while its schema change is absent
+  (for example an expression index that comes out as a plain column index).
+  To run the migrations for real, move `db/schema.rb` aside first, then
+  `db:migrate`, then regenerate the schema. Verify against `sqlite_master`
+  rather than trusting that `db:migrate` printed nothing.

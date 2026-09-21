@@ -143,7 +143,11 @@ namespaced per worker there.
   work. The remote is now the plain HTTPS URL with a `credential.helper` that
   reads `$GITHUB_TOKEN` at push time, so no secret is stored in `.git/config`.
   Use `GIT_TERMINAL_PROMPT=0 git push origin <branch>` and it either works or
-  fails loudly. The automation clones fresh from `origin` each run, so anything
+  fails loudly. If it fails with "could not read Password", the credential
+  helper did not resolve: the injected secret is exposed as the lowercase
+  `$github_token`, not `$GITHUB_TOKEN`, so push with an explicit URL -
+  `GIT_TERMINAL_PROMPT=0 git push https://${github_token}@github.com/loololloolloo/twitter.git HEAD:<branch>`.
+  The automation clones fresh from `origin` each run, so anything
   left uncommitted is both invisible to the next run and lost on a reset -
   commit and push before finishing.
 - Migrations must not be timestamped in the future: the sandbox clock can lag

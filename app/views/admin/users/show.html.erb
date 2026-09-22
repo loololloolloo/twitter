@@ -276,6 +276,78 @@
   <% end %>
 </section>
 
+<%# Reversals. A separate block from the history because it holds the controls
+    that create reversal entries, and because it has to say out loud that a
+    sanction cannot be undone by the person who imposed it. The rule is a
+    separation-of-duties control, not a UI nicety, so a barred operator sees
+    the reason rather than a missing button. %>
+<section class="admin-section">
+  <h3 class="panel-title">Reverse a moderation action</h3>
+  <p class="section-note">
+    Reversing records the decision to lift a sanction and leaves the original
+    action in the history above. Nothing is deleted: the account reads
+    "sanctioned, then reversed".
+  </p>
+
+  <% if can?('users.reverse') %>
+    <% if @reverse_options.present? %>
+      <ul class="reverse-list">
+        <% @reverse_options.each do |option| %>
+          <li class="reverse-item">
+            <div class="reverse-head">
+              <strong><%= option[:label] %></strong>
+              <span class="muted">
+                imposed by <%= option[:imposer] ? "@#{option[:imposer].username}" : "an operator no longer on staff" %>
+              </span>
+            </div>
+            <% if option[:bar] %>
+              <p class="reverse-bar"><%= option[:bar] %></p>
+            <% else %>
+              <%= form_with url: admin_user_reverse_path(@user), method: :post, class: "stack reverse-form" do %>
+                <%= hidden_field_tag :source, option[:source] %>
+                <label>Reason
+                  <input type="text" name="reason" maxlength="280"
+                         placeholder="Why is this decision being lifted?" required>
+                </label>
+                <button class="btn btn-primary btn-mini" type="submit">
+                  Reverse <%= option[:label].downcase %>
+                </button>
+              <% end %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="muted">No ban, suspension or active warning is in force on this account.</p>
+    <% end %>
+  <% else %>
+    <p class="muted">Your role cannot reverse moderation actions.</p>
+  <% end %>
+</section>
+
+<% if @reversals.present? %>
+  <section class="admin-section">
+    <h3 class="panel-title">Reversal record</h3>
+    <table class="data-table">
+      <thead>
+        <tr><th>When</th><th>Action</th><th>Reversed by</th><th>Overturned</th><th>Reason</th></tr>
+      </thead>
+      <tbody>
+        <% @reversals.each do |reversal| %>
+          <tr>
+            <td class="muted"><%= time_ago(reversal.created_at) %></td>
+            <td><%= reversal.source_label %></td>
+            <td><%= reversal.actor ? "@#{reversal.actor.username}" : "system" %></td>
+            <td class="muted">
+              <%= reversal.imposed_by ? "@#{reversal.imposed_by.username}" : "unknown" %>
+            </td>
+            <td><%= reversal.reason %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+<% end %>
 <%# Warnings. A warning changes nothing about the account; it records that the
     account was told. It is therefore its own block rather than folded into the
     ban panel, which does change the account. %>

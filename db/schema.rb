@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_000004) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_000005) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -206,6 +206,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_000004) do
     t.index ["state"], name: "index_moderation_cases_on_state"
     t.index ["tweet_id"], name: "index_moderation_cases_on_tweet_id"
     t.index ["user_id"], name: "index_moderation_cases_on_user_id"
+  end
+
+  create_table "moderation_reversals", force: :cascade do |t|
+    t.string "action", default: "", null: false
+    t.integer "actor_id"
+    t.datetime "created_at", null: false
+    t.integer "imposed_by_id"
+    t.text "reason", default: "", null: false
+    t.string "source", default: "", null: false
+    t.integer "source_id", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["source", "source_id"], name: "index_moderation_reversals_on_source_and_source_id"
+    t.index ["user_id", "created_at"], name: "index_moderation_reversals_on_user_id_and_created_at"
   end
 
   create_table "mutes", force: :cascade do |t|

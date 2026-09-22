@@ -18,6 +18,10 @@ class Permission < ApplicationRecord
     "users.tags"         => "Set operational tags on a user",
     "users.bulk"         => "Run bulk actions on many accounts at once",
     "users.warn"         => "Issue and revoke warnings on a user",
+    # Reversing a moderation action is its own grant. Lifting a ban or
+    # suspension that another operator imposed changes the account's status
+    # again, so it is trusted separately from the ability to impose one.
+    "users.reverse"      => "Reverse a moderation action (ban, suspension, warning)",
     # Enforcement macros. Reading them rides on the action's own permission;
     # editing the shared wording changes what every operator records, so it is
     # its own grant rather than folded into users.warn.

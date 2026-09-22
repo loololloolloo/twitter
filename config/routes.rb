@@ -152,6 +152,11 @@ Rails.application.routes.draw do
     post   "users/:id/warn",      to: "users#warn",            as: :user_warn
     post   "users/:id/warnings/:warning_id/revoke",
            to: "users#revoke_warning", as: :user_warning_revoke
+    # Reversing a moderation action. It is a POST because it changes the
+    # account's status again, and it is a distinct action from a bare unban:
+    # the reversal is recorded next to the sanction it lifts rather than
+    # erasing the sanction's audit trail.
+    post   "users/:id/reverse",   to: "users#reverse",         as: :user_reverse
     post   "users/:id/notes", to: "users#add_note", as: :user_note
     post   "users/:id/notes/:note_id/pin", to: "users#pin_note", as: :user_note_pin
     delete "users/:id/notes/:note_id", to: "users#destroy_note", as: :user_note_destroy

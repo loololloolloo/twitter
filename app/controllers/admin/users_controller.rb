@@ -4,7 +4,7 @@ module Admin
     before_action :load_user, only: [ :show, :ban, :unban, :suspend, :destroy,
                                        :update_role, :toggle_verified, :set_followers,
                                        :update_email, :release_handle, :update_tags, :impersonate,
-                                       :warn, :revoke_warning, :apply_template,
+                                       :warn, :revoke_warning, :reverse, :apply_template,
                                        :add_note, :pin_note, :destroy_note ]
     # Every action that writes to the target account has to clear the owner
     # check. `show` is not in this list: the owner account is still viewable,
@@ -16,7 +16,7 @@ module Admin
                                                 :set_followers, :update_email,
                                                 :release_handle,
                                                 :update_tags, :impersonate,
-                                                :warn, :revoke_warning, :apply_template,
+                                                :warn, :revoke_warning, :reverse, :apply_template,
                                                 :add_note, :pin_note, :destroy_note ]
 
     def index
@@ -67,6 +67,8 @@ module Admin
       @next_strike_rung = @user.next_strike_rung
       @warning_choices = warning_duration_choices
       @moderation_history = moderation_history
+      @reversals = @user.moderation_reversals.includes(:actor, :imposed_by).recent.limit(50)
+      @reverse_options = reverse_options
       @notes = @user.staff_notes.includes(:author).ordered
       @approvals = @user.approval_requests.includes(:requested_by, :decided_by).recent.limit(20)
       @pending_approvals = @user.approval_requests.pending.to_a
@@ -249,6 +251,63 @@ module Admin
       audit!("users.warn", target: "user:#{@user.id}",
                            detail: "revoked warning ##{warning.id}")
       redirect_to admin_user_path(@user), notice: "Warning revoked."
+    end
+
+    # Reverse a moderation action: lift a ban or suspension, or put a warning
+    # out of force. This is deliberately not the same thing as the unban and
+    # reinstate controls. Those change the account's state and nothing else;
+    # this records the *decision* to undo a specific sanction, with a reason,
+    # attributed to the operator who made it, and leaves the sanction itself
+    # untouched so the history reads "sanctioned, then reversed" rather than
+    # "never sanctioned at all".
+    #
+    # A reversal is not a one-operator matter. The operator who imposed the
+    # sanction cannot be the one who decides to undo it - enforced in
+    # `ModerationReversal`, checked here only so the refusal becomes a message.
+    def reverse
+      source = params[:source].to_s
+      unless ModerationReversal::SOURCES.key?(source)
+        return redirect_to(admin_user_path(@user), alert: "Unknown moderation action.")
+      end
+
+      reason = params[:reason].to_s.strip
+      if reason.blank?
+        return redirect_to(admin_user_path(@user),
+                           alert: "A reason is required to reverse a moderation action.")
+      end
+
+      if @user.id == current_user.id
+        return redirect_to(admin_user_path(@user),
+                           alert: "You cannot reverse a moderation action on your own account.")
+      end
+
+      target = reversal_target(source)
+      if target.nil?
+        return redirect_to(admin_user_path(@user),
+                           alert: "That #{ModerationReversal::SOURCES[source].downcase} is not in effect.")
+      end
+
+      # One guard, in the model, so the screen's refusal and this one are the
+      # same rule rather than two copies of it.
+      bar = ModerationReversal.bar_reason(target[:imposer], current_user, source)
+      return redirect_to(admin_user_path(@user), alert: bar) if bar
+
+      reversal = ModerationReversal.create!(
+        user: @user,
+        actor: current_user,
+        imposed_by: target[:imposer],
+        source: source,
+        source_id: target[:source_id],
+        action: ModerationReversal::SOURCE_ACTIONS[source],
+        reason: reason
+      )
+
+      apply_reversal(source, target[:warning])
+
+      audit!(ModerationReversal::AUDIT_ACTION, target: "user:#{@user.id}",
+             detail: "reversed #{source} (reversal ##{reversal.id})" \
+                     "#{target[:imposer] ? ", imposed by @#{target[:imposer].username}" : ''}: #{reason}")
+      redirect_to admin_user_path(@user), notice: "Moderation action reversed."
     end
 
     # The tag toggles on the user page. The form always carries the whole set, so a
@@ -575,6 +634,7 @@ module Admin
       "update_email" => "users.email",
       "release_handle" => "users.handle",
       "warn" => "users.warn", "revoke_warning" => "users.warn",
+      "reverse" => "users.reverse",
       "add_note" => "users.notes", "pin_note" => "users.notes",
       "destroy_note" => "users.notes"
     }.freeze
@@ -625,7 +685,39 @@ module Admin
         }
       end
 
+      # A reversal is an event in the account's record in its own right, so it
+      # sits in the same stack, dated where it happened - and named as a
+      # reversal rather than as a delete of the sanction above it. The action it
+      # undid is still listed, unmodified, which is the whole point.
+      @user.moderation_reversals.includes(:actor).recent.limit(100).each do |reversal|
+        entries << {
+          tone: "reversed",
+          label: reversal.summary,
+          actor: reversal.actor, at: reversal.created_at,
+          detail: reversal.reason, state: "reversal ##{reversal.id}",
+          warning: nil, reversal: reversal
+        }
+      end
+
       entries.sort_by { |entry| entry[:at] || Time.current }.reverse
+    end
+
+    # The sanctions currently in force on this account, paired with who imposed
+    # each one and whether this operator is allowed to reverse it. The screen
+    # shows the barred ones too, with the reason, so the rule is visible rather
+    # than the control silently missing.
+    def reverse_options
+      ModerationReversal::SOURCES.keys.filter_map do |source|
+        target = reversal_target(source)
+        next if target.nil?
+
+        {
+          source: source,
+          label: ModerationReversal::SOURCES[source],
+          imposer: target[:imposer],
+          bar: ModerationReversal.bar_reason(target[:imposer], current_user, source)
+        }
+      end
     end
 
     # The action keys that count as moderation, with how each one reads in the
@@ -643,6 +735,56 @@ module Admin
       "users.followers" => { tone: "info", label: "Follower count changed" },
       "users.delete"   => { tone: "bad",  label: "Account deleted" }
     }.freeze
+
+    # What, if anything, the given kind of sanction currently has in force on
+    # this account, and who imposed it. Returns nil when there is nothing to
+    # reverse, so the caller never records a reversal of a sanction that is not
+    # there. A ban lives on the user row itself, so it has no source row and
+    # carries source_id 0; a warning has a row and an expiry that can be moved.
+    #
+    # Who imposed a ban or a suspension is read from the audit trail rather
+    # than a column on the account. The trail is already the record of who did
+    # what and it survives the state being cleared, so a reversal can still say
+    # whose decision it undid without a second place to keep the actor.
+    def reversal_target(source)
+      case source
+      when "ban"
+        return nil unless @user.is_banned
+
+        { imposer: sanction_imposer("users.ban"), source_id: 0, warning: nil }
+      when "suspension"
+        return nil unless @user.is_suspended
+
+        { imposer: sanction_imposer("users.suspend"), source_id: 0, warning: nil }
+      when "warning"
+        warning = @user.user_warnings.recent.find(&:active?)
+        return nil if warning.nil?
+
+        { imposer: warning.actor, source_id: warning.id, warning: warning }
+      end
+    end
+
+    # The operator behind the most recent entry for a sanction key. The account
+    # carries the current state, so the newest entry for a key that is still in
+    # force is the one that put it there.
+    def sanction_imposer(action_key)
+      AuditLog.where(action: action_key, target: "user:#{@user.id}").recent.first&.actor
+    end
+
+    # Carry the reversal out. Unlike the account-state toggles this is
+    # idempotent per sanction and never deletes anything: the ban fields are
+    # cleared as a consequence of the recorded decision, and a warning is
+    # expired rather than destroyed.
+    def apply_reversal(source, warning)
+      case source
+      when "ban"
+        @user.update!(is_banned: false, ban_reason: "", ban_permanent: false, ban_expires_at: nil)
+      when "suspension"
+        @user.update!(is_suspended: false)
+      when "warning"
+        warning.update!(expires_at: Time.current)
+      end
+    end
 
     # A warning's own status line: when it lapses, whether it has, or whether it
     # is still standing.

@@ -41,6 +41,51 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
     assert_match(%r{/settings\?panel=data}, response.location)
   end
 
+  # The 2019 rail carried a blue count on Notifications naming how much was
+  # unread, and the count agreed with the list the page renders.
+  test "the rail shows the unread notification count and clears it once read" do
+    me = create_user(username: "badge_me")
+    actor = create_user(username: "badge_act")
+    Notification.create!(user: me, actor: actor, kind: "mention", body: "hey")
+    Notification.create!(user: me, actor: actor, kind: "follow")
+    Notification.create!(user: me, actor: actor, kind: "like", is_read: true)
+
+    sign_in(me)
+
+    get home_path
+    assert_response :success
+    assert_match(/Notifications.*side-badge.*2/m, response.body, "rail did not show the unread count")
+
+    get notifications_path
+    assert_response :success
+
+    get home_path
+    assert_response :success
+    assert_no_match(/side-badge/, response.body, "count survived opening the list")
+  end
+
+  # A muted or blocked actor's notifications are filtered out of the list, so
+  # counting them would leave a badge that opening the page never clears.
+  test "the notification count ignores silenced actors" do
+    me = create_user(username: "badge_silent_me")
+    seen = create_user(username: "badge_see")
+    muted = create_user(username: "badge_mute")
+    blocked = create_user(username: "badge_blk")
+
+    me.mute!(muted)
+    Block.create!(blocker: me, blocked: blocked)
+
+    Notification.create!(user: me, actor: seen, kind: "mention", body: "seen")
+    Notification.create!(user: me, actor: muted, kind: "like")
+    Notification.create!(user: me, actor: blocked, kind: "retweet")
+
+    assert_equal 1, me.unread_notification_count
+
+    sign_in(me)
+    get home_path
+    assert_match(/side-badge[^>]*>\s*1\s*</, response.body, "rail counted silenced actors")
+  end
+
   test "pages with a rail render search, trends and suggestions" do
     me = create_user(username: "rail_me")
     other = create_user(username: "rail_other")

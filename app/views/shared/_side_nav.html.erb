@@ -15,8 +15,12 @@
       </a>
     </li>
     <li>
+      <% unread_notifications = current_user.unread_notification_count %>
       <a href="<%= notifications_path %>" class="side-link <%= 'is-active' if controller_name == 'notifications' %>">
         <%= icon('bell') %><span class="side-label">Notifications</span>
+        <% if unread_notifications.positive? %>
+          <span class="side-badge"><%= unread_notifications > 99 ? "99+" : unread_notifications %></span>
+        <% end %>
       </a>
     </li>
     <li>

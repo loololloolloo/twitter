@@ -78,6 +78,19 @@ Checked against the 2019 client and left alone, so a later run does not
   the **account switcher** sits at the foot; 2019 put it at the very bottom as a
   wide button with the avatar, display name, handle and an overflow. Confirm the
   markup matches rather than approximating it.
+* **Notifications unread badge — fixed.** Was: the rail had a `.side-badge`
+  pill, but only Follow requests ever rendered one; Notifications carried no
+  count. 2019: a blue count sat on the Notifications item naming how much was
+  unread, clearing when the list was opened. Now:
+  `User#unread_notification_count` backs the badge in `shared/_side_nav.html.erb`,
+  the count is capped at "99+" and matches the list the page actually renders
+  (notifications from blocked or muted actors are excluded, because the
+  controller drops them from the list). Under 1100px the pill floats on the
+  icon's corner instead of being pushed off the row by `margin-left: auto`.
+  While fixing this, the "New" chip was also made to render: the controller
+  loaded `@items` as a lazy relation, so the read-marking ran the query first
+  and every row already read as read. Asserted in
+  `test/integration/shell_layout_test.rb`.
 
 ### Composer
 * 2019's composer placeholder was "What's happening?" and the toolbar showed

@@ -18,7 +18,10 @@ class NotificationsController < ApplicationController
 
     scope = scope.where(kind: "mention") if @tab == "mentions"
 
-    @items = scope.limit(200)
+    # Loaded before the read-marking below: the relation is lazy, so leaving it
+    # unloaded would run the query after every row was already read and the
+    # "New" chip on the items the reader just opened would never show.
+    @items = scope.limit(200).to_a
 
     # Opening the list marks everything read, matching the classic client
     # where the badge cleared once you looked at the tab.

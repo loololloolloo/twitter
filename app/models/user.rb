@@ -260,6 +260,18 @@ class User < ApplicationRecord
     tweets.where(is_deleted: false).not_scheduled.count
   end
 
+  # The unread badge on the Notifications rail item. It has to agree with the
+  # list the page actually renders: a notification whose actor is muted or
+  # blocked is dropped from that list, so counting it here would leave a badge
+  # that opening the page never clears.
+  def unread_notification_count
+    scope = notifications.unread
+    silenced = silenced_account_ids
+    return scope.count if silenced.empty?
+
+    scope.where("actor_id IS NULL OR actor_id NOT IN (?)", silenced).count
+  end
+
   # Every like and favourite the account's posts have received, including any
   # administrator-granted padding on those posts. This is a total of what the
   # account's posts earned, not a count of the reactions the account itself

@@ -174,6 +174,9 @@ Rails.application.routes.draw do
 
     get  "permissions", to: "permissions#index", as: :permissions
     post "permissions", to: "permissions#update"
+    # Role and permission edits get their own review surface, because they are
+    # what grants every other capability in the panel. Read-only, so a GET.
+    get "permissions/review", to: "permission_changes#index", as: :permission_changes
 
     get  "settings", to: "settings#edit",   as: :settings
     post "settings", to: "settings#update"

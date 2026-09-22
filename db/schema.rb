@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_140800) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -272,6 +272,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_140000) do
     t.index ["tweet_id"], name: "index_notifications_on_tweet_id"
     t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
+  create_table "permission_changes", force: :cascade do |t|
+    t.integer "actor_id"
+    t.text "after_keys", default: "[]", null: false
+    t.text "before_keys", default: "[]", null: false
+    t.datetime "created_at", null: false
+    t.text "note", default: "", null: false
+    t.integer "role_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_permission_changes_on_created_at"
+    t.index ["role_id"], name: "index_permission_changes_on_role_id"
   end
 
   create_table "permissions", force: :cascade do |t|

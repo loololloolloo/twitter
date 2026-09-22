@@ -1,6 +1,13 @@
 <h1 class="admin-title">Roles &amp; permissions</h1>
 <p class="admin-sub">Toggle which permissions each role holds. The owner role always holds every permission.</p>
 
+<%# The edits on this screen are the most sensitive change the panel makes, so
+    the link to their review sits above the form rather than at the bottom. %>
+<p class="section-note">
+  Every save that moves a capability is recorded with its before/after diff.
+  <a href="<%= admin_permission_changes_path %>">Review permission changes</a>.
+</p>
+
 <div class="perm-grid">
   <% @roles.each do |role| %>
     <div class="panel perm-panel">
@@ -23,6 +30,7 @@
               <span><%= permission.label %> <code><%= permission.key %></code></span>
             </label>
           <% end %>
+          <input type="text" name="note" placeholder="Optional note for the change review">
           <button class="btn btn-primary" type="submit">Save <%= role.name %></button>
         <% end %>
       <% end %>

@@ -8,6 +8,7 @@ module RoleBootstrapper
       admin.access users.view users.suspend users.ban users.delete users.verify
       users.followers users.email users.handle users.tags users.warn users.notes users.bulk
       users.templates users.reverse
+      permissions.review
       tweets.view tweets.delete tweets.pin reports.view
       reports.resolve reports.views appeals.view appeals.decide
       cases.view cases.open cases.link cases.decide

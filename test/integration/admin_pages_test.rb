@@ -9,6 +9,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin
     /admin/users
     /admin/permissions
+    /admin/permissions/review
     /admin/settings
     /admin/blocked-terms
     /admin/enforcement-templates

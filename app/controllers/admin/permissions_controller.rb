@@ -10,6 +10,7 @@ module Admin
       @matrix = Role.includes(:permissions).each_with_object({}) do |role, hash|
         hash[role.id] = role.permissions.map(&:key).to_set
       end
+      @recent_changes = PermissionChange.includes(:role, :actor).recent.limit(8)
     end
 
     def update
@@ -30,11 +31,27 @@ module Admin
       end
 
       granted = Array(params[:permissions]).map(&:to_s) & Permission::KEYS.keys
+      before = role.permission_keys
       role.permission_ids = Permission.where(key: granted).pluck(:id)
 
-      audit!("users.permissions", target: "role:#{role.id}",
-                                  detail: "set #{granted.size} permissions")
-      redirect_to admin_permissions_path, notice: "#{role.name} permissions updated."
+      # The audit trail records that the set was saved; this row records what
+      # the save moved, so the review surface can show the capability diff. A
+      # save that changes nothing writes no row and is still audited.
+      change = PermissionChange.record(
+        role: role, actor: current_user, before: before,
+        after: role.permission_keys, note: params[:note]
+      )
+
+      detail = "set #{granted.size} permissions"
+      detail += "; +#{change.added.size}/-#{change.removed.size} (#{change.summary})" if change
+      audit!("users.permissions", target: "role:#{role.id}", detail: detail)
+
+      if change
+        redirect_to admin_permissions_path,
+                    notice: "#{role.name} permissions updated: #{change.summary}."
+      else
+        redirect_to admin_permissions_path, notice: "#{role.name} permissions unchanged."
+      end
     end
   end
 end

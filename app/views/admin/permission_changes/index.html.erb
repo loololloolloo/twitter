@@ -1,0 +1,63 @@
+<div class="page-head">
+  <div>
+    <h1>Permission change review</h1>
+    <p class="page-note">
+      Every role edit that moved a capability, newest first. The audit log records
+      that a save happened; this screen shows which grants were gained and lost,
+      because that diff is what changes what the role can do.
+    </p>
+  </div>
+  <a class="btn" href="<%= admin_permissions_path %>">Edit roles</a>
+</div>
+
+<form class="filter-bar" method="get">
+  <select name="role_id">
+    <option value="">All roles</option>
+    <% @roles.each do |role| %>
+      <option value="<%= role.id %>" <%= 'selected' if @filter_role_id == role.id.to_s %>><%= role.name %></option>
+    <% end %>
+  </select>
+  <button class="btn btn-primary" type="submit">Filter</button>
+</form>
+
+<% if @changes.present? %>
+  <% @changes.each do |change| %>
+    <div class="panel">
+      <h3 class="panel-title">
+        <%= change.role.name %>
+        <span class="muted">&mdash; <%= time_ago(change.created_at) %> by
+          <%= change.actor ? "@#{change.actor.username}" : "unknown" %></span>
+      </h3>
+
+      <%# The two sides of the diff are the point. A reviewer should not have to
+          hold the previous set in their head to see what the edit granted. %>
+      <div class="tag-row">
+        <% change.added.each do |key| %>
+          <span class="tag tag-limit">+ <%= key %></span>
+        <% end %>
+        <% change.removed.each do |key| %>
+          <span class="tag tag-alert">&minus; <%= key %></span>
+        <% end %>
+      </div>
+
+      <table class="data-table">
+        <thead><tr><th>Capability</th><th>Before</th><th>After</th></tr></thead>
+        <tbody>
+          <% (change.added + change.removed).sort.each do |key| %>
+            <tr>
+              <td><%= Permission::KEYS[key] || key %> <code><%= key %></code></td>
+              <td><%= change.before.include?(key) ? "held" : "not held" %></td>
+              <td><%= change.after.include?(key) ? "held" : "not held" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+      <% if change.note.present? %>
+        <p class="panel-note">Note: <%= change.note %></p>
+      <% end %>
+    </div>
+  <% end %>
+<% else %>
+  <div class="panel"><p class="muted">No permission changes recorded yet.</p></div>
+<% end %>

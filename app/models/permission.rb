@@ -28,6 +28,11 @@ class Permission < ApplicationRecord
     "users.templates"    => "Manage enforcement templates (macros)",
     "users.notes"        => "Keep internal notes on a user",
     "users.permissions"  => "Edit role permissions",
+    # Reviewing the history of role and permission edits. Holders of
+    # users.permissions make the edits; this grant is the read surface that
+    # shows what each edit granted or removed, so a change review is a distinct
+    # duty from making the change.
+    "permissions.review" => "Review role and permission change history",
     "users.impersonate"  => "Log in as another user",
     "tweets.view"        => "View all tweets",
     "tweets.delete"      => "Delete any tweet",

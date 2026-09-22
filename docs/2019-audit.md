@@ -58,14 +58,19 @@ Checked against the 2019 client and left alone, so a later run does not
 ## Open
 
 ### Right rail
-* The search box is a separate card above the trend card. 2019 kept it as a
-  sticky search bar pinned to the top of the rail column, spanning the column
-  width, so it stayed visible while the column scrolled. Worth checking whether
-  the current rail scrolls independently.
+* **Search bar — fixed.** Was: the search box was wrapped in `.rail-card` like
+  every other rail module, so it read as one more card in the stack.
+  2019: a bare sticky bar pinned to the top of the rail column, spanning the
+  column width, visible while the column scrolled, sitting outside the trend
+  card. Now: `.rail-search` is its own element (no `.rail-card`), `position:
+  sticky; top: var(--header-h)` so it pins under the page's sticky headers, with
+  the search field itself on a card-coloured pill. Asserted in
+  `test/integration/shell_layout_test.rb`.
 * 2019 grouped "What's happening" trends in the sidebar with a "Show more" link
   to `/explore`; the trend rows carried a category label ("Trending in
   Technology") when a location or category was known. This build has no
-  category field, so trends show the tag alone.
+  category field, so trends show the tag alone. The "What's happening" heading
+  and the "Show more" link to `/explore` are both present and correct.
 
 ### Sidebar
 * 2019 ordered the rail: Home, Explore, Notifications, Messages, Bookmarks,

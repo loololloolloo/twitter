@@ -6,7 +6,11 @@
 <% people = local_assigns.fetch(:suggestions, nil) || @suggestions %>
 <% trends_heading = local_assigns.fetch(:trends_title, "Trends for you") %>
 
-<div class="rail-card rail-search">
+<%# 2019 pinned the rail search to the top of the column as a bare sticky bar.
+    Wrapping it in a card, as this did, made it read as one more module in the
+    stack rather than as the column's own search, so it is deliberately not
+    `.rail-card` here. %>
+<div class="rail-search">
   <form class="rail-search-form" action="<%= explore_path %>" method="get" role="search">
     <%= icon('magnifying-glass') %>
     <input type="text" name="q" placeholder="Search Twitter" value="<%= params[:q] %>" aria-label="Search Twitter">

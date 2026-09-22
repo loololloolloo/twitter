@@ -408,10 +408,16 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
 .rail-more { display: block; margin-top: 10px; color: var(--blue); font-size: 15px; }
 .rail-more:hover { text-decoration: none; color: var(--blue-dark); }
 
-.rail-search { padding: 0; background: transparent; border: 0; margin-bottom: 16px; }
+/* The rail search is a bare sticky bar at the top of the column, not one of the
+   rounded cards: 2019 kept it pinned and separate from the trends module. The
+   bar stays under the page's sticky headers at the top of the rail column. */
+.rail-search {
+  position: sticky; top: var(--header-h); z-index: 10;
+  background: var(--bg); padding: 16px 0 8px;
+}
 .rail-search-form {
   display: flex; align-items: center; gap: 10px;
-  background: var(--bg); border: 1px solid transparent; border-radius: 999px;
+  background: var(--card); border: 1px solid var(--xlight-gray); border-radius: 999px;
   padding: 10px 16px;
 }
 .rail-search-form .ico { width: 18px; height: 18px; opacity: .5; flex-shrink: 0; }

@@ -56,6 +56,36 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # 2019 kept the rail search as a bare bar pinned to the top of the column,
+  # separate from the trends card that sat beneath it. Rendering it as a card
+  # made it read as one more module in the stack rather than as the column's
+  # own search, so the structure is asserted rather than left to drift.
+  test "the rail search is a bare sticky bar, not a card" do
+    me = create_user(username: "railsearchme")
+    # A trend needs three distinct authors, so the trends card the search sits
+    # above actually renders and the two structures can be told apart.
+    %w[rafirst rasecond rathird].each do |handle|
+      Tweet.create!(user: create_user(username: handle), body: "talking about #railtrend")
+    end
+    Rails.cache.clear
+
+    sign_in(me)
+    get home_path
+    assert_response :success
+
+    rail = response.body[/<div class="rail-search">.*?<\/div>/m]
+    assert_not_nil rail, "home is missing the rail search"
+    assert_no_match(/rail-card/, rail, "the rail search is still wrapped in a card")
+    # The trends module is what the card styling is for; it must survive.
+    assert_includes response.body, %(<h2 class="rail-title">What's happening</h2>)
+
+    # A card sits inline in the rail stack; a sticky bar pins to the top of the
+    # column so it stays reachable while the rail scrolls.
+    css = Rails.root.join("app/assets/stylesheets/twitter.css").read
+    assert_match(/\.rail-search\s*\{[^}]*position:\s*sticky/, css)
+    assert_match(/\.rail-search\s*\{[^}]*top:\s*var\(--header-h\)/, css)
+  end
+
   test "the admin panel keeps its own sidebar layout" do
     owner = create_user(username: "shell_admin", role: "owner")
     sign_in(owner)

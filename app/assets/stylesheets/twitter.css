@@ -1655,6 +1655,14 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 .stream-head-toggle .ico { width: 18px; height: 18px; opacity: 1; }
 .stream-head-toggle:hover { background: rgba(29,161,242,.1); text-decoration: none; }
 
+/* An icon-only control in a stream header, at the opposite edge from the
+   title. Used by the notifications gear, which is a round target rather than
+   the labelled pill the home header uses. */
+.head-icon {
+  margin-left: auto; width: 38px; height: 38px; padding: 0;
+  border-radius: 50%; justify-content: center;
+}
+
 /* The circular back target, as on the profile and conversation headers. */
 .head-back {
   display: flex; align-items: center; justify-content: center;

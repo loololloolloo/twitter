@@ -199,4 +199,16 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "show=top"
     assert_not_includes response.body, 'href="/home?show=latest"'
   end
+
+  # The 2019 notifications header carried a gear at the right edge that opened
+  # the notifications panel of Settings, not a page of its own. It is the only
+  # way into that panel from the stream, so the link has to survive.
+  test "the notifications header links to the notification settings panel" do
+    me = create_user(username: "gear_me")
+    sign_in(me)
+
+    get notifications_path
+    assert_response :success
+    assert_select "a.head-icon[href=?]", settings_path(panel: "notifications")
+  end
 end

@@ -116,5 +116,14 @@ Checked against the 2019 client and left alone, so a later run does not
 
 ### Explore
 * 2019's Explore screen had tabs: **For you, Trending, News, Sports,
-  Entertainment**. This build renders a single stream. The tabs are the largest
-  remaining structural difference on that screen.
+  Entertainment**. This build now renders them: `TimelinesController#explore`
+  switches the landing sections on `tab` and the search result tabs on the
+  presence of `q`, and the view renders only one strip at a time
+  (`test/integration/explore_tabs_test.rb`). Verified against the rendered
+  page - the earlier "single stream" note is stale.
+
+### Notifications
+* 2019 gave the notifications header a settings gear at the right edge, which
+  opened the notification panel of Settings rather than a page of its own.
+  Added as `a.head-icon` linking to `settings_path(panel: "notifications")`
+  (`test/integration/shell_layout_test.rb`).

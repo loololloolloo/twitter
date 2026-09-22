@@ -4,6 +4,13 @@
       <div class="stream-head-title">
         <h1>Notifications</h1>
       </div>
+      <%# 2019 put a settings gear at the right edge of the notifications
+          header, opening the notification panel of Settings rather than a
+          page of its own. %>
+      <a class="stream-head-toggle head-icon" href="<%= settings_path(panel: 'notifications') %>"
+         title="Notification settings" aria-label="Notification settings">
+        <%= icon('gear') %>
+      </a>
     </div>
 
     <%# The All / Mentions split, as the 2019 client had it. Both are filters

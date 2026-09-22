@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_000005) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_130000) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -49,11 +49,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_000005) do
   create_table "audit_logs", force: :cascade do |t|
     t.string "action", null: false
     t.integer "actor_id"
+    t.string "chain_hash", default: "", null: false
     t.datetime "created_at", null: false
     t.text "detail", default: "", null: false
+    t.string "prev_hash", default: "", null: false
+    t.integer "seq"
     t.string "target", default: "", null: false
     t.datetime "updated_at", null: false
     t.index ["actor_id"], name: "index_audit_logs_on_actor_id"
+    t.index ["seq"], name: "index_audit_logs_on_seq", unique: true
   end
 
   create_table "blocked_terms", force: :cascade do |t|

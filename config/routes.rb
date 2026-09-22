@@ -227,6 +227,8 @@ Rails.application.routes.draw do
 
     get "audit",  to: "audit#index",   as: :audit
     get "audit/export", to: "audit#export", as: :audit_export
+    # Tamper-evidence for the trail itself. Read-only, so a GET.
+    get "audit/verify", to: "audit#verify", as: :audit_verify
     get "backup", to: "backup#export", as: :backup
     # Insights is read-only analytics over the existing tables, so it needs no
     # confirmation and destroys nothing.

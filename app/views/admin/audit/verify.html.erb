@@ -1,0 +1,95 @@
+<div class="page-head">
+  <div>
+    <h1>Audit integrity</h1>
+    <p class="page-note">
+      Every audit entry commits to the one before it, so changing or removing an
+      entry in the middle of the log leaves a trail that no longer adds up. This
+      screen re-walks that chain and reports whether it still holds.
+    </p>
+  </div>
+  <a class="btn" href="<%= admin_audit_path %>">Back to the audit log</a>
+</div>
+
+<% if @result[:intact] %>
+  <div class="panel">
+    <h2 class="panel-title">Chain intact <span class="pill pill-ok">verified</span></h2>
+    <p class="panel-note">
+      All <%= @result[:length] %> sealed entr<%= @result[:length] == 1 ? "y" : "ies" %> match the digest they
+      recorded, and each names the entry before it. Nothing has been altered
+      since it was written.
+    </p>
+  </div>
+<% else %>
+  <div class="caution">
+    <p class="caution-text">
+      Chain broken at <%= pluralize(@result[:broken].size, "entry", "entries") %>
+    </p>
+    <p class="caution-sub">
+      An entry below no longer matches the digest it recorded, or the entry
+      before it is missing. Treat every action after the break as needing
+      independent confirmation.
+    </p>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr><th class="id">Seq</th><th>When</th><th>Actor</th><th>Action</th><th>What is wrong</th></tr>
+    </thead>
+    <tbody>
+      <% @result[:broken].each do |finding| %>
+        <% entry = finding[:entry] %>
+        <tr>
+          <td class="id"><%= entry.seq %></td>
+          <td class="muted"><%= time_ago(entry.created_at) %></td>
+          <td><%= entry.actor ? "@#{entry.actor.username}" : "system" %></td>
+          <td><code><%= entry.action %></code></td>
+          <td><%= finding[:problems].join("; ") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<h2 class="section-title">Chain coverage</h2>
+<div class="stat-grid">
+  <div class="stat">
+    <span class="stat-num"><%= @result[:length] %></span>
+    <span class="stat-label">Sealed entries</span>
+  </div>
+  <div class="stat <%= 'warn' if @result[:unhashed].positive? %>">
+    <span class="stat-num"><%= @result[:unhashed] %></span>
+    <span class="stat-label">Unsealed entries</span>
+  </div>
+  <div class="stat <%= 'warn' unless @result[:intact] %>">
+    <span class="stat-num"><%= @result[:broken].size %></span>
+    <span class="stat-label">Entries failing the check</span>
+  </div>
+</div>
+
+<% if @result[:unhashed].positive? %>
+  <p class="muted">
+    Unsealed entries were written before the chain existed and carry no digest.
+    They are reported rather than counted as broken, because there is nothing to
+    compare them against.
+  </p>
+<% end %>
+
+<h2 class="section-title">Most recent sealed entries</h2>
+<table class="data-table">
+  <thead><tr><th class="id">Seq</th><th>When</th><th>Actor</th><th>Action</th><th>Digest</th></tr></thead>
+  <tbody>
+    <% if @latest.any? %>
+      <% @latest.each do |entry| %>
+        <tr>
+          <td class="id"><%= entry.seq %></td>
+          <td class="muted"><%= time_ago(entry.created_at) %></td>
+          <td><%= entry.actor ? "@#{entry.actor.username}" : "system" %></td>
+          <td><code><%= entry.action %></code></td>
+          <td class="muted"><code><%= entry.chain_hash.first(16) %>&hellip;</code></td>
+        </tr>
+      <% end %>
+    <% else %>
+      <tr><td colspan="5" class="muted">Nothing has been sealed yet.</td></tr>
+    <% end %>
+  </tbody>
+</table>

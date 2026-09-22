@@ -1,0 +1,96 @@
+<div class="page-head">
+  <div>
+    <h1>Approvals</h1>
+    <p class="page-note">
+      The highest-impact actions do not take effect when an operator picks them.
+      They are filed here as a request and only land once a <em>different</em>
+      operator approves. Permanent suspension, email change and handle release
+      are gated; a timed suspension is not.
+    </p>
+  </div>
+</div>
+
+<nav class="state-tabs">
+  <% (ApprovalRequest::STATES + ["all"]).each do |state| %>
+    <a class="state-tab <%= 'active' if @state == state %>"
+       href="<%= admin_approvals_path(state: state) %>">
+      <%= state == "all" ? "All" : state.capitalize %>
+      <span class="state-count"><%= state == "all" ? @all_count : @counts[state] %></span>
+    </a>
+  <% end %>
+</nav>
+
+<% if @requests.present? %>
+  <% @requests.each do |request| %>
+    <article class="report-item">
+      <div class="report-main">
+        <div class="report-who">
+          <%= pic(request.user.avatar_path, 32) %>
+          <span class="report-subject">@<%= request.user.username %></span>
+          <span class="tag <%= request.pending? ? 'tag-info' : 'tag-quiet' %>">
+            <%= request.action_label %>
+          </span>
+          <span class="report-when"><%= time_ago(request.created_at) %></span>
+        </div>
+
+        <p class="report-detail">
+          Filed by
+          <strong><%= request.requested_by ? "@#{request.requested_by.username}" : "system" %></strong>
+          to <%= request.change_summary %>.
+        </p>
+
+        <%# The consequence is stated on the card so the second operator decides
+            on the effect, not on a bare action name. %>
+        <p class="report-detail muted">Approving will: <%= request.impact %></p>
+
+        <% if request.request_note.present? %>
+          <blockquote class="report-quote"><%= request.request_note %></blockquote>
+        <% end %>
+      </div>
+
+      <div class="report-side">
+        <% if request.pending? %>
+          <% if request.barred_for?(current_user) %>
+            <div class="caution">
+              <p class="caution-text">You cannot decide this request</p>
+              <p class="caution-sub"><%= request.bar_reason(current_user) %></p>
+            </div>
+          <% elsif can?('approvals.decide') %>
+            <%= form_with url: admin_approval_decide_path(request), method: :post, class: "stack" do %>
+              <label>Outcome
+                <select name="decision">
+                  <% ApprovalRequest::DECISIONS.each do |key, label| %>
+                    <option value="<%= key %>"><%= label %></option>
+                  <% end %>
+                </select>
+              </label>
+              <label>Note
+                <input type="text" name="note" placeholder="Required to reject">
+              </label>
+              <div class="action-row">
+                <button class="btn btn-primary" type="submit">Record decision</button>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="muted">You cannot decide approval requests.</p>
+          <% end %>
+        <% else %>
+          <p>
+            <span class="pill <%= request.state == 'approved' ? 'pill-ok' : 'pill-bad' %>">
+              <%= request.state.capitalize %>
+            </span>
+          </p>
+          <p class="muted">
+            by <%= request.decided_by ? "@#{request.decided_by.username}" : "system" %>
+            <%= time_ago(request.decided_at) %>
+          </p>
+          <% if request.decision_note.present? %>
+            <p class="report-detail"><%= request.decision_note %></p>
+          <% end %>
+        <% end %>
+      </div>
+    </article>
+  <% end %>
+<% else %>
+  <p class="muted">Nothing in this queue.</p>
+<% end %>

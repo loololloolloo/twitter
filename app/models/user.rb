@@ -53,6 +53,11 @@ class User < ApplicationRecord
   # account, so deleting it takes them.
   has_many :verification_requests, dependent: :destroy
 
+  # Four-eyes approval requests about this account. They belong to the account,
+  # so deleting it takes them; the operators are not foreign keys and read back
+  # as history.
+  has_many :approval_requests, dependent: :destroy
+
   # Follow requests this account has made, and the ones waiting on it.
   has_many :sent_follow_requests, class_name: "FollowRequest", foreign_key: :requester_id,
            dependent: :destroy, inverse_of: :requester

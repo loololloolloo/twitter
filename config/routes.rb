@@ -145,6 +145,9 @@ Rails.application.routes.draw do
     post   "users/:id/verified",  to: "users#toggle_verified", as: :user_verified
     post   "users/:id/followers", to: "users#set_followers",   as: :user_followers
     post   "users/:id/email",     to: "users#update_email",    as: :user_email
+    # Releasing a handle is filed as a four-eyes request; the route exists so
+    # the operator can propose the new name from the account record.
+    post   "users/:id/handle",    to: "users#release_handle",  as: :user_handle
     post   "users/:id/tags",      to: "users#update_tags",     as: :user_tags
     post   "users/:id/warn",      to: "users#warn",            as: :user_warn
     post   "users/:id/warnings/:warning_id/revoke",
@@ -186,6 +189,11 @@ Rails.application.routes.draw do
     # a POST; the queue itself is read-only.
     get  "verification",             to: "verification#index",  as: :verification
     post "verification/:id/decide",  to: "verification#decide", as: :verification_decide
+
+    # Four-eyes approvals. The highest-impact actions are filed here instead of
+    # taking effect, and only a different operator can approve them.
+    get  "approvals",               to: "approvals#index",  as: :approvals
+    post "approvals/:id/decide",    to: "approvals#decide", as: :approval_decide
 
     # Cases. Opening, linking and deciding are each a POST because each one
     # changes what the queue means for the reports involved.

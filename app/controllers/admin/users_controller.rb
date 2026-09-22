@@ -3,15 +3,18 @@ module Admin
     before_action :require_permission_for_action
     before_action :load_user, only: [ :show, :ban, :unban, :suspend, :destroy,
                                        :update_role, :toggle_verified, :set_followers,
-                                       :update_email, :update_tags, :impersonate,
+                                       :update_email, :release_handle, :update_tags, :impersonate,
                                        :warn, :revoke_warning,
                                        :add_note, :pin_note, :destroy_note ]
     # Every action that writes to the target account has to clear the owner
     # check. `show` is not in this list: the owner account is still viewable,
-    # it just has nothing on it that can change it.
+    # it just has nothing on it that can change it. Filing an approval request
+    # is a write to the request queue rather than the account, and the account
+    # it names cannot be one the operator is barred from managing.
     before_action :require_may_manage!, only: [ :ban, :unban, :suspend, :destroy,
                                                 :update_role, :toggle_verified,
                                                 :set_followers, :update_email,
+                                                :release_handle,
                                                 :update_tags, :impersonate,
                                                 :warn, :revoke_warning,
                                                 :add_note, :pin_note, :destroy_note ]
@@ -65,6 +68,12 @@ module Admin
       @warning_choices = warning_duration_choices
       @moderation_history = moderation_history
       @notes = @user.staff_notes.includes(:author).ordered
+      @approvals = @user.approval_requests.includes(:requested_by, :decided_by).recent.limit(20)
+      @pending_approvals = @user.approval_requests.pending.to_a
+      # Keyed by action so the controls below can show which of them already
+      # has a request waiting. The model refuses a second one, so the screen
+      # has to be able to say why the form is not the way forward this time.
+      @pending_approval_by_action = @pending_approvals.index_by(&:action_key)
     end
 
     # Leave an internal note on an account. The note is read-only context for
@@ -295,16 +304,29 @@ module Admin
 
       expires = ban_expiry(params[:duration].presence || "permanent")
 
+      # A permanent ban is the highest-impact sanction the panel can impose -
+      # it is what the ban-evasion and sockpuppet investigations end in - so it
+      # needs a second operator. A timed ban stays a single-operator action.
+      # The reason is filed with the request rather than written to the account,
+      # because nothing about the account changes until the request is approved.
+      if expires.nil?
+        return request_approval(
+          action_key: "permanent_ban",
+          detail: "permanent ban: #{reason}",
+          reason: reason
+        )
+      end
+
       @user.update!(
         is_banned: true,
         ban_reason: reason,
-        ban_permanent: expires.nil?,
+        ban_permanent: false,
         ban_expires_at: expires
       )
 
       # A banned account keeps its session so the ban screen can explain the
       # ban and offer a log out; the ban gate blocks everything else.
-      label = expires ? humanize_until(expires) : "permanent"
+      label = humanize_until(expires)
       audit!("users.ban", target: "user:#{@user.id}", detail: "banned for #{label}: #{reason}")
       redirect_to admin_user_path(@user), notice: "User banned (#{label})."
     end
@@ -405,9 +427,82 @@ module Admin
         return redirect_to(admin_user_path(@user), alert: "That email address is already in use.")
       end
 
-      @user.update!(email: email)
-      audit!("users.email", target: "user:#{@user.id}", detail: "set email to #{email}")
-      redirect_to admin_user_path(@user), notice: "Email updated."
+      # The registered email is the sign-in identifier and the address every
+      # account recovery flows through, so rewriting it is a four-eyes action.
+      # The change is proposed here and only lands when a different operator
+      # approves it. The form carries no reason field, so the proposal states
+      # its own justification rather than refusing the operator.
+      email_reason = params[:reason].to_s.strip
+      email_reason = "email change requested from the account record" if email_reason.blank?
+
+      request_approval(
+        action_key: "email_change",
+        detail: "email #{@user.email} -> #{email}",
+        payload: { email: email },
+        reason: email_reason
+      )
+    end
+
+    # File an approval request for one of the four-eyes actions. The request is
+    # what shows on the account and on the approvals queue; nothing about the
+    # account changes until a different operator approves it.
+    #
+    # The reason is recorded on the request rather than only in the audit trail,
+    # so the approver reads why without decoding an action key. A duplicate
+    # pending request for the same action is refused: two open requests for the
+    # same change would let two approvals produce two divergent outcomes.
+    def request_approval(action_key:, detail:, reason: nil, payload: {})
+      reason = reason.nil? ? params[:reason].to_s.strip : reason.to_s.strip
+
+      action = ApprovalRequest::ACTIONS[action_key]
+      unless action
+        return redirect_to admin_user_path(@user), alert: "Unknown approval action."
+      end
+
+      if reason.blank?
+        return redirect_to admin_user_path(@user),
+                           alert: "A reason is required to file a #{action.label.downcase} request."
+      end
+
+      if ApprovalRequest.exists?(user_id: @user.id, action_key: action_key, state: "pending")
+        return redirect_to admin_user_path(@user),
+                           alert: "A #{action.label.downcase} request is already pending for @#{@user.username}."
+      end
+
+      request = ApprovalRequest.create!(
+        user: @user,
+        requested_by: current_user,
+        action_key: action_key,
+        request_note: reason,
+        payload: payload.merge(reason: reason).to_json
+      )
+
+      audit!("approvals.request", target: "user:#{@user.id}",
+                                  detail: "filed #{action_key} (request ##{request.id}): #{detail}")
+      redirect_to admin_user_path(@user),
+                  notice: "#{action.label} filed for approval. A different operator must approve it."
+    end
+
+    # Release an account's handle and claim a new one. A handle is the account's
+    # public identity and a released one can be claimed by someone else, so this
+    # is a four-eyes action like the other irreversible ones. The chosen handle
+    # travels in the request payload; approving it is what actually renames the
+    # account.
+    def release_handle
+      handle = params[:handle].to_s.strip
+      taken = User.where.not(id: @user.id).where("username = ? COLLATE NOCASE", handle).exists?
+
+      if handle.blank? || taken
+        return redirect_to(admin_user_path(@user),
+                           alert: "Choose an available handle for @#{@user.username}.")
+      end
+
+      request_approval(
+        action_key: "handle_release",
+        detail: "release @#{@user.username} as @#{handle}",
+        payload: { handle: handle },
+        reason: "handle release requested from the account record"
+      )
     end
 
     def destroy
@@ -442,6 +537,7 @@ module Admin
       "ban" => "users.ban", "unban" => "users.ban",
       "set_followers" => "users.followers",
       "update_email" => "users.email",
+      "release_handle" => "users.handle",
       "warn" => "users.warn", "revoke_warning" => "users.warn",
       "add_note" => "users.notes", "pin_note" => "users.notes",
       "destroy_note" => "users.notes"
@@ -507,6 +603,7 @@ module Admin
       "users.verify"   => { tone: "info", label: "Verified badge changed" },
       "users.tags"     => { tone: "info", label: "Account tags changed" },
       "users.email"    => { tone: "info", label: "Email changed" },
+      "users.handle"   => { tone: "info", label: "Handle released" },
       "users.followers" => { tone: "info", label: "Follower count changed" },
       "users.delete"   => { tone: "bad",  label: "Account deleted" }
     }.freeze

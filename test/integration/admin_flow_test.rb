@@ -139,12 +139,22 @@ class AdminFlowTest < ActionDispatch::IntegrationTest
     assert_nil target.ban_expires_at
   end
 
-  test "a permanent ban has no expiry" do
+  test "a permanent ban is filed for a second operator and lands with no expiry" do
     admin = create_user(username: "boss", role: "admin")
+    approver = create_user(username: "watch", role: "owner")
     target = create_user(username: "troll")
 
     sign_in(admin)
     post admin_user_ban_path(target), params: { reason: "Spam", duration: "permanent" }
+
+    # The highest-impact sanction does not take effect on the filer's click: it
+    # waits for a different operator, and the account is untouched until then.
+    request = ApprovalRequest.find_by!(user: target, action_key: "permanent_ban")
+    assert request.pending?
+    refute target.reload.is_banned
+
+    sign_in(approver)
+    post admin_approval_decide_path(request), params: { decision: "approved" }
 
     target.reload
     assert target.is_banned

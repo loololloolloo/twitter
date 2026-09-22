@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_000002) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -26,6 +26,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_000001) do
     t.index ["state", "created_at"], name: "index_appeals_on_state_and_created_at"
     t.index ["state"], name: "index_appeals_on_state"
     t.index ["user_id"], name: "index_appeals_on_user_id"
+  end
+
+  create_table "approval_requests", force: :cascade do |t|
+    t.string "action_key", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "decided_at"
+    t.integer "decided_by_id"
+    t.text "decision_note", default: "", null: false
+    t.text "payload", default: "{}", null: false
+    t.text "request_note", default: "", null: false
+    t.integer "requested_by_id"
+    t.string "state", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["action_key"], name: "index_approval_requests_on_action_key"
+    t.index ["state", "created_at"], name: "index_approval_requests_on_state_and_created_at"
+    t.index ["state"], name: "index_approval_requests_on_state"
+    t.index ["user_id"], name: "index_approval_requests_on_user_id"
   end
 
   create_table "audit_logs", force: :cascade do |t|
@@ -408,6 +426,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_000001) do
     t.index ["user_id"], name: "index_verification_requests_on_user_id"
   end
 
+  add_foreign_key "approval_requests", "users"
   add_foreign_key "audit_logs", "users", column: "actor_id"
   add_foreign_key "blocks", "users", column: "blocked_id"
   add_foreign_key "blocks", "users", column: "blocker_id"

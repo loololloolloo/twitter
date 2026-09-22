@@ -101,16 +101,64 @@
     <% end %>
 
     <% if can?('users.email') %>
-      <%= form_with url: admin_user_email_path(@user), method: :post, class: "stack" do %>
-        <label>Add Email
-          <input type="email" name="email" required
-                 placeholder="name@example.com" value="<%= @user.email %>">
-        </label>
-        <button class="btn btn-primary" type="submit">Add Email</button>
+      <% if (pending = @pending_approval_by_action['email_change']) %>
+        <%# The email is the sign-in identifier, so a change is filed rather
+            than written. While one waits the form would file a second request
+            the model refuses, so the panel states the pending change instead. %>
+        <div class="caution">
+          <p class="caution-text">Email change awaiting approval</p>
+          <p class="caution-sub">
+            Filed by @<%= pending.requested_by&.username || 'unknown' %> to change
+            the address to <%= pending.payload_data['email'] %>. A different
+            operator has to approve it.
+          </p>
+        </div>
+      <% else %>
+        <%= form_with url: admin_user_email_path(@user), method: :post, class: "stack" do %>
+          <label>Add Email
+            <input type="email" name="email" required
+                   placeholder="name@example.com" value="<%= @user.email %>">
+          </label>
+          <p class="panel-note">
+            The registered email is the sign-in identifier, so a change is filed
+            as an approval request; a second operator has to approve it before
+            it takes effect.
+          </p>
+          <button class="btn btn-primary" type="submit">Add Email</button>
+        <% end %>
       <% end %>
       <p class="panel-note">
         For all emails and email history, use the audit trail below.
       </p>
+    <% end %>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Handle</h3>
+    <p>Current: <strong>@<%= @user.username %></strong></p>
+    <% if can?('users.handle') %>
+      <% if (pending = @pending_approval_by_action['handle_release']) %>
+        <div class="caution">
+          <p class="caution-text">Handle release awaiting approval</p>
+          <p class="caution-sub">
+            Filed by @<%= pending.requested_by&.username || 'unknown' %> to rename
+            the account to @<%= pending.payload_data['handle'] %>. A different
+            operator has to approve it.
+          </p>
+        </div>
+      <% else %>
+        <%= form_with url: admin_user_handle_path(@user), method: :post, class: "stack" do %>
+          <label>New handle
+            <input type="text" name="handle" required placeholder="newhandle">
+          </label>
+          <p class="panel-note">
+            A released handle returns to the pool and anyone may claim it, so
+            the rename is filed as an approval request. A second operator has to
+            approve it before it takes effect.
+          </p>
+          <button class="btn btn-danger" type="submit">Release handle</button>
+        <% end %>
+      <% end %>
     <% end %>
   </div>
 
@@ -391,19 +439,37 @@
     <% else %>
       <p class="muted">This account is not banned.</p>
       <% if can?('users.ban') && @user.id != current_user.id %>
-        <%= form_with url: admin_user_ban_path(@user), method: :post, class: "stack" do %>
-          <label>Reason
-            <input type="text" name="reason" required placeholder="Why is this account being banned?">
-          </label>
-          <label>Duration
-            <select name="duration">
-              <option value="permanent">Permanent (no expiry)</option>
-              <% @ban_choices.each do |value, label| %>
-                <option value="<%= value %>"><%= label %></option>
-              <% end %>
-            </select>
-          </label>
-          <button class="btn btn-danger" type="submit">Ban user</button>
+        <% if (pending = @pending_approval_by_action['permanent_ban']) %>
+          <%# A permanent ban is filed, not applied, so while one waits the
+              operator needs to see that the next step is an approval rather
+              than a second ban form. %>
+          <div class="caution">
+            <p class="caution-text">Permanent ban awaiting approval</p>
+            <p class="caution-sub">
+              Filed by @<%= pending.requested_by&.username || 'unknown' %> and waiting on a
+              different operator. The account is not banned yet.
+            </p>
+          </div>
+        <% else %>
+          <%= form_with url: admin_user_ban_path(@user), method: :post, class: "stack" do %>
+            <label>Reason
+              <input type="text" name="reason" required placeholder="Why is this account being banned?">
+            </label>
+            <label>Duration
+              <select name="duration">
+                <option value="permanent">Permanent (no expiry) &mdash; needs a second operator</option>
+                <% @ban_choices.each do |value, label| %>
+                  <option value="<%= value %>"><%= label %></option>
+                <% end %>
+              </select>
+            </label>
+            <p class="panel-note">
+              A permanent ban is filed as an approval request; a second operator
+              has to approve it before the ban takes effect. Timed bans apply
+              immediately.
+            </p>
+            <button class="btn btn-danger" type="submit">Ban user</button>
+          <% end %>
         <% end %>
       <% end %>
     <% end %>

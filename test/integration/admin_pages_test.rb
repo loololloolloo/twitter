@@ -20,6 +20,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin/appeals
     /admin/cases
     /admin/verification
+    /admin/approvals
     /admin/sessions
     /admin/relations
     /admin/lists

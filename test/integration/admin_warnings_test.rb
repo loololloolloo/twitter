@@ -167,10 +167,18 @@ class AdminWarningsTest < ActionDispatch::IntegrationTest
 
   test "the history carries the ban and staff changes from the audit trail" do
     owner = create_user(username: "king", role: "owner")
+    approver = create_user(username: "watch", role: "owner")
     target = create_user(username: "member")
 
     sign_in(owner)
     post admin_user_ban_path(target), params: { reason: "Evading", duration: "permanent" }
+    request = ApprovalRequest.find_by!(user: target, action_key: "permanent_ban")
+
+    # A permanent ban only reaches the history once the second operator has
+    # approved it; the approved change records the same `users.ban` entry the
+    # single-operator timed ban does.
+    sign_in(approver)
+    post admin_approval_decide_path(request), params: { decision: "approved" }
 
     get admin_user_path(target)
     assert_response :success

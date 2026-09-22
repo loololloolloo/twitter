@@ -14,6 +14,7 @@ class Permission < ApplicationRecord
     "users.followers"    => "Set a user's follower count",
     "users.email"        => "Change a user's email address",
     "users.roles"        => "Assign roles to users",
+    "users.handle"       => "Release and rename a user's handle",
     "users.tags"         => "Set operational tags on a user",
     "users.bulk"         => "Run bulk actions on many accounts at once",
     "users.warn"         => "Issue and revoke warnings on a user",
@@ -27,6 +28,10 @@ class Permission < ApplicationRecord
     "reports.resolve"    => "Resolve reports",
     "appeals.view"       => "View the appeals queue",
     "appeals.decide"     => "Decide member appeals",
+    # Four-eyes approvals. Filing a request rides on the action's own
+    # permission (users.ban, users.email, users.roles); this grant is the
+    # second pair of eyes that lets an operator approve another's request.
+    "approvals.decide"   => "Approve or reject four-eyes requests",
     # Cases are a layer above reports: opening one is a judgement that a set of
     # reports is one investigation, so opening, linking and deciding are three
     # separate grants rather than one. A front-line reviewer can read a case

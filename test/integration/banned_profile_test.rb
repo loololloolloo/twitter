@@ -143,13 +143,22 @@ class BannedProfileTest < ActionDispatch::IntegrationTest
     assert Tweet.visible.exists?(tweet.id)
   end
 
-  test "the owner can permanently ban a user through the admin form" do
+  test "the owner can permanently ban a user through the admin form, with a second operator" do
     victim = create_user(username: "victim_one", display_name: "Victim Person",
                          bio: "VICTIM BIO")
+    approver = create_user(username: "approver_one", role: "owner")
 
+    # A permanent ban is four-eyes: the owner files it, a different owner
+    # approves it, and only then does the account change.
     post admin_user_ban_path(victim), params: { reason: "investigation", duration: "permanent" }
 
     assert_response :redirect
+    refute victim.reload.is_banned
+
+    request = ApprovalRequest.find_by!(user: victim, action_key: "permanent_ban")
+    sign_in(approver)
+    post admin_approval_decide_path(request), params: { decision: "approved" }
+
     victim.reload
     assert victim.is_banned
     assert victim.ban_permanent

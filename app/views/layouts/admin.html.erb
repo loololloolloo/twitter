@@ -116,6 +116,12 @@
             <span class="rail-group-count"><%= count_label(VerificationRequest.pending.count) %></span>
           </a>
         <% end %>
+        <% if can?('approvals.decide') %>
+          <a href="<%= admin_approvals_path(state: 'pending') %>" class="<%= 'is-active' if controller_name == 'approvals' %>">
+            <%= icon('users') %><span class="rail-label">Approvals</span>
+            <span class="rail-group-count"><%= count_label(ApprovalRequest.pending.count) %></span>
+          </a>
+        <% end %>
       </div>
 
       <div class="rail-group">

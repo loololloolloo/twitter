@@ -136,14 +136,23 @@ class AccountFeaturesTest < ActionDispatch::IntegrationTest
     assert_match(/Account is inactive\./, response.body)
   end
 
-  test "an admin can change a user's email" do
+  test "an email change is filed for a second operator and lands on approval" do
     admin = create_user(username: "feature_admin3", role: "admin")
+    approver = create_user(username: "feat_approver", role: "owner")
     target = create_user(username: "feature_target")
     sign_in(admin)
 
     post admin_user_email_path(target), params: { email: "new@example.com" }
 
     assert_redirected_to admin_user_path(target)
+    # The sign-in identifier is not rewritten by the filer alone.
+    assert_equal "feature_target@example.com", target.reload.email
+    request = ApprovalRequest.find_by!(user: target, action_key: "email_change")
+    assert request.pending?
+
+    sign_in(approver)
+    post admin_approval_decide_path(request), params: { decision: "approved" }
+
     assert_equal "new@example.com", target.reload.email
   end
 

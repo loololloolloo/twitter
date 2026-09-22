@@ -43,6 +43,30 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_match(%r{href="/u/watched_one/following"}, response.body)
   end
 
+  # 2019 put a "Follows you" chip on the handle line when the account on screen
+  # follows the viewer. It is a fact about the relationship, visible only to the
+  # viewer, and absent on your own profile.
+  test "the header marks an account that follows the viewer" do
+    Follow.create!(follower: @subject, followee: @me)
+
+    get profile_path(@subject.username)
+
+    assert_match(/follows-you/, response.body)
+    assert_match(/Follows you/, response.body)
+  end
+
+  test "the header omits the chip when the account does not follow the viewer" do
+    get profile_path(@subject.username)
+
+    assert_no_match(/follows-you/, response.body)
+  end
+
+  test "your own profile never marks itself as following you" do
+    get profile_path(@me.username)
+
+    assert_no_match(/follows-you/, response.body)
+  end
+
   test "the 2019 tab strip offers tweets, replies, media and likes" do
     get profile_path(@subject.username)
 

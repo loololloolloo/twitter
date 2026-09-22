@@ -42,6 +42,11 @@ class ProfilesController < ApplicationController
     @favorites_count = @user.likes.favourites.count
     @is_me = @user.id == current_user.id
     @is_following = current_user.following.exists?(id: @user.id)
+    # The 2019 header showed a "Follows you" chip beside the handle when the
+    # account on screen follows the viewer. It answers "who is this" faster than
+    # the bio, and only the viewer can see it, so it is derived per request
+    # rather than cached on the profile.
+    @follows_me = !@is_me && @user.following.exists?(id: current_user.id)
 
     # The scheduled list is the writer's own: it shows posts that are not out
     # yet, so anyone else asking for it falls back to the ordinary Tweets tab

@@ -136,7 +136,13 @@
             <% if @user.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
             <% if @user.protected? %><span class="lock-badge" title="Protected account"><%= icon('lock') %></span><% end %>
           </h1>
-          <div class="profile-screenname">@<%= @user.username %></div>
+          <div class="profile-screenname">
+            @<%= @user.username %>
+            <%# The 2019 header marked an account that follows the viewer, so the
+                relationship reads before the bio does. Only shown to the viewer
+                and never on your own profile. %>
+            <% if @follows_me %><span class="follows-you">Follows you</span><% end %>
+          </div>
         </div>
 
         <div class="profile-bio-wrap">

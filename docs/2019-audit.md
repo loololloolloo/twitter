@@ -113,6 +113,15 @@ Checked against the 2019 client and left alone, so a later run does not
 * 2019 used a two-column header: avatar straddling the banner edge at 67/67px
   on desktop and 56/56px on mobile. The tracker records this as the target; it
   needs re-verifying against the rendered page after the shell changes.
+* **"Follows you" chip — fixed.** 2019 put a small bordered "Follows you" label
+  on the handle line when the account on screen follows the viewer, so the
+  relationship read before the bio did. The build had no such chip anywhere.
+  `ProfilesController#show` now sets `@follows_me` (the profile account follows
+  the viewer, never true on your own profile) and the header renders
+  `span.follows-you` beside `@handle`, styled as a bordered label rather than a
+  filled button because it states a fact, not an action. Asserted in
+  `test/integration/profile_layout_test.rb` (present when followed, absent when
+  not, absent on your own profile).
 
 ### Explore
 * 2019's Explore screen had tabs: **For you, Trending, News, Sports,

@@ -1418,6 +1418,14 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 .profile-screenname {
   margin: 0; font-size: 15px; font-weight: 400; color: var(--gray);
 }
+/* The 2019 "Follows you" chip: a small bordered label on the handle line, not
+   a filled button, because it is a fact about the relationship rather than an
+   action. */
+.follows-you {
+  display: inline-block; margin-left: 4px; padding: 0 4px;
+  font-size: 12px; line-height: 16px; color: var(--gray);
+  background: var(--bg); border: 1px solid var(--xlight-gray); border-radius: 3px;
+}
 .profile-actions {
   display: flex; align-items: center; gap: 8px; flex-shrink: 0;
   padding-top: 8px;

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_000003) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -295,6 +295,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_000002) do
     t.integer "rank", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_roles_on_name", unique: true
+  end
+
+  create_table "saved_queue_views", force: :cascade do |t|
+    t.string "category", default: "", null: false
+    t.datetime "created_at", null: false
+    t.boolean "is_default", default: false, null: false
+    t.string "name", null: false
+    t.integer "owner_id", null: false
+    t.string "queue", default: "reports", null: false
+    t.string "sort", default: "", null: false
+    t.string "state", default: "", null: false
+    t.datetime "updated_at", null: false
+    t.index ["owner_id", "queue", "name"], name: "index_saved_queue_views_on_owner_queue_name", unique: true
+    t.index ["queue"], name: "index_saved_queue_views_on_queue"
   end
 
   create_table "sessions", force: :cascade do |t|

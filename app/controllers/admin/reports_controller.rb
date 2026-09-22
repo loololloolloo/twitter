@@ -1,13 +1,34 @@
 module Admin
   class ReportsController < AdminController
+    QUEUE = "reports".freeze
+
     before_action :require_view_permission, only: [ :index ]
     before_action :require_resolve_permission, only: [ :resolve ]
 
     def index
-      @state = params[:state].to_s.strip
-      @state = "open" if @state.blank?
-      @category = params[:category].to_s.strip
-      @sort = params[:sort].to_s.strip
+      @saved_views = SavedQueueView.owned_by(current_user).for_queue(QUEUE).recent
+      @active_view = nil
+
+      state = params[:state].to_s.strip
+      category = params[:category].to_s.strip
+      sort = params[:sort].to_s.strip
+
+      # A request that carries no filter of its own opens on the operator's
+      # saved default. An explicit filter always wins, so applying a view or
+      # clicking a state tab is never silently overridden by the shortcut.
+      if state.blank? && category.blank? && sort.blank?
+        view = SavedQueueView.default_for(current_user, QUEUE)
+        if view
+          @active_view = view
+          state = view.state
+          category = view.category
+          sort = view.sort
+        end
+      end
+
+      @state = state.presence || "open"
+      @category = category
+      @sort = sort
 
       scope = Report.includes(:user, :reporter, :tweet, :resolved_by).recent
       scope = scope.where(state: @state) if Report::STATES.include?(@state)

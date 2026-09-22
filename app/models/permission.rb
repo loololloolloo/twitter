@@ -26,6 +26,10 @@ class Permission < ApplicationRecord
     "tweets.pin"         => "Pin tweets",
     "reports.view"       => "View reported content",
     "reports.resolve"    => "Resolve reports",
+    # Saved queue views. Reading them rides on reports.view; saving the filter an
+    # operator works repeatedly is its own grant because it changes the queue
+    # each operator arrives at, even though it only ever writes their own rows.
+    "reports.views"      => "Save and manage personal queue views",
     "appeals.view"       => "View the appeals queue",
     "appeals.decide"     => "Decide member appeals",
     # Four-eyes approvals. Filing a request rides on the action's own

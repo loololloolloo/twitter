@@ -8,7 +8,7 @@ module RoleBootstrapper
       admin.access users.view users.suspend users.ban users.delete users.verify
       users.followers users.email users.handle users.tags users.warn users.notes users.bulk
       tweets.view tweets.delete tweets.pin reports.view
-      reports.resolve appeals.view appeals.decide
+      reports.resolve reports.views appeals.view appeals.decide
       cases.view cases.open cases.link cases.decide
       verification.view verification.decide
       audit.view backup.export maintenance.run
@@ -16,7 +16,7 @@ module RoleBootstrapper
       lookup.run escalations.view sessions.view relations.view lists.view
       approvals.decide
     ],
-    "moderator" => %w[admin.access users.view users.tags users.warn users.notes tweets.view reports.view reports.resolve appeals.view appeals.decide cases.view cases.open cases.link cases.decide verification.view verification.decide lookup.run escalations.view settings.view],
+    "moderator" => %w[admin.access users.view users.tags users.warn users.notes tweets.view reports.view reports.resolve reports.views appeals.view appeals.decide cases.view cases.open cases.link cases.decide verification.view verification.decide lookup.run escalations.view settings.view],
     "user" => []
   }.freeze
 

@@ -37,6 +37,76 @@
   the score informs the order, it never decides the outcome.
 </p>
 
+<%# Saved views sit above the list because they are how an operator arrives at
+    it: the same slice of the queue, opened by name instead of by rebuilding the
+    filter. Applying one is a read, so it is a plain link; saving and deleting
+    change the operator's own shortcuts and are POST/DELETE. %>
+<details class="panel saved-views" <%= "open" if @saved_views.present? %>>
+  <summary class="panel-title">
+    Saved views
+    <span class="muted">
+      <%= @saved_views.size %> saved<%= " - \"#{@active_view.name}\" is your default" if @active_view %>
+    </span>
+  </summary>
+
+  <% if @saved_views.present? %>
+    <ul class="view-list">
+      <% @saved_views.each do |view| %>
+        <li class="view-row <%= 'is-default' if view.is_default %>">
+          <a class="view-name" href="<%= admin_reports_path(SavedQueueView.filter_params(view)) %>">
+            <%= view.name %>
+          </a>
+          <span class="view-summary"><%= view.summary %></span>
+          <% if view.is_default %>
+            <span class="pill pill-ok">default</span>
+          <% end %>
+          <% if can?('reports.views') %>
+            <% unless view.is_default %>
+              <%= form_with url: admin_queue_view_default_path(view), method: :post,
+                            class: "inline" do %>
+                <button class="btn btn-mini" type="submit">Make default</button>
+              <% end %>
+            <% end %>
+            <%= form_with url: admin_queue_view_path(view), method: :delete, class: "inline",
+                          html: { onsubmit: "return confirm('Delete the saved view \"#{view.name}\"?')" } do %>
+              <button class="btn btn-mini btn-danger" type="submit">Delete</button>
+            <% end %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="muted">No saved views yet.</p>
+  <% end %>
+
+  <% if can?('reports.views') %>
+    <div class="view-save">
+      <h4 class="panel-subtitle">Save the current filter</h4>
+      <p class="muted">
+        Saving stores this view's filters, not a frozen list of reports: it always
+        opens on whatever currently matches, so it cannot go stale.
+      </p>
+      <%= form_with url: admin_queue_views_path, method: :post, class: "stack" do %>
+        <input type="hidden" name="queue" value="reports">
+        <input type="hidden" name="state" value="<%= @state %>">
+        <input type="hidden" name="category" value="<%= @category %>">
+        <input type="hidden" name="sort" value="<%= @sort %>">
+        <label>Name
+          <input type="text" name="name" maxlength="<%= SavedQueueView::MAX_NAME %>"
+                 placeholder="e.g. Open abuse reports" required>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="is_default" value="1">
+          Open the queue on this view
+        </label>
+        <button class="btn btn-primary" type="submit">Save view</button>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="muted">You can see saved views but not change them.</p>
+  <% end %>
+</details>
+
 <% if @reports.present? %>
   <% @reports.each do |report| %>
     <article class="report-item">

@@ -1005,3 +1005,20 @@ h1, h2, h3 { margin: 0; font-weight: 700; }
   background: var(--ops-surface-alt);
 }
 .risk-factor b { color: var(--ops-text); }
+
+/* Saved queue views. A view is the filter an operator works repeatedly, stored
+   under a name; the row states what the shortcut does so it can be picked
+   without opening each one in turn. The default marker is per-operator. */
+.saved-views { margin-bottom: 18px; }
+.panel-subtitle { margin: 0 0 6px; font-size: 13px; font-weight: 800; }
+.view-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.view-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 0; border-bottom: 1px solid var(--ops-line-soft);
+}
+.view-row:last-child { border-bottom: 0; }
+.view-row.is-default { background: var(--ops-surface-alt); }
+.view-name { font-weight: 700; color: var(--ops-accent-dark); }
+.view-summary { flex: 1 1 220px; font-size: 12.5px; color: var(--ops-muted); }
+.view-row form.inline { display: inline; margin: 0; }
+.view-save { padding-top: 12px; border-top: 1px solid var(--ops-line-soft); }

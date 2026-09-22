@@ -11,6 +11,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin/permissions
     /admin/settings
     /admin/blocked-terms
+    /admin/reports
     /admin/tweets
     /admin/audit
     /admin/insights

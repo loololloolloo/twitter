@@ -180,6 +180,13 @@ Rails.application.routes.draw do
     get  "reports", to: "reports#index", as: :reports
     post "reports/:id/resolve", to: "reports#resolve", as: :report_resolve
 
+    # Saved queue views. Saving a filter is a POST and deleting one is a
+    # DELETE, because both change the queue an operator arrives at; applying one
+    # is not a write at all, so it stays a link carrying the view id.
+    post   "queue-views",         to: "saved_queue_views#create",  as: :queue_views
+    post   "queue-views/:id/default", to: "saved_queue_views#default", as: :queue_view_default
+    delete "queue-views/:id",     to: "saved_queue_views#destroy", as: :queue_view
+
     # Appeals contest a ban another operator imposed. The queue is read and
     # decided here; the decision is a POST because it is final for the appeal.
     get  "appeals",              to: "appeals#index",  as: :appeals

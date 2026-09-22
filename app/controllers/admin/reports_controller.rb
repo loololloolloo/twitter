@@ -7,12 +7,23 @@ module Admin
       @state = params[:state].to_s.strip
       @state = "open" if @state.blank?
       @category = params[:category].to_s.strip
+      @sort = params[:sort].to_s.strip
 
       scope = Report.includes(:user, :reporter, :tweet, :resolved_by).recent
       scope = scope.where(state: @state) if Report::STATES.include?(@state)
       scope = scope.where(category: @category) if Report::CATEGORIES.key?(@category)
 
-      @reports = scope.limit(200)
+      rows = scope.limit(200).to_a
+      # Age is the table's natural order, not severity. Risk ordering is the
+      # default; oldest-first stays available for an operator working a backlog
+      # that predates the signal this scores on.
+      if @sort == "oldest"
+        @reports = rows.reverse
+      else
+        @sort = "risk"
+        @reports = RiskScore.rank(rows)
+      end
+
       @counts = Report::STATES.index_with { |state| Report.where(state: state).count }
       @open_count = @counts["open"]
     end

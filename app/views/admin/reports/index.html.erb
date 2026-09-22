@@ -25,8 +25,17 @@
       <option value="<%= key %>" <%= 'selected' if @category == key %>><%= label %></option>
     <% end %>
   </select>
+  <select name="sort">
+    <option value="risk" <%= 'selected' if @sort == 'risk' %>>Highest risk first</option>
+    <option value="oldest" <%= 'selected' if @sort == 'oldest' %>>Oldest first</option>
+  </select>
   <button class="btn btn-primary" type="submit">Filter</button>
 </form>
+
+<p class="page-note">
+  Ordered by a computed risk score. Each row names the signals that produced it;
+  the score informs the order, it never decides the outcome.
+</p>
 
 <% if @reports.present? %>
   <% @reports.each do |report| %>
@@ -41,6 +50,19 @@
           <% end %>
           <span class="report-when"><%= time_ago(report.created_at) %></span>
         </div>
+
+        <% risk = RiskScore.for(report) %>
+        <p class="risk-line" title="<%= risk.explanation %>">
+          <span class="pill pill-risk-<%= risk.band %>"><%= risk.score %> risk</span>
+          <span class="risk-band"><%= risk.band_label %></span>
+          <% unless risk.factors.empty? %>
+            <span class="risk-factors">
+              <% risk.factors.each do |factor| %>
+                <span class="risk-factor"><%= factor.label %> <%= factor.detail %> <b>+<%= factor.points %></b></span>
+              <% end %>
+            </span>
+          <% end %>
+        </p>
 
         <p class="report-detail">
           Reported by

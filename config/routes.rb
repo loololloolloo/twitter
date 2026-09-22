@@ -96,6 +96,9 @@ Rails.application.routes.draw do
   get  "messages",     to: "messages#index"
   get  "messages/:id", to: "messages#show",   as: :conversation
   post "messages/:id", to: "messages#create"
+  # The inbox header's new-message picker names an account by handle and posts
+  # here rather than to the per-thread route, which is addressed by id.
+  post "messages",     to: "messages#compose", as: :compose_message
 
   # Profiles and the social graph
   get    "u/:username",           to: "profiles#show",      as: :profile

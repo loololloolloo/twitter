@@ -1830,10 +1830,54 @@ html[data-theme="dark"] .row-item:hover { background: rgba(255,255,255,.03); }
   display: flex; flex-direction: column;
 }
 .dm-list-head { padding: 8px 12px; border-bottom: 1px solid var(--xlight-gray); }
+.dm-list-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dm-list-title {
   margin: 0 0 10px; padding: 0 4px;
   font-size: 19px; font-weight: 800; color: var(--dark);
 }
+/* The inbox's new-message control. The trigger is the compose glyph beside the
+   heading, and the panel drops underneath it rather than over the list. The
+   margin-bottom on the heading is cleared here so the row's height is set by
+   whichever is taller, keeping the heading and the glyph on one line. */
+.dm-list-title-row .dm-list-title { margin-bottom: 0; }
+.dm-compose { position: relative; margin-bottom: 10px; }
+.dm-compose-open {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  color: var(--blue); cursor: pointer; list-style: none;
+}
+.dm-compose-open::-webkit-details-marker { display: none; }
+.dm-compose-open:hover { background: rgba(29,161,242,.1); }
+.dm-compose-open .ico { width: 20px; height: 20px; }
+.dm-compose-panel {
+  position: absolute; top: 42px; right: 0; z-index: 20;
+  width: 300px; padding: 12px;
+  background: var(--card); border: 1px solid var(--xlight-gray); border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.16);
+}
+.dm-compose-picker { display: flex; align-items: center; gap: 8px; }
+.dm-compose-picker input {
+  flex: 1; min-width: 0; padding: 9px 12px;
+  border: 1px solid var(--xlight-gray); border-radius: 18px;
+  background: var(--bg); color: var(--dark);
+  font-family: var(--font); font-size: 15px; outline: none;
+}
+.dm-compose-picker input:focus { border-color: var(--blue); }
+.dm-compose-picker .auth-submit { width: auto; margin: 0; padding: 9px 16px; }
+.dm-compose-note { margin: 10px 2px 0; font-size: 13px; color: var(--gray); }
+.dm-compose-picked {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--xlight-gray);
+}
+.dm-compose-new-inline { margin-top: 10px; }
+.dm-compose-new-inline textarea {
+  width: 100%; min-height: 46px; max-height: 140px; resize: vertical;
+  padding: 10px 12px; border: 1px solid var(--xlight-gray); border-radius: 14px;
+  background: var(--bg); color: var(--dark);
+  font-family: var(--font); font-size: 15px; line-height: 20px; outline: none;
+}
+.dm-compose-new-inline textarea:focus { border-color: var(--blue); }
+.dm-compose-new-inline .auth-submit { width: auto; margin: 8px 0 0; padding: 9px 16px; }
 .dm-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
 .dm-list-item { border-bottom: 1px solid var(--xlight-gray); }
 .dm-list-item.is-active { background: rgba(29,161,242,.08); border-right: 2px solid var(--blue); }

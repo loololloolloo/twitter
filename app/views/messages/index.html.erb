@@ -5,7 +5,60 @@
   <div class="dm-shell">
     <div class="dm-list-pane">
       <div class="dm-list-head">
-        <h1 class="dm-list-title">Messages</h1>
+        <div class="dm-list-title-row">
+          <h1 class="dm-list-title">Messages</h1>
+          <%# 2019 put a compose control at the top of the inbox so a
+              conversation could be started without visiting a profile. It is a
+              <details> disclosure rather than a modal so the picker still opens
+              with the script unavailable, and it is already open when the
+              account is mid-pick, which is how an unresolved handle keeps its
+              place while it is corrected. %>
+          <details class="dm-compose" <%= "open" if @recipient_query.present? %>>
+            <summary class="dm-compose-open" aria-label="New message" title="New message"><%= icon('compose') %></summary>
+            <div class="dm-compose-panel">
+              <%= form_with url: compose_message_path, method: :post, class: "dm-compose-picker" do %>
+                <input type="text" name="to" list="dm-recipients"
+                       placeholder="Search for a username"
+                       value="<%= @recipient_query %>"
+                       autocomplete="off"
+                       aria-label="Search for an account to message">
+                <button class="auth-submit" type="submit">Next</button>
+              <% end %>
+
+              <%# The picker resolves a handle, so its outcome is stated before
+                  anything is sent: which account matched, or that nothing did. %>
+              <% if @recipient_query.present? && @recipient.nil? %>
+                <p class="dm-compose-note">No account is using that username.</p>
+              <% elsif @recipient == current_user %>
+                <p class="dm-compose-note">You cannot send a message to yourself.</p>
+              <% elsif @recipient.present? %>
+                <div class="dm-compose-picked">
+                  <a href="<%= profile_path(@recipient.username) %>"><%= pic(@recipient.avatar_path, 48) %></a>
+                  <span class="dm-list-body">
+                    <span class="dm-list-names">
+                      <span class="dm-list-name"><%= @recipient.display_name.presence || @recipient.username %></span>
+                      <span class="dm-list-handle">@<%= @recipient.username %></span>
+                    </span>
+                  </span>
+                </div>
+                <%= form_with url: conversation_path(@recipient), method: :post, class: "dm-compose-new-inline" do %>
+                  <textarea name="body" placeholder="Start a new message" required></textarea>
+                  <button class="auth-submit" type="submit">Send</button>
+                <% end %>
+              <% end %>
+            </div>
+          </details>
+        </div>
+
+        <%# The picker is a handle field, not a free-text search, so the accounts
+            offered are exactly the registered handles. %>
+        <datalist id="dm-recipients">
+          <% @recipients.each do |person| %>
+            <option value="@<%= person.username %>">
+              <%= person.display_name.presence || person.username %>
+            </option>
+          <% end %>
+        </datalist>
       </div>
 
       <ul class="dm-list">

@@ -172,14 +172,23 @@ without redoing the audit. Each names the page, what 2019 did, and where the
 code stands now. Verify against the rendered page before changing anything.
 
 ### Messages
-* **Compose control in the inbox header - open.** 2019's Messages inbox carried
+* **Compose control in the inbox header - fixed.** 2019's Messages inbox carried
   a compose affordance at the top of the conversation list (a search box plus a
   new-message control) so a conversation could be started without visiting a
-  profile. This build starts conversations only from a profile's Message
-  button. Would need a recipient picker POSTing to `messages#create`; the
-  controller already accepts `params[:id]` as the other account.
-  Code: `app/views/messages/index.html.erb`, `MessagesController#create`,
-  routes `post "messages/:id"`.
+  profile. Now: `messages/index.html.erb` renders a compose glyph beside the
+  "Messages" heading; opening it reveals a handle picker backed by a
+  `<datalist>` of registered accounts. Posting the picker resolves the handle
+  and hands it to the same write the open-thread box uses, so the stored
+  message is identical either way. The picker is a `<details>` disclosure, so
+  it still opens with the script unavailable, and it re-opens on load when the
+  inbox is carrying a picker result. An unresolved handle returns to the inbox
+  with a note rather than a 404, and addressing the signed-in account is
+  refused before a conversation row is built.
+  Code: `app/views/messages/index.html.erb`, `MessagesController#compose`,
+  `MessagesController#recipient_for`, route
+  `post "messages", to: "messages#compose"`, `test/integration/messages_inbox_test.rb`.
+  The profile Message button still starts a conversation by account id, which
+  is unchanged.
 
 ### Lists
 * **List header counts - open.** 2019's list page header printed the member and

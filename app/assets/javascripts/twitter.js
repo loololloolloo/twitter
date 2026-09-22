@@ -271,6 +271,12 @@ $(function () {
     $('.tweet-menu[open]').removeAttr('open');
   });
 
+  // The inbox's new-message picker is a <details> too, and closes the same way.
+  $(document).on('click', function (e) {
+    if ($(e.target).closest('.dm-compose').length) return;
+    $('.dm-compose[open]').removeAttr('open');
+  });
+
   // Clicking a reply link focuses the reply box on a tweet page.
   $('.open-reply').on('click', function (e) {
     e.preventDefault();

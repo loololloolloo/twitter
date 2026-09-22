@@ -1,8 +1,15 @@
 class MessagesController < ApplicationController
   before_action :require_login!
+  # A conversation is stored with the lower user id first, so messaging
+  # yourself would address one row to the same account twice; it is refused
+  # before any thread is built rather than left to the picker.
+  before_action :refuse_self_message, only: %i[create compose]
 
   def index
     @conversations = conversation_list
+    @recipient_query = params[:to].to_s.strip
+    @recipient = recipient_for(@recipient_query)
+    @recipients = User.not_suspended.where.not(id: current_user.id).order(:username)
   end
 
   def show
@@ -17,10 +24,41 @@ class MessagesController < ApplicationController
     @messages = @conversation.dm_messages.chronological
   end
 
+  # Posting from a thread's compose box is addressed by account id.
   def create
     @other = User.find_by(id: params[:id])
     return render_not_found unless @other
 
+    deliver
+  end
+
+  # Posting from the inbox header's picker, which names an account by handle
+  # rather than id. An unresolved picker falls back to the inbox with a note
+  # rather than a 404, because the account may simply have mistyped the handle.
+  def compose
+    @other = recipient_for(params[:to])
+
+    if @other.nil?
+      flash[:alert] = "We could not find that account. Check the username and try again."
+      redirect_to messages_path(to: params[:to]) and return
+    end
+
+    deliver
+  end
+
+  private
+
+  def refuse_self_message
+    other = params[:id].present? ? User.find_by(id: params[:id]) : recipient_for(params[:to])
+    return unless other == current_user
+
+    flash[:alert] = "You cannot send a message to yourself."
+    redirect_to messages_path and return
+  end
+
+  # The write shared by both compose entry points, so a message started in the
+  # picker is stored exactly as one sent from an open thread.
+  def deliver
     body = params[:body].to_s.strip
     conversation = DmConversation.between(current_user, @other)
 
@@ -34,7 +72,17 @@ class MessagesController < ApplicationController
     redirect_to conversation_path(@other)
   end
 
-  private
+  # Resolves the inbox picker's typed value to an account. A leading @ is
+  # tolerated because handles are quoted that way, and the search is
+  # case-insensitive so the handle does not have to be reproduced exactly.
+  # Account ids are deliberately not accepted: the picker offers handles, and
+  # an id would let the form address an account the operator never named.
+  def recipient_for(value)
+    handle = value.to_s.strip.sub(/\A@/, "")
+    return nil if handle.blank?
+
+    User.where("LOWER(username) = ?", handle.downcase).first
+  end
 
   # Every account you have a conversation with, most recent first.
   def conversation_list

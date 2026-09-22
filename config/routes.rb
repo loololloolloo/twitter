@@ -130,6 +130,13 @@ Rails.application.routes.draw do
     get "users",     to: "users#index", as: :users
     get "users/:id", to: "users#show",  as: :user
 
+    # Bulk actions on the accounts list. The selection goes to a confirmation
+    # screen first; only the second POST, carrying the confirmation word, runs
+    # the action. Both are POST because even the preview resolves the whole
+    # selection the run would act on, and a selection is not a link target.
+    post "users/bulk",        to: "bulk_actions#new",    as: :users_bulk
+    post "users/bulk/commit", to: "bulk_actions#create", as: :users_bulk_commit
+
     post   "users/:id/ban",       to: "users#ban",             as: :user_ban
     post   "users/:id/unban",     to: "users#unban",           as: :user_unban
     post   "users/:id/suspend",   to: "users#suspend",         as: :user_suspend

@@ -43,6 +43,7 @@ module Admin
 
       @users = scope.limit(200)
       @roles = Role.order(rank: :desc)
+      @bulk_actions = can?("users.bulk") ? BulkUserAction.allowed_for(current_user) : []
     end
 
     def show

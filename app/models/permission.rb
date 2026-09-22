@@ -15,6 +15,7 @@ class Permission < ApplicationRecord
     "users.email"        => "Change a user's email address",
     "users.roles"        => "Assign roles to users",
     "users.tags"         => "Set operational tags on a user",
+    "users.bulk"         => "Run bulk actions on many accounts at once",
     "users.warn"         => "Issue and revoke warnings on a user",
     "users.notes"        => "Keep internal notes on a user",
     "users.permissions"  => "Edit role permissions",

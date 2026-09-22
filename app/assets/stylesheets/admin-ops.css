@@ -928,3 +928,46 @@ h1, h2, h3 { margin: 0; font-weight: 700; }
 .note-actions { display: flex; gap: 6px; margin-top: 9px; }
 .note-actions form { margin: 0; }
 
+/* ---------------- bulk actions ----------------
+   The accounts list can act on a whole selection at once. The bar is sticky to
+   the bottom of the viewport so the count and the action picker stay in front
+   of the operator however far down the table they have scrolled; the selection
+   itself is only ever read here, and the confirmation screen is where the
+   action is fired. */
+.bulk-form { margin: 0; }
+.data-table td.pick, .data-table th.pick { width: 30px; padding-right: 0; text-align: center; }
+.bulk-bar {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin-top: 12px; padding: 11px 13px;
+  background: var(--ops-surface);
+  border: 1px solid var(--ops-line);
+  border-radius: var(--ops-radius);
+}
+.bulk-count { font-size: 12.5px; font-weight: 700; color: var(--ops-text); margin-right: auto; }
+.bulk-bar select {
+  padding: 7px 10px;
+  border: 1px solid var(--ops-line); border-radius: 999px;
+  font-family: var(--ops-font); font-size: 13px;
+  background: var(--ops-surface-alt); color: var(--ops-text); outline: none;
+}
+.bulk-bar select:focus { border-color: var(--ops-accent); }
+
+/* The confirmation screen: the blast radius reads as a sentence, and the
+   in-scope list is a flat list because it is a count made visible, not a table
+   to be scanned for other information. */
+.caution + .panel { margin-top: 14px; }
+.bulk-list, .bulk-skip { list-style: none; margin: 0; padding: 0; }
+.bulk-list li {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid var(--ops-line);
+}
+.bulk-list li:last-child { border-bottom: 0; }
+.bulk-list-name { font-size: 13px; }
+.bulk-list-meta {
+  margin-left: auto; display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--ops-muted);
+}
+.bulk-skip { margin: 4px 0 0; }
+.bulk-skip li { font-size: 12.5px; color: var(--ops-muted); padding: 2px 0; }
+

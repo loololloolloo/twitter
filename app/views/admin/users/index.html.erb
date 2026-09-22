@@ -34,9 +34,13 @@
   <button class="btn btn-primary" type="submit">Filter</button>
 </form>
 
+<%= form_with url: admin_users_bulk_path, method: :post, class: "bulk-form", id: "bulk-form" do %>
 <table class="data-table">
   <thead>
     <tr>
+      <% if @bulk_actions.any? %>
+        <th class="pick"><input type="checkbox" id="bulk-all" title="Select every account on this page"></th>
+      <% end %>
       <th class="id">ID</th><th>Account</th><th>Role</th>
       <th class="num">Followers</th><th class="num">Posts</th>
       <th>Signals</th><th></th>
@@ -46,6 +50,9 @@
     <% if @users.present? %>
       <% @users.each do |user| %>
         <tr class="<%= 'row-suspended' if user.is_banned || user.is_suspended %>">
+          <% if @bulk_actions.any? %>
+            <td class="pick"><input type="checkbox" name="ids[]" value="<%= user.id %>" class="bulk-pick"></td>
+          <% end %>
           <td class="id"><%= user.id %></td>
           <td>
             <strong><%= user.display_name %></strong>
@@ -68,7 +75,37 @@
         </tr>
       <% end %>
     <% else %>
-      <tr><td colspan="7" class="muted">No accounts matched.</td></tr>
+      <tr><td colspan="<%= @bulk_actions.any? ? 8 : 7 %>" class="muted">No accounts matched.</td></tr>
     <% end %>
   </tbody>
 </table>
+
+<%# The bulk bar. It is part of the same form as the checkboxes, so a selection
+    survives the action picker. Destructive actions cannot run from here: the
+    selection is only read, and the confirmation screen that states the blast
+    radius is where they are actually fired. %>
+<% if @bulk_actions.any? %>
+  <div class="bulk-bar">
+    <span class="bulk-count" id="bulk-count">No accounts selected</span>
+    <select name="action_key" id="bulk-action">
+      <option value="">Choose an action&hellip;</option>
+      <% @bulk_actions.each do |action| %>
+        <option value="<%= action.key %>"><%= action.label %></option>
+      <% end %>
+    </select>
+    <% if @bulk_actions.any? { |action| BulkUserAction.tag?(action.key) } %>
+      <select name="tag" id="bulk-tag" class="bulk-tag">
+        <option value="">Choose a tag&hellip;</option>
+        <% User::ACCOUNT_TAGS.each do |key, label| %>
+          <option value="<%= key %>"><%= label %></option>
+        <% end %>
+      </select>
+    <% end %>
+    <button class="btn btn-primary" type="submit">Review selection</button>
+  </div>
+  <p class="panel-note">
+    Nothing changes here. The next screen names the exact accounts that will be
+    affected and who is out of scope before anything is written.
+  </p>
+<% end %>
+<% end %>

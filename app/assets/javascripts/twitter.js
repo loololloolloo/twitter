@@ -534,3 +534,39 @@ $(function () {
     setInterval(refreshStats, 5000);
   }
 });
+// Bulk selection on the accounts list. The form must never look ready to run
+// with nothing selected, so the count and the submit button are driven from the
+// checkboxes. Progressive enhancement only: the run itself is refused in the
+// controller when the selection is empty, whatever the browser sends.
+$(function () {
+  var $form = $('#bulk-form');
+  if (!$form.length) return;
+
+  var $counts = $form.find('.bulk-pick');
+  var $all = $('#bulk-all');
+  var $count = $('#bulk-count');
+  var $tag = $('#bulk-tag');
+  var $action = $('#bulk-action');
+  var $submit = $form.find('.bulk-bar button[type="submit"]');
+
+  // The tag picker only applies to the two tag actions, so it stays hidden for
+  // everything else rather than inviting a tag that would be ignored.
+  var syncTag = function () {
+    $tag.toggle($action.val() === 'tag_on' || $action.val() === 'tag_off');
+  };
+
+  var sync = function () {
+    var picked = $counts.filter(':checked').length;
+    $count.text(picked === 0 ? 'No accounts selected'
+                             : picked + (picked === 1 ? ' account selected' : ' accounts selected'));
+    $submit.prop('disabled', picked === 0);
+    $all.prop('checked', picked > 0 && picked === $counts.length);
+  };
+
+  $all.on('change', function () { $counts.prop('checked', this.checked); sync(); });
+  $counts.on('change', sync);
+  $action.on('change', syncTag);
+
+  syncTag();
+  sync();
+});

@@ -1,0 +1,100 @@
+<div class="page-head">
+  <div>
+    <h1>Review bulk <%= @action.label.downcase %></h1>
+    <p class="page-note">
+      This is a preview. Nothing has changed yet. Read the blast radius, then
+      confirm if it is what you meant.
+    </p>
+  </div>
+  <a class="btn" href="<%= admin_users_path %>">Back to accounts</a>
+</div>
+
+<%# The blast radius is the headline, not a footnote. A bulk destructive action
+    cannot be undone by looking at the row again, so the exact number is the
+    first thing on the screen. %>
+<div class="caution">
+  <p class="caution-text">This will <%= @plan.summary %> <%= @plan.account_phrase %>.</p>
+  <% if @action.destructive %>
+    <p class="caution-sub">
+      Deletion is permanent and removes the accounts' posts with them. There is
+      no undo on this screen.
+    </p>
+  <% end %>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">In scope</h3>
+  <% if @plan.eligible.any? %>
+    <ul class="bulk-list">
+      <% @plan.eligible.each do |user| %>
+        <li>
+          <span class="bulk-list-name"><strong><%= user.display_name %></strong> <span class="muted">@<%= user.username %></span></span>
+          <span class="bulk-list-meta">
+            <%= user.role.name %> &middot; id <%= user.id %>
+            <% if user.is_banned %><span class="pill pill-warn">banned</span><% end %>
+            <% if user.is_suspended %><span class="pill pill-warn">suspended</span><% end %>
+          </span>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="muted">No selected account can be acted on. Nothing will change.</p>
+  <% end %>
+</div>
+
+<%# Who is left out, and why. A selection can pass the form and still hold rows
+    the operator may not touch; saying so here is what stops the run from
+    looking like it covered more than it did. %>
+<% if @plan.skip_lines.any? %>
+  <div class="panel">
+    <h3 class="panel-title">Out of scope</h3>
+    <p class="muted">These selected accounts will be left unchanged:</p>
+    <ul class="bulk-skip">
+      <% @plan.skip_lines.each do |line| %>
+        <li><%= line %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<%= form_with url: admin_users_bulk_commit_path, method: :post, class: "panel" do %>
+  <div class="stack">
+    <%= hidden_field_tag "action_key", @action.key %>
+    <% @plan.eligible.each do |user| %>
+      <%= hidden_field_tag "ids[]", user.id %>
+    <% end %>
+
+    <% if BulkUserAction.tag?(@action.key) %>
+      <label for="tag">
+        Tag
+        <select name="tag" id="tag" required>
+          <option value="">Choose a tag&hellip;</option>
+          <% User::ACCOUNT_TAGS.each do |key, label| %>
+            <option value="<%= key %>" <%= 'selected' if key == @tag %>><%= label %></option>
+          <% end %>
+        </select>
+      </label>
+    <% end %>
+
+    <label for="reason">
+      Reason<% if BulkUserAction::REASON_REQUIRED.include?(@action.key) %> (required)<% end %>
+      <textarea id="reason" name="reason" rows="2" maxlength="280"
+                placeholder="Why this run is happening. Kept in the audit trail."
+                <%= 'required' if BulkUserAction::REASON_REQUIRED.include?(@action.key) %>><%= @reason %></textarea>
+    </label>
+
+    <label for="confirm">
+      Type <code><%= @confirm_word %></code> to run this
+      <input type="text" id="confirm" name="confirm" autocomplete="off"
+             placeholder="<%= @confirm_word %>" required>
+    </label>
+  </div>
+
+  <div class="action-row">
+    <button class="btn <%= @action.destructive ? 'btn-danger' : 'btn-primary' %>"
+            type="submit" <%= 'disabled' if @plan.eligible.empty? %>>
+      <%= @plan.summary %> <%= @plan.account_phrase %>
+    </button>
+    <a class="btn" href="<%= admin_users_path %>">Cancel</a>
+  </div>
+<% end %>

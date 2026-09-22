@@ -6,7 +6,7 @@ module RoleBootstrapper
     "owner" => Permission::KEYS.keys,
     "admin" => %w[
       admin.access users.view users.suspend users.ban users.delete users.verify
-      users.followers users.email users.tags users.warn users.notes
+      users.followers users.email users.tags users.warn users.notes users.bulk
       tweets.view tweets.delete tweets.pin reports.view
       reports.resolve appeals.view appeals.decide
       verification.view verification.decide

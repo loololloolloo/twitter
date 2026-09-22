@@ -16,6 +16,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin/tweets
     /admin/audit
     /admin/audit/verify
+    /admin/exports
     /admin/insights
     /admin/tools
     /admin/lookup

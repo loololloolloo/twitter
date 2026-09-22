@@ -62,6 +62,11 @@ class User < ApplicationRecord
   # account and take the account's sanctions with it.
   has_many :moderation_reversals, dependent: :destroy
 
+  # Per-account evidence exports. They belong to the account because a legal hold
+  # or data request is about that account; removing it takes the disclosure
+  # record with it rather than leaving an orphan naming a vanished user.
+  has_many :data_exports, dependent: :destroy
+
   # Follow requests this account has made, and the ones waiting on it.
   has_many :sent_follow_requests, class_name: "FollowRequest", foreign_key: :requester_id,
            dependent: :destroy, inverse_of: :requester

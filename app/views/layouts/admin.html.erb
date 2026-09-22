@@ -170,6 +170,12 @@
             <span class="rail-group-count"><%= count_label(EnforcementTemplate.active.count) %></span>
           </a>
         <% end %>
+        <% if can?('exports.run') %>
+          <a href="<%= admin_exports_path %>" class="<%= 'is-active' if controller_name == 'exports' %>">
+            <%= icon('bookmark-solid') %><span class="rail-label">Evidence export</span>
+            <span class="rail-group-count"><%= count_label(DataExport.count) %></span>
+          </a>
+        <% end %>
         <% if can?('backup.export') %>
           <a href="<%= admin_backup_path %>">
             <%= icon('bookmark-solid') %><span class="rail-label">Export backup</span>

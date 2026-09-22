@@ -1,0 +1,95 @@
+<div class="page-head">
+  <div>
+    <h1>Evidence export</h1>
+    <p class="page-note">
+      A per-account export is a disclosure, not a read. It bundles the account
+      record, its posts and the enforcement history against it into one file
+      for a legal hold or a data request. Every export records who ran it and
+      why, and that record is kept below with the file it produced.
+    </p>
+  </div>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">Choose an account</h3>
+  <%= form_with url: admin_exports_path, method: :get, class: "stack" do %>
+    <label for="user_id">
+      Account id
+      <input type="number" id="user_id" name="user_id" min="1" required
+             placeholder="e.g. 42">
+    </label>
+    <button class="btn btn-primary" type="submit">Open account record</button>
+  <% end %>
+  <p class="panel-note">
+    Prefer to browse? The accounts list can link to this screen from each
+    account, so the id does not have to be typed.
+  </p>
+</div>
+
+<% if @user %>
+  <div class="panel">
+    <h3 class="panel-title">Account &mdash; @<%= @user.username %></h3>
+    <div class="operator-facts">
+      <span class="record-fact"><span class="record-fact-label">User</span>
+        <strong>#<%= @user.id %></strong></span>
+      <span class="record-fact"><span class="record-fact-label">Name</span>
+        <strong><%= @user.display_name %></strong></span>
+      <span class="record-fact"><span class="record-fact-label">Status</span>
+        <strong><%= @user.is_banned ? 'banned' : (@user.is_suspended ? 'suspended' : 'active') %></strong></span>
+      <span class="record-fact"><span class="record-fact-label">Posts</span>
+        <strong><%= count_label(@user.tweet_count) %></strong></span>
+      <span class="record-fact"><span class="record-fact-label">Role</span>
+        <strong><%= @user.role.name %></strong></span>
+    </div>
+
+    <%# The reason is required, and the field says what is being produced so
+        the operator knows the blast radius before the file is written. %>
+    <%= form_with url: admin_export_path(@user), method: :get, class: "stack" do %>
+      <label for="reason">
+        Reason for the export (required)
+        <input type="text" id="reason" name="reason" maxlength="<%= DataExport::MAX_REASON %>"
+               placeholder="e.g. Legal hold 2026-114, support ticket #8821" required>
+      </label>
+      <button class="btn btn-primary" type="submit">Download evidence file</button>
+    <% end %>
+    <p class="panel-note">
+      The file carries the account's posts and enforcement history. It is a
+      disclosure of personal data, so the reason is recorded with it.
+    </p>
+  </div>
+<% end %>
+
+<h2 class="group-title">Recent exports</h2>
+<section class="admin-section">
+  <h3 class="panel-title">Disclosure log</h3>
+  <p class="section-note">
+    Each row is one export. Re-downloading an earlier file does not add a row:
+    the disclosure already happened, and duplicating it would make one release
+    of data look like two.
+  </p>
+  <table class="data-table">
+    <thead>
+      <tr><th>When</th><th>Account</th><th>Operator</th><th>Reason</th><th>Contents</th><th></th></tr>
+    </thead>
+    <tbody>
+      <% if @exports.present? %>
+        <% @exports.each do |record| %>
+          <tr>
+            <td class="muted"><%= time_ago(record.created_at) %></td>
+            <td><a href="<%= admin_user_path(record.user) %>">@<%= record.user.username %></a></td>
+            <td><%= record.actor ? "@#{record.actor.username}" : "system" %></td>
+            <td><%= record.reason %></td>
+            <td class="muted">
+              <%= record.post_count %> post(s), <%= record.enforcement_count %> enforcement
+            </td>
+            <td>
+              <a class="btn btn-mini" href="<%= admin_export_download_path(record) %>">Re-download</a>
+            </td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr><td colspan="6" class="muted">No exports have been run.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</section>

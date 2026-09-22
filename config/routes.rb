@@ -230,6 +230,13 @@ Rails.application.routes.draw do
     # Tamper-evidence for the trail itself. Read-only, so a GET.
     get "audit/verify", to: "audit#verify", as: :audit_verify
     get "backup", to: "backup#export", as: :backup
+    # Per-account evidence export. The index lists prior disclosures; the
+    # download route re-sends one without writing a second record, so it is
+    # declared before the bare `:user_id` route or `download` would be read as
+    # an account id.
+    get "exports",            to: "exports#index",    as: :exports
+    get "exports/download/:id", to: "exports#download", as: :export_download
+    get "exports/:user_id",   to: "exports#show",     as: :export
     # Insights is read-only analytics over the existing tables, so it needs no
     # confirmation and destroys nothing.
     get "insights", to: "insights#index", as: :insights

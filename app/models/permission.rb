@@ -62,6 +62,11 @@ class Permission < ApplicationRecord
     "settings.blocked_terms" => "Manage the blocked terms list",
     "audit.view"         => "View the audit log",
     "backup.export"      => "Export a database backup",
+    # Per-account evidence exports are a disclosure, not a read: the file
+    # carries the account record, its posts and its enforcement history out of
+    # the panel, and every run records the reason. That is why it is its own
+    # grant rather than riding on users.view or audit.view.
+    "exports.run"        => "Export per-account evidence for a legal hold or data request",
     "maintenance.run"    => "Run maintenance tasks",
     # The lookup surfaces. These are read-only, but they expose raw account
     # records and session state, so they are granted deliberately rather than

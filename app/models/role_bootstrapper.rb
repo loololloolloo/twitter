@@ -12,7 +12,7 @@ module RoleBootstrapper
       reports.resolve reports.views appeals.view appeals.decide
       cases.view cases.open cases.link cases.decide
       verification.view verification.decide
-      audit.view backup.export maintenance.run
+      audit.view backup.export exports.run maintenance.run
       settings.view settings.blocked_terms
       lookup.run escalations.view sessions.view relations.view lists.view
       approvals.decide

@@ -104,6 +104,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_130000) do
     t.index ["report_id"], name: "index_case_links_on_report_id", unique: true
   end
 
+  create_table "data_exports", force: :cascade do |t|
+    t.integer "actor_id"
+    t.datetime "created_at", null: false
+    t.integer "enforcement_count", default: 0, null: false
+    t.integer "post_count", default: 0, null: false
+    t.string "reason", default: "", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["actor_id"], name: "index_data_exports_on_actor_id"
+    t.index ["user_id"], name: "index_data_exports_on_user_id"
+  end
+
   create_table "dm_conversations", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -481,6 +493,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_130000) do
   add_foreign_key "bookmarks", "users"
   add_foreign_key "case_links", "moderation_cases"
   add_foreign_key "case_links", "reports"
+  add_foreign_key "data_exports", "users"
   add_foreign_key "dm_conversations", "users", column: "user_a_id"
   add_foreign_key "dm_conversations", "users", column: "user_b_id"
   add_foreign_key "dm_messages", "dm_conversations"

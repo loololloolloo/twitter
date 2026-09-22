@@ -1,0 +1,122 @@
+<div class="page-head">
+  <div>
+    <h1>Shift handover</h1>
+    <p class="page-note">
+      What an operator reads at the start of a shift: what is waiting, what the
+      last shift did, and which items cannot be closed by whoever reached them
+      last. Generated <%= @generated_at.strftime("%H:%M") %> on
+      <%= @generated_at.strftime("%d %b %Y") %>. "Recent" is the last six
+      hours.
+    </p>
+  </div>
+  <a class="btn" href="<%= admin_root_path %>">Dashboard</a>
+</div>
+
+<%# The queues lead. Each tile is a link into the filtered working screen, so
+    the digest is the entry point to the work rather than a report about it. %>
+<h2 class="section-title">Open now</h2>
+<% if @open.any? %>
+  <div class="stat-grid">
+    <% @open.each do |row| %>
+      <a class="stat <%= 'warn' if row[:count].positive? %>" href="<%= row[:path] %>">
+        <span class="stat-num"><%= count_label(row[:count]) %></span>
+        <span class="stat-label"><%= row[:label] %></span>
+      </a>
+    <% end %>
+  </div>
+<% else %>
+  <p class="muted">No queue you hold the permission for is represented here.</p>
+<% end %>
+
+<%# The items a second operator has to take. This sits above the recent-activity
+    block because it is the one thing a handover must not bury: work that has
+    stalled precisely because the person who started it cannot finish it. %>
+<h2 class="section-title">Needs a second operator</h2>
+<% if @needs_attention.any? %>
+  <div class="caution">
+    <p class="caution-text">
+      <%= pluralize(@needs_attention.size, "item") %> below cannot be closed by you
+    </p>
+    <p class="caution-sub">
+      Separation of duties: you imposed the sanction, opened the case, or filed
+      the request. Hand these to another operator at handover rather than
+      leaving them in a queue where they read as unworked.
+    </p>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>Queue</th><th>Subject</th><th>Why it is yours to hand over</th><th></th></tr>
+    </thead>
+    <tbody>
+      <% @needs_attention.each do |row| %>
+        <tr>
+          <td><%= row[:kind] %></td>
+          <td><strong><%= row[:subject] %></strong></td>
+          <td class="muted"><%= row[:detail] %></td>
+          <td><a class="btn btn-mini" href="<%= row[:path] %>">Open queue</a></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="muted">
+    Nothing open requires a different operator from you. Every pending item is
+    one you can decide.
+  </p>
+<% end %>
+
+<h2 class="section-title">Changed in the last 6 hours</h2>
+<% if can?("audit.view") %>
+  <table class="data-table">
+    <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+    <tbody>
+      <% if @recent.any? %>
+        <% @recent.each do |entry| %>
+          <tr>
+            <td class="muted"><%= time_ago(entry.created_at) %></td>
+            <td><%= entry.actor ? "@#{entry.actor.username}" : "system" %></td>
+            <td><code><%= entry.action %></code></td>
+            <td class="muted"><%= entry.target %></td>
+            <td><%= entry.detail %></td>
+          </tr>
+        <% end %>
+      <% else %>
+        <tr><td colspan="5" class="muted">No enforcement or decision was recorded in this window.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <%# Reading the trail is its own grant. Without it this section says so
+      rather than rendering an empty table that looks like a quiet shift. %>
+  <p class="muted">
+    Reading the audit trail needs the audit.view permission, so the recent
+    actions are not shown here. Ask an operator who holds it for the detail.
+  </p>
+<% end %>
+
+<% if can?("users.view") %>
+  <h2 class="section-title">Newest accounts</h2>
+  <p class="section-note">
+    The accounts created most recently. Spam and impersonation announce
+    themselves in their first hours, so they are worth a look at handover.
+  </p>
+  <table class="data-table">
+    <thead><tr><th class="id">ID</th><th>Account</th><th>Role</th><th>Joined</th><th></th></tr></thead>
+    <tbody>
+      <% @newest.each do |user| %>
+        <tr>
+          <td class="id"><%= user.id %></td>
+          <td>
+            <strong>@<%= user.username %></strong>
+            <% if user.is_verified %><span class="verified-badge"><%= icon('verified') %></span><% end %>
+            <br><span class="muted"><%= user.display_name %></span>
+          </td>
+          <td><%= user.role.name %></td>
+          <td class="muted"><%= time_ago(user.created_at) %></td>
+          <td><a class="btn btn-mini" href="<%= admin_user_path(user) %>">Open</a></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

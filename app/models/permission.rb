@@ -55,6 +55,11 @@ class Permission < ApplicationRecord
     "verification.view"  => "View the verification request queue",
     "verification.decide" => "Approve or deny verification requests",
     "settings.edit"      => "Edit site settings",
+    # The shift handover digest. It is a read-only roll-up, but it gathers the
+    # live queues, the actions taken since the shift started and the accounts
+    # needing a second pair of eyes onto one screen, so it is its own grant
+    # rather than something every admin.access holder sees.
+    "handover.view"      => "Read the shift handover digest",
     # The blocked-terms list is split from settings.edit because reading it is
     # harmless and useful to a moderator, while changing it alters what every
     # reader sees. The hide mode in particular removes posts site-wide.

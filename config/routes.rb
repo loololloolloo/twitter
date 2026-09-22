@@ -254,6 +254,11 @@ Rails.application.routes.draw do
 
     get "relations", to: "relations#index", as: :relations
 
+    # The shift handover digest. Read-only, so a GET: it rolls the live queues,
+    # the recent enforcement actions and the items that need a second operator
+    # onto the screen an operator reads at the start of a shift.
+    get "handover", to: "handover#show", as: :handover
+
     # Duplicate-account clusters. Read-only: the screen reports shared signup
     # signals as a hint, and nothing on it changes an account.
     get "duplicates", to: "sockpuppets#index", as: :duplicates

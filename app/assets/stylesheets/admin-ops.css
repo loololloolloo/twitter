@@ -522,6 +522,12 @@ h1, h2, h3 { margin: 0; font-weight: 700; }
 }
 .stat.warn .stat-num, .stat.warn .stat-value { color: var(--ops-danger); }
 
+/* A stat tile can be a link into the queue it counts. It keeps the tile
+   treatment rather than the text-link one, so the grid still scans as a row of
+   tiles rather than a paragraph of links. */
+a.stat { color: inherit; text-decoration: none; }
+a.stat:hover { border-color: var(--ops-accent); }
+
 .meter { height: 6px; background: var(--ops-surface-alt); border-radius: 999px; overflow: hidden; min-width: 90px; }
 .meter-fill { display: block; height: 100%; background: var(--ops-accent); }
 

@@ -29,6 +29,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin/relations
     /admin/duplicates
     /admin/lists
+    /admin/handover
   ].freeze
 
   test "every admin page renders for the owner" do

@@ -127,6 +127,11 @@
 
       <div class="rail-group">
         <h3 class="rail-group-title">Reference</h3>
+        <% if can?('handover.view') %>
+          <a href="<%= admin_handover_path %>" class="<%= 'is-active' if controller_name == 'handover' %>">
+            <%= icon('clock') %><span class="rail-label">Handover</span>
+          </a>
+        <% end %>
         <% if can?('audit.view') %>
           <a href="<%= admin_audit_path %>" class="<%= 'is-active' if controller_name == 'audit' && action_name != 'verify' %>">
             <%= icon('clock') %><span class="rail-label">Audit log</span>

@@ -94,6 +94,79 @@
   </div>
 </div>
 
+<%# Appeal quality. Overturn rate is the signal a moderation team is judged
+    on, so it is grouped by the sanction contested and by the operator who
+    decided, rather than shown as one site-wide number that hides either. %>
+<div class="panel">
+  <h3 class="panel-title">Appeal outcomes</h3>
+  <p class="muted">
+    A reversed appeal is an overturn: the second look disagreed with the first
+    decision. "Modified" changes the sanction but leaves it standing, so it is
+    not counted as one.
+  </p>
+
+  <div class="stat-grid">
+    <div class="stat"><span class="stat-num"><%= count_label(@appeal_metrics[:counts]["pending"]) %></span><span class="stat-label">Pending</span></div>
+    <div class="stat"><span class="stat-num"><%= count_label(@appeal_metrics[:counts]["upheld"]) %></span><span class="stat-label">Upheld</span></div>
+    <div class="stat"><span class="stat-num"><%= count_label(@appeal_metrics[:counts]["reversed"]) %></span><span class="stat-label">Reversed</span></div>
+    <div class="stat"><span class="stat-num"><%= count_label(@appeal_metrics[:counts]["modified"]) %></span><span class="stat-label">Modified</span></div>
+    <div class="stat warn">
+      <span class="stat-num"><%= @appeal_metrics[:rate].nil? ? "n/a" : "#{@appeal_metrics[:rate]}%" %></span>
+      <span class="stat-label">Overturn rate (<%= count_label(@appeal_metrics[:overturned]) %> of <%= count_label(@appeal_metrics[:total]) %> decided)</span>
+    </div>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div class="panel">
+    <h3 class="panel-title">Overturns by sanction</h3>
+    <table class="data-table">
+      <thead><tr><th>Sanction</th><th>Decided</th><th>Reversed</th><th>Rate</th></tr></thead>
+      <tbody>
+        <% @appeal_metrics[:by_sanction].each do |row| %>
+          <tr>
+            <td>
+              <a href="<%= admin_appeals_path(state: "all") %>"><%= row[:label] %></a>
+            </td>
+            <td><%= count_label(row[:total]) %></td>
+            <td><%= count_label(row[:overturned]) %></td>
+            <td><%= row[:total].zero? ? "n/a" : "#{row[:overturned] * 100 / row[:total]}%" %></td>
+          </tr>
+        <% end %>
+        <% if @appeal_metrics[:total].zero? %>
+          <tr><td colspan="4" class="muted">No appeals have been decided yet.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title">Overturns by operator</h3>
+    <table class="data-table">
+      <thead><tr><th>Operator</th><th>Decided</th><th>Reversed</th><th>Rate</th></tr></thead>
+      <tbody>
+        <% @appeal_metrics[:by_operator].each do |row| %>
+          <tr>
+            <td>
+              <% if row[:operator] %>
+                <a href="<%= admin_user_path(row[:operator]) %>">@<%= row[:operator] %></a>
+              <% else %>
+                <span class="muted">Unknown</span>
+              <% end %>
+            </td>
+            <td><%= count_label(row[:total]) %></td>
+            <td><%= count_label(row[:overturned]) %></td>
+            <td><%= row[:total].zero? ? "n/a" : "#{row[:overturned] * 100 / row[:total]}%" %></td>
+          </tr>
+        <% end %>
+        <% if @appeal_metrics[:by_operator].empty? %>
+          <tr><td colspan="4" class="muted">No appeals have been decided yet.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <div class="panel">
   <h3 class="panel-title">Storage</h3>
   <p class="muted">Database file: <strong><%= number_to_human_size(@database_bytes) %></strong></p>

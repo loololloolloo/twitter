@@ -45,12 +45,19 @@ module Admin
 
       appeal.decide!(decision: decision, actor: current_user, note: params[:note].to_s.strip)
 
+      # A reversal has to actually lift the sanction, not just record the word.
+      # The model refuses to lift one that is already out of force, so this is
+      # nil for an upheld or modified decision, or a ban someone else already
+      # cleared - and the trail records no phantom reversal.
+      reversal = appeal.apply_reversal!(actor: current_user)
+
       notify_member(appeal, decision)
 
       audit!("appeals.decide", target: "appeal:#{appeal.id}",
                                detail: "#{decision} #{appeal.sanction_label.downcase} for " \
                                        "user:#{appeal.user_id} (sanction by " \
-                                       "#{appeal.sanction_actor ? "@#{appeal.sanction_actor.username}" : 'unknown'})")
+                                       "#{appeal.sanction_actor ? "@#{appeal.sanction_actor.username}" : 'unknown'})" \
+                                       "#{reversal ? ", reversal ##{reversal.id} lifted it" : ''}")
 
       redirect_to admin_appeals_path, notice: "Appeal #{decision}."
     end

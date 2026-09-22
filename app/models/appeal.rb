@@ -97,4 +97,43 @@ class Appeal < ApplicationRecord
       decided_at: Time.current
     )
   end
+
+  # A reversal is not just a label on the appeal: it lifts the sanction the
+  # member contested. Without this the queue would tell the member their ban was
+  # lifted while the account stayed locked out. The lifting is recorded as a
+  # `ModerationReversal`, so the account history reads "sanctioned, then
+  # reversed" rather than the ban silently vanishing. Returns the reversal, or
+  # nil when the sanction was already out of force and there is nothing to lift.
+  def apply_reversal!(actor:)
+    return nil unless state == "reversed" && sanction_in_effect?
+
+    reversal = ModerationReversal.create!(
+      user: user,
+      actor: actor,
+      imposed_by: sanction_actor,
+      source: sanction_kind,
+      source_id: 0,
+      action: ModerationReversal::SOURCE_ACTIONS.fetch(sanction_kind),
+      reason: "Appeal ##{id} reversed: #{decision_note.presence || 'no rationale recorded'}"
+    )
+
+    case sanction_kind
+    when "ban"
+      user.update!(is_banned: false, ban_reason: "", ban_permanent: false, ban_expires_at: nil)
+    when "suspension"
+      user.update!(is_suspended: false)
+    end
+
+    reversal
+  end
+
+  # Whether the contested sanction is still standing. A decision of "reversed"
+  # against a ban an operator already lifted must not mint a second reversal.
+  def sanction_in_effect?
+    case sanction_kind
+    when "ban"        then user.banned?
+    when "suspension" then user.is_suspended?
+    else false
+    end
+  end
 end

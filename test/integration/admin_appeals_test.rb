@@ -233,4 +233,91 @@ class AdminAppealsTest < ActionDispatch::IntegrationTest
 
     assert_equal 0, Appeal.where(user_id: member.id).count
   end
+
+  # --- A reversal has to lift the sanction, not just record the word ---
+
+  test "reversing an appeal lifts the ban and records the reversal" do
+    issuer = create_user(username: "issuer", role: "owner")
+    decider = create_user(username: "decider", role: "owner")
+    member = create_user(username: "member")
+    member.update!(is_banned: true, ban_reason: "Spam", ban_permanent: true)
+    appeal = filed_appeal(member: member, sanction_actor: issuer)
+
+    sign_in(decider)
+    post admin_appeal_decide_path(appeal), params: { decision: "reversed", note: "Not spam" }
+
+    assert_redirected_to admin_appeals_path
+    member.reload
+    refute member.is_banned?, "a reversed appeal must clear the ban, not just relabel it"
+    assert_equal false, member.ban_permanent
+    assert_nil member.ban_expires_at
+
+    reversal = member.moderation_reversals.last
+    assert reversal.present?, "the lift must be recorded as a reversal"
+    assert_equal "ban", reversal.source
+    assert_equal "users.ban", reversal.action
+    assert_equal decider.id, reversal.actor_id
+    assert_equal issuer.id, reversal.imposed_by_id
+    assert_match(/Appeal ##{appeal.id}/, reversal.reason)
+    assert_match(/Not spam/, reversal.reason)
+  end
+
+  test "reversing a suspension clears the suspension and records it" do
+    issuer = create_user(username: "issuer", role: "owner")
+    decider = create_user(username: "decider", role: "owner")
+    member = create_user(username: "member")
+    member.update!(is_suspended: true)
+    appeal = filed_appeal(member: member, sanction_actor: issuer, sanction_kind: "suspension")
+
+    sign_in(decider)
+    post admin_appeal_decide_path(appeal), params: { decision: "reversed", note: "Overreach" }
+
+    member.reload
+    refute member.is_suspended?, "a reversed suspension must end"
+    assert_equal "suspension", member.moderation_reversals.last.source
+  end
+
+  test "upholding an appeal leaves the ban in force and mints no reversal" do
+    issuer = create_user(username: "issuer", role: "owner")
+    decider = create_user(username: "decider", role: "owner")
+    member = create_user(username: "member")
+    member.update!(is_banned: true, ban_reason: "Spam", ban_permanent: true)
+    appeal = filed_appeal(member: member, sanction_actor: issuer)
+
+    sign_in(decider)
+    post admin_appeal_decide_path(appeal), params: { decision: "upheld", note: "Stands" }
+
+    assert member.reload.is_banned?, "an upheld appeal keeps the ban"
+    assert_equal 0, member.moderation_reversals.count
+  end
+
+  test "a reversal is not double-recorded when the ban was already lifted" do
+    issuer = create_user(username: "issuer", role: "owner")
+    decider = create_user(username: "decider", role: "owner")
+    member = create_user(username: "member")
+    member.update!(is_banned: true, ban_reason: "Spam", ban_permanent: true)
+    member.update!(is_banned: false, ban_reason: "", ban_permanent: false, ban_expires_at: nil)
+    appeal = filed_appeal(member: member, sanction_actor: issuer)
+
+    sign_in(decider)
+    post admin_appeal_decide_path(appeal), params: { decision: "reversed", note: "Already clear" }
+
+    assert_equal "reversed", appeal.reload.state
+    assert_equal 0, member.reload.moderation_reversals.count
+  end
+
+  test "the audit trail records the reversal that lifted the sanction" do
+    issuer = create_user(username: "issuer", role: "owner")
+    decider = create_user(username: "decider", role: "owner")
+    member = create_user(username: "member")
+    member.update!(is_banned: true, ban_reason: "Spam", ban_permanent: true)
+    appeal = filed_appeal(member: member, sanction_actor: issuer)
+
+    sign_in(decider)
+    post admin_appeal_decide_path(appeal), params: { decision: "reversed", note: "Not spam" }
+
+    entry = AuditLog.where(action: "appeals.decide", target: "appeal:#{appeal.id}").last
+    assert entry.present?
+    assert_match(/reversal #\d+ lifted it/, entry.detail)
+  end
 end

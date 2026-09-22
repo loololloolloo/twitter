@@ -254,6 +254,10 @@ Rails.application.routes.draw do
 
     get "relations", to: "relations#index", as: :relations
 
+    # Duplicate-account clusters. Read-only: the screen reports shared signup
+    # signals as a hint, and nothing on it changes an account.
+    get "duplicates", to: "sockpuppets#index", as: :duplicates
+
     get   "lists",      to: "lists#index",  as: :lists
     patch "lists/:id",  to: "lists#update", as: :list
 

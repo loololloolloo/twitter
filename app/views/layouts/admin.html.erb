@@ -46,6 +46,7 @@
       <% end %>
       <% if can?('relations.view') %>
         <a href="<%= admin_relations_path %>" class="<%= 'active' if controller_name == 'relations' %>">Relations</a>
+        <a href="<%= admin_duplicates_path %>" class="<%= 'active' if controller_name == 'sockpuppets' %>">Duplicates</a>
       <% end %>
       <% if can?('lists.view') %>
         <a href="<%= admin_lists_path %>" class="<%= 'active' if controller_name == 'lists' %>">Lists</a>

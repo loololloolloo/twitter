@@ -1,0 +1,69 @@
+<div class="page-head">
+  <div>
+    <h1>Duplicate accounts</h1>
+    <p class="page-note">
+      Accounts that share signup signals, grouped so a run of accounts created
+      together can be read at once. This is a hint, not a verdict: the signals
+      below are what the detector found, and only an operator can say whether
+      they mean one person.
+    </p>
+  </div>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">What counts as a match</h3>
+  <p class="muted">
+    A cluster joins accounts that share a mailbox name, were created within
+    fifteen minutes of each other, or carry the same handle shape. Any one of
+    these groups unrelated people on its own - a shared mailbox name is the
+    strongest hint because one person controls the addresses, a shared handle
+    shape is the weakest because fandom produces it constantly. Nothing here
+    bans, suspends or limits an account.
+  </p>
+</div>
+
+<% if @clusters.any? %>
+  <% @clusters.each do |cluster| %>
+    <section class="admin-section">
+      <h3 class="section-title">
+        <%= cluster.size %> accounts
+        <span class="pill <%= cluster.score >= 60 ? 'pill-warn' : 'pill' %>"><%= cluster.score %> signal weight</span>
+      </h3>
+      <p class="section-note">
+        Strongest shared signal: <%= cluster.ordered_signals.first.label.downcase %>.
+      </p>
+
+      <div class="stack">
+        <div class="signal-row">
+          <% cluster.ordered_signals.each do |signal| %>
+            <span class="signal">
+              <span class="signal-label"><%= signal.label %></span>
+              <strong><%= signal.detail %></strong>
+            </span>
+          <% end %>
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr><th class="id">ID</th><th>Account</th><th>Email</th><th>Created</th><th></th></tr>
+        </thead>
+        <tbody>
+          <% cluster.accounts.each do |account| %>
+            <tr>
+              <td class="id"><%= account.id %></td>
+              <td><strong>@<%= account.username %></strong></td>
+              <td class="muted"><%= account.email %></td>
+              <td class="muted"><%= account.created_at&.strftime("%d %b %Y %H:%M") %></td>
+              <td>
+                <a class="btn btn-mini" href="<%= admin_user_path(account.id) %>">Open</a>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </section>
+  <% end %>
+<% else %>
+  <p class="muted">No accounts currently share a signup signal.</p>
+<% end %>

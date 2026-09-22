@@ -27,6 +27,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin/approvals
     /admin/sessions
     /admin/relations
+    /admin/duplicates
     /admin/lists
   ].freeze
 

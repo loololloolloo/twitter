@@ -1868,6 +1868,16 @@ html[data-theme="dark"] .row-item:hover { background: rgba(255,255,255,.03); }
   flex: 1; display: flex; align-items: center; justify-content: center;
   padding: 40px 20px; text-align: center; color: var(--gray); font-size: 15px;
 }
+/* The inbox placeholder with no thread open: a centred envelope, the prompt,
+   and a one-line explanation, the 2019 arrangement. */
+.dm-empty-state {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 8px; padding: 40px 32px; text-align: center;
+}
+.dm-empty-state .dm-empty-icon { color: var(--blue); }
+.dm-empty-state .dm-empty-icon .ico { width: 48px; height: 48px; }
+.dm-empty-state h2 { margin: 0; font-size: 23px; font-weight: 800; color: var(--dark); }
+.dm-empty-state p { margin: 0; max-width: 320px; font-size: 15px; line-height: 20px; color: var(--gray); }
 /* An outgoing message sits on the right in the brand blue, an incoming one on
    the left on the page tint, both as rounded bubbles. */
 .dm-line { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 12px; }

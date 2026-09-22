@@ -32,13 +32,15 @@
       </ul>
     </div>
 
+    <%# With nothing selected the right pane is the 2019 placeholder: a large
+        centred envelope over the "Select a message" prompt and a one-line
+        explanation, rather than a bare heading over a paragraph. %>
     <div class="dm-thread-pane">
-      <div class="dm-thread-head">
+      <div class="dm-empty-state">
+        <span class="dm-empty-icon" aria-hidden="true"><%= icon('envelope') %></span>
         <h2>Select a message</h2>
-      </div>
-      <div class="dm-thread-empty">
-        Choose a conversation on the left, or open a profile and use Message to
-        start a new one.
+        <p>Choose from your existing conversations, or start a new one from a
+          profile's Message button.</p>
       </div>
     </div>
   </div>

@@ -131,6 +131,24 @@ Checked against the 2019 client and left alone, so a later run does not
   (`test/integration/explore_tabs_test.rb`). Verified against the rendered
   page - the earlier "single stream" note is stale.
 
+### Messages
+* **Inbox placeholder — fixed.** 2019's Messages inbox, with no conversation
+  open, showed a centred envelope glyph over the prompt "Select a message" and
+  a one-line explanation of how to start one, filling the whole right pane.
+  Was: a `dm-thread-head` bar carrying the same words as a plain heading, with
+  a separate paragraph below it - the shape of a thread header that had failed
+  to load rather than a deliberate empty state. Now: `messages/index.html.erb`
+  renders `.dm-empty-state` (envelope, prompt, explanation) and
+  `.dm-empty-state` is styled in `twitter.css`. Asserted in
+  `test/integration/messages_inbox_test.rb` (placeholder on the inbox, gone
+  once a thread is open, conversation text present instead).
+* The thread pane keeps the conversation list beside it while a thread is
+  open, which is the 2019 two-pane inbox. Verified, no change needed.
+* 2019 showed a compose control at the top of the inbox that opened a new
+  message. This build starts a conversation from a profile's Message button
+  instead. Acceptable substitute, but a search-and-start control in the inbox
+  header is the closer match if the budget allows it later.
+
 ### Notifications
 * 2019 gave the notifications header a settings gear at the right edge, which
   opened the notification panel of Settings rather than a page of its own.
@@ -146,3 +164,43 @@ Checked against the 2019 client and left alone, so a later run does not
   inside the avatar anchor, so picture and badge are one link. A kind with no
   glyph (a bare system notice) renders no badge rather than inventing one.
   Asserted in `test/integration/shell_layout_test.rb`.
+
+## Open fidelity items (resumable backlog)
+
+These are the known remaining gaps, recorded so a later run can pick one up
+without redoing the audit. Each names the page, what 2019 did, and where the
+code stands now. Verify against the rendered page before changing anything.
+
+### Messages
+* **Compose control in the inbox header - open.** 2019's Messages inbox carried
+  a compose affordance at the top of the conversation list (a search box plus a
+  new-message control) so a conversation could be started without visiting a
+  profile. This build starts conversations only from a profile's Message
+  button. Would need a recipient picker POSTing to `messages#create`; the
+  controller already accepts `params[:id]` as the other account.
+  Code: `app/views/messages/index.html.erb`, `MessagesController#create`,
+  routes `post "messages/:id"`.
+
+### Lists
+* **List header counts - open.** 2019's list page header printed the member and
+  follower counts inline beside the list name ("3 members"). Check
+  `app/views/lists/show.html.erb` (or the lists partial) for whether those
+  counts render; the data is on the list record.
+
+### Bookmarks
+* **Empty-state copy - verify.** 2019 used "You haven't added any Tweets to
+  your Bookmarks yet" with a sub-line telling the member to tap the share icon
+  to add one. Confirm the current empty state matches rather than a shorter
+  message.
+
+### Profile
+* **Media tab lazy-load affordance - verify.** 2019's profile media grid loaded
+  progressively; the build may render the whole set at once. Low priority.
+
+### Shell
+* **Left sidebar "More" disclosure - verify position.** 2019 kept More inline in
+  the sidebar list, expanding under the trigger rather than as an overlay. The
+  shell already renders `side-more` and `test/integration/shell_layout_test.rb`
+  asserts the labels; confirm the expanded panel is positioned under the item,
+  not centred or detached.
+

@@ -92,6 +92,22 @@ class TweetsController < ApplicationController
       return
     end
 
+    # A schedule is the 2019 composer's last control: the post is written now
+    # and withheld until the chosen moment. It is refused unless it is in the
+    # future, because a stamp in the past would publish instantly while telling
+    # the writer the post was queued - a silent lie about where it went.
+    scheduled_at = scheduled_time
+    if params[:scheduled_at].present? && scheduled_at.nil?
+      redirect_back fallback_location: home_path,
+                    alert: "That schedule date could not be read. Use YYYY-MM-DD HH:MM."
+      return
+    end
+    if scheduled_at && scheduled_at <= Time.current
+      redirect_back fallback_location: home_path,
+                    alert: "A scheduled tweet has to be at least a minute in the future."
+      return
+    end
+
     parent = params[:parent_id].present? ? Tweet.visible.find_by(id: params[:parent_id]) : nil
 
     # A quote names the post it attaches. It is loaded through the readable
@@ -123,7 +139,8 @@ class TweetsController < ApplicationController
       quote_of: quoted,
       media_path: media_path,
       media_url: gif_url,
-      alt_text: params[:alt_text].to_s.strip.first(1000).presence
+      alt_text: params[:alt_text].to_s.strip.first(1000).presence,
+      scheduled_at: scheduled_at
     )
 
     # The poll is attached after the post exists, because it carries the post's
@@ -133,19 +150,28 @@ class TweetsController < ApplicationController
       poll.save!
     end
 
-    if parent && parent.user_id != current_user.id
-      Notification.create!(user: parent.user, actor: current_user, kind: "reply",
-                           tweet: tweet, body: body.first(120))
+    # A scheduled post is not out yet, so nobody is told about it: a reply or a
+    # quote that cannot be read would send the recipient to a post that is not
+    # there, and an @mention would wake an account over a draft. The
+    # notifications are the reward for publishing, so they wait for the moment.
+    unless tweet.scheduled_pending?
+      if parent && parent.user_id != current_user.id
+        Notification.create!(user: parent.user, actor: current_user, kind: "reply",
+                             tweet: tweet, body: body.first(120))
+      end
+
+      if quoted && quoted.user_id != current_user.id
+        Notification.create!(user: quoted.user, actor: current_user, kind: "quote",
+                             tweet: tweet, body: "@#{current_user.username} quoted your tweet")
+      end
+
+      MentionScanner.notify(tweet)
     end
 
-    if quoted && quoted.user_id != current_user.id
-      Notification.create!(user: quoted.user, actor: current_user, kind: "quote",
-                           tweet: tweet, body: "@#{current_user.username} quoted your tweet")
-    end
-
-    MentionScanner.notify(tweet)
-
-    if parent
+    if tweet.scheduled_pending?
+      redirect_to profile_path(current_user.username, tab: "scheduled"),
+                  notice: "Your tweet is scheduled for #{tweet.scheduled_at.strftime('%b %-d, %Y at %-I:%M %p')}."
+    elsif parent
       redirect_to tweet_path(parent)
     else
       redirect_back fallback_location: home_path
@@ -256,6 +282,28 @@ class TweetsController < ApplicationController
   end
 
   private
+
+  # The composer sends the schedule as one local "YYYY-MM-DD HH:MM" string, the
+  # way the 2019 date picker did. A datetime-local control submits ISO-8601, so
+  # both spellings are accepted and read in the server's zone; anything else is
+  # nil, which the caller turns into a refusal rather than a silent no-op.
+  def scheduled_time
+    raw = params[:scheduled_at].to_s.strip
+    return nil if raw.empty?
+
+    # Only the two spellings the composer can send are read. A lenient parse is
+    # dangerous here: "next tuesday" would quietly become midnight today, and a
+    # schedule the writer never chose is worse than a plain refusal.
+    return nil unless raw.match?(/\A\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?\z/)
+
+    parsed =
+      begin
+        Time.zone.parse(raw.tr("T", " "))
+      rescue ArgumentError
+        nil
+      end
+    parsed&.change(sec: 0)
+  end
 
   def load_tweet
     # Scoped through `readable_by` so every action that names a post by id -

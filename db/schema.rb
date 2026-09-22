@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_140800) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_150000) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -433,6 +433,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_140800) do
     t.integer "quote_of_id"
     t.datetime "reply_hidden_at"
     t.integer "retweet_of_id"
+    t.datetime "scheduled_at"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.index ["created_at"], name: "index_tweets_on_created_at"
@@ -440,6 +441,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_140800) do
     t.index ["quote_of_id"], name: "index_tweets_on_quote_of_id"
     t.index ["reply_hidden_at"], name: "index_tweets_on_reply_hidden_at"
     t.index ["retweet_of_id"], name: "index_tweets_on_retweet_of_id"
+    t.index ["scheduled_at"], name: "index_tweets_on_scheduled_at"
     t.index ["user_id", "created_at"], name: "index_tweets_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_tweets_on_user_id"
   end

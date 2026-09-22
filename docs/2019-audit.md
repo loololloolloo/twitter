@@ -83,6 +83,18 @@ Checked against the 2019 client and left alone, so a later run does not
 * 2019's composer placeholder was "What's happening?" and the toolbar showed
   image, GIF, poll, emoji and schedule in that order. Verify the toolbar icons
   and their order on the home timeline.
+* **Scheduling — fixed.** 2019's schedule control was the last toolbar item and
+  opened a small panel (like the GIF picker) with a date and time; confirming it
+  changed the Tweet button to a Schedule action and closed the panel. This build
+  now matches: `_composer.html.erb` carries the `data-schedule-*` panel, the
+  value is staged in a hidden field so a half-typed date cannot queue anything,
+  and `TweetsController#scheduled_time` refuses anything that is not the exact
+  `YYYY-MM-DD HH:MM` spelling or is in the past. A post with a future
+  `scheduled_at` is withheld from every reader by `Tweet.visible` (the author's
+  own Scheduled tab is the only place that reads past it), publishes on its own
+  when the clock passes, and notifies nobody until then. The author's profile
+  carries a Scheduled tab, visible only to the author. Asserted in
+  `test/integration/scheduled_tweets_test.rb`.
 
 ### Profile
 * 2019 used a two-column header: avatar straddling the banner edge at 67/67px

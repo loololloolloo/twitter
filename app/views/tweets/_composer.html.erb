@@ -65,9 +65,38 @@
           <button type="button" class="media-btn" title="Add an emoji" data-emoji-open>
             <span class="emoji-glyph" aria-hidden="true">&#x1F600;</span>
           </button>
+          <%# The 2019 toolbar ended with the schedule control. It opens a
+              panel rather than sending a hidden value, so a post is only
+              scheduled when the writer has seen and set the moment. %>
+          <button type="button" class="media-btn schedule-btn" title="Schedule this tweet"
+                  data-schedule-open aria-expanded="false">
+            <%= icon('clock') %>
+            <span class="schedule-chip" data-schedule-chip hidden></span>
+          </button>
         </div>
         <span class="tweet-counter counter" data-counter-output><%= @max_len %></span>
         <button class="btn primary-btn tweet-btn" type="submit">Tweet</button>
+      </div>
+
+      <%# The schedule panel. The value is a single local string so the server
+          reads it in one place; "Clear" removes it, which turns the composer
+          back into an ordinary post made now. %>
+      <div class="schedule-panel" data-schedule-panel hidden>
+        <div class="gif-head">
+          <span>Schedule tweet</span>
+          <button type="button" class="gif-close" data-schedule-close aria-label="Close"><%= icon('xmark') %></button>
+        </div>
+        <label class="schedule-field">
+          Date and time
+          <input type="text" class="schedule-input" data-schedule-input
+                 autocomplete="off" placeholder="YYYY-MM-DD HH:MM" aria-label="Schedule date and time">
+        </label>
+        <p class="gif-note" data-schedule-note hidden></p>
+        <div class="schedule-actions">
+          <button type="button" class="btn schedule-clear" data-schedule-clear>Clear</button>
+          <button type="button" class="btn gif-use-link" data-schedule-set>Set schedule</button>
+        </div>
+        <input type="hidden" name="scheduled_at" data-schedule-hidden>
       </div>
 
       <%# The emoji picker. A short palette of the faces and symbols the 2019

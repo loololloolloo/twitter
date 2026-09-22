@@ -2120,6 +2120,49 @@ html[data-theme="dark"] .quote-card:hover { background: rgba(255,255,255,.03); }
 .gif-file:hover { text-decoration: underline; }
 .gif-note { margin: 8px 0 0; font-size: 13px; color: var(--gray); }
 
+/* ---------------- schedule picker ---------------- */
+/* The 2019 composer's schedule control opened a small panel like the GIF
+   picker: a date and time, a Set button, and a way to clear it. */
+.schedule-panel {
+  margin-top: 10px; padding: 12px; border: 1px solid var(--xlight-gray);
+  border-radius: 16px; background: var(--card);
+}
+.schedule-field {
+  display: block; font-size: 13px; font-weight: 700; color: var(--gray);
+}
+.schedule-input {
+  display: block; width: 100%; box-sizing: border-box; margin-top: 6px;
+  padding: 9px 12px; font-size: 15px; font-family: inherit; color: var(--dark);
+  border: 1px solid var(--xlight-gray); border-radius: 8px; background: var(--card);
+}
+.schedule-input:focus { outline: none; border-color: var(--blue); }
+.schedule-actions {
+  display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap;
+}
+.schedule-clear {
+  padding: 7px 16px; font-size: 14px; font-weight: 700; color: var(--blue);
+  background: none; border: 1px solid var(--xlight-gray); border-radius: 999px;
+  cursor: pointer;
+}
+.schedule-clear:hover { background: #e8f5fe; border-color: #e8f5fe; }
+/* The chip is the only sign, once the panel is closed, that the Tweet button
+   will schedule rather than publish, so it carries the chosen moment. */
+.schedule-chip {
+  margin-left: 4px; font-size: 12px; font-weight: 700; color: var(--blue);
+}
+.schedule-btn .ico { width: 18px; height: 18px; }
+
+/* The writer's own queue of scheduled posts. */
+.scheduled-note {
+  margin: 0; padding: 12px 15px; font-size: 13px; color: var(--gray);
+  border-bottom: 1px solid var(--xlight-gray);
+}
+.scheduled-when {
+  display: flex; align-items: center; gap: 7px; padding: 10px 15px 0;
+  font-size: 13px; font-weight: 700; color: var(--blue);
+}
+.scheduled-when .ico { width: 15px; height: 15px; }
+
 /* The emoji picker. 2019 opened a compact grid beneath the composer; it stays
    open so several can be inserted in a row. The face glyph is a character
    rather than an icon, so it needs no recolouring and inherits the font. */

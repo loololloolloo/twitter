@@ -155,6 +155,60 @@ $(function () {
     if (!$panel.find('[data-poll-choice][hidden]').length) { $(this).prop('hidden', true); }
   });
 
+  // The schedule panel. Like the GIF panel, the value is staged: only the
+  // hidden field is submitted, and it only carries a value once the writer has
+  // pressed Set, so a half-typed date never schedules anything by accident.
+  $(document).on('click', '[data-schedule-open]', function () {
+    var $panel = $(this).closest('form').find('[data-schedule-panel]');
+    $panel.prop('hidden', !$panel.prop('hidden'));
+    $(this).attr('aria-expanded', !$panel.prop('hidden'));
+    if (!$panel.prop('hidden')) { $panel.find('[data-schedule-input]').trigger('focus'); }
+  });
+
+  $(document).on('click', '[data-schedule-close]', function () {
+    $(this).closest('[data-schedule-panel]').prop('hidden', true);
+  });
+
+  function scheduleFailed($form, message) {
+    $form.find('[data-schedule-note]').prop('hidden', false).text(message);
+  }
+
+  $(document).on('click', '[data-schedule-set]', function () {
+    var $form = $(this).closest('form');
+    var raw = $.trim($form.find('[data-schedule-input]').val());
+    if (!raw) {
+      scheduleFailed($form, 'Choose a date and time first.');
+      return;
+    }
+
+    var when = new Date(raw.replace(' ', 'T'));
+    if (isNaN(when.getTime())) {
+      scheduleFailed($form, 'Use the form YYYY-MM-DD HH:MM.');
+      return;
+    }
+    if (when.getTime() <= Date.now()) {
+      scheduleFailed($form, 'Pick a time in the future.');
+      return;
+    }
+
+    $form.find('[data-schedule-hidden]').val(raw);
+    $form.find('[data-schedule-note]').prop('hidden', true).text('');
+    $form.find('[data-schedule-chip]').prop('hidden', false).text(
+      when.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    );
+    $form.find('.tweet-btn').text('Schedule');
+    $form.find('[data-schedule-panel]').prop('hidden', true);
+  });
+
+  $(document).on('click', '[data-schedule-clear]', function () {
+    var $form = $(this).closest('form');
+    $form.find('[data-schedule-hidden]').val('');
+    $form.find('[data-schedule-input]').val('');
+    $form.find('[data-schedule-chip]').prop('hidden', true).text('');
+    $form.find('[data-schedule-note]').prop('hidden', true).text('');
+    $form.find('.tweet-btn').text('Tweet');
+  });
+
   // The emoji picker inserts at the caret rather than at the end, which is
   // what the client did: typing around emoji should not move the cursor to
   // the end of the draft. The panel stays open so several can be added.

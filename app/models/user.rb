@@ -254,8 +254,10 @@ class User < ApplicationRecord
     following.count
   end
 
+  # Counts the posts a reader could actually see, so a schedule still holding
+  # one back does not make the profile claim a post that is not there yet.
   def tweet_count
-    tweets.where(is_deleted: false).count
+    tweets.where(is_deleted: false).not_scheduled.count
   end
 
   # Every like and favourite the account's posts have received, including any

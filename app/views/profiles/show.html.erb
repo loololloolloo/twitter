@@ -180,6 +180,14 @@
           <% if @active == 'likes' %><span>Likes</span>
           <% else %><a href="<%= profile_path(@user.username, tab: 'likes') %>">Likes</a><% end %>
         </li>
+        <%# The scheduled queue belongs to the writer alone, so the tab only
+            appears on your own profile. %>
+        <% if @is_me %>
+          <li class="pt-item <%= 'is-active' if @active == 'scheduled' %>">
+            <% if @active == 'scheduled' %><span>Scheduled</span>
+            <% else %><a href="<%= profile_path(@user.username, tab: 'scheduled') %>">Scheduled</a><% end %>
+          </li>
+        <% end %>
       </ul>
     </div>
 
@@ -215,6 +223,24 @@
         </div>
       <% else %>
         <p class="empty profile-empty">No photos or videos yet.</p>
+      <% end %>
+    <% elsif @active == "scheduled" %>
+      <% if @scheduled.present? %>
+        <p class="scheduled-note">
+          These tweets are not visible to anyone yet. Each one publishes on its
+          own at the time shown.
+        </p>
+        <ul class="timeline scheduled-list">
+          <% @scheduled.each do |tweet| %>
+            <li class="scheduled-when">
+              <%= icon('clock') %>
+              Scheduled for <%= tweet.scheduled_at.strftime('%b %-d, %Y at %-I:%M %p') %>
+            </li>
+            <%= render "tweets/tweet", tweet: tweet %>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="empty profile-empty">Nothing scheduled.</p>
       <% end %>
     <% else %>
       <ul class="timeline">

@@ -4,7 +4,7 @@ class ProfilesController < ApplicationController
 
   # The 2019 tabs are Tweets, Tweets & replies, Media and Likes. `favorites`
   # is kept as an accepted alias because older links and tests still use it.
-  TABS = %w[tweets replies media likes favorites].freeze
+  TABS = %w[tweets replies media likes favorites scheduled].freeze
 
   def show
     @active = params[:tab].presence_in(TABS) || "tweets"
@@ -43,6 +43,11 @@ class ProfilesController < ApplicationController
     @is_me = @user.id == current_user.id
     @is_following = current_user.following.exists?(id: @user.id)
 
+    # The scheduled list is the writer's own: it shows posts that are not out
+    # yet, so anyone else asking for it falls back to the ordinary Tweets tab
+    # rather than being told the list exists but is private.
+    @active = "tweets" if @active == "scheduled" && !@is_me
+
     # A locked profile has nothing to show in the panels below, so the loads are
     # skipped rather than run and discarded.
     if @locked
@@ -70,6 +75,12 @@ class ProfilesController < ApplicationController
                      .where(id: @user.likes.favourites.select(:tweet_id))
                      .includes(:user, retweet_of: :user, quote_of: :user)
                      .recent.limit(60)
+    elsif @active == "scheduled"
+      # The writer's queue of posts whose moment has not arrived, earliest
+      # first, because that is the order they will go out. Scoped by author so
+      # it can only ever be the viewer's own list.
+      @scheduled = current_user.tweets.where(is_deleted: false)
+                            .scheduled.order(:scheduled_at).limit(60)
     elsif @active == "replies"
       # "Tweets & replies" is everything the account posted, replies included,
       # which is the unfiltered author scope.

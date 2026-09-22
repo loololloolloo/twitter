@@ -30,7 +30,10 @@
         <% if author.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
         <span class="tweet-handle">@<%= author.username %></span>
         <span class="tweet-dot">&middot;</span>
-        <span class="tweet-time" title="<%= show_body.created_at %>"><%= time_ago(show_body.created_at) %></span>
+        <%# A post whose schedule has not arrived is only ever seen on its
+            author's own list, and the time shown there is when it will go out,
+            not when it was written. %>
+        <span class="tweet-time" title="<%= show_body.timeline_at %>"><%= time_ago(show_body.timeline_at) %></span>
 
         <%# The overflow menu: the per-post actions that do not fit on the
             action bar. Only rendered when there is at least one entry in it,

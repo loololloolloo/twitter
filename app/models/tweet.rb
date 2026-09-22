@@ -23,6 +23,11 @@ class Tweet < ApplicationRecord
   scope :visible, lambda {
     scope = where(is_deleted: false)
       .where.not(user_id: User.where(is_banned: true, ban_permanent: true).select(:id))
+      # A post whose schedule has not arrived is withheld from every reader,
+      # the author included; the author's own scheduled list is the one place
+      # that reads past this. Folded in here, beside the other visibility
+      # rules, so every timeline inherits it from one place.
+      .merge(not_scheduled)
 
     # Posts matching a "hide" blocked term are dropped here, alongside the other
     # visibility rules, so every timeline inherits the rule from one place. The
@@ -48,6 +53,13 @@ class Tweet < ApplicationRecord
     condition = BlockedTerm.matcher.flag_sql
     condition ? where(condition.first, *condition.last) : none
   }
+  # Posts a schedule is still holding back, and the rows whose moment has
+  # arrived. The two are complements over the same stamp; a post made now - the
+  # ordinary case - has no schedule at all and belongs to neither, so both read
+  # `scheduled_at` against the clock rather than assuming a schedule is set.
+  scope :scheduled, -> { where("tweets.scheduled_at > ?", Time.current) }
+  scope :not_scheduled, -> { where("tweets.scheduled_at IS NULL OR tweets.scheduled_at <= ?", Time.current) }
+
   scope :roots,   -> { visible.where(parent_id: nil) }
   scope :recent,  -> { order(created_at: :desc, id: :desc) }
 
@@ -74,6 +86,20 @@ class Tweet < ApplicationRecord
     likes = Uploads::ALLOWED_VIDEO_EXT.map { |ext| "tweets.media_path LIKE '%#{ext}'" }.join(" OR ")
     where(media_url: [ nil, "" ]).where("(#{likes})")
   }
+
+  # Whether a schedule is still holding this post back. Read against the clock
+  # rather than cached, because a scheduled post becomes live on its own with no
+  # writer to flip a flag; deriving it is what makes a moment in time enough.
+  def scheduled_pending?
+    scheduled_at.present? && scheduled_at > Time.current
+  end
+
+  # The time a reader should see on the post. For a scheduled post that is the
+  # moment it will go out, not the moment the draft was written; for everything
+  # else it is when it was posted.
+  def timeline_at
+    scheduled_pending? ? scheduled_at : created_at
+  end
 
   # Whether this post carries an attachment: a stored file or an embedded link.
   def media_attached?

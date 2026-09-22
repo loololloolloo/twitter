@@ -161,6 +161,12 @@
             <span class="rail-group-count"><%= count_label(BlockedTerm.active.count) %></span>
           </a>
         <% end %>
+        <% if can?('users.templates') %>
+          <a href="<%= admin_enforcement_templates_path %>" class="<%= 'is-active' if controller_name == 'enforcement_templates' %>">
+            <%= icon('sliders') %><span class="rail-label">Enforcement macros</span>
+            <span class="rail-group-count"><%= count_label(EnforcementTemplate.active.count) %></span>
+          </a>
+        <% end %>
         <% if can?('backup.export') %>
           <a href="<%= admin_backup_path %>">
             <%= icon('bookmark-solid') %><span class="rail-label">Export backup</span>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_000004) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -119,6 +119,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_000003) do
     t.index ["dm_conversation_id", "created_at"], name: "index_dm_messages_on_dm_conversation_id_and_created_at"
     t.index ["dm_conversation_id"], name: "index_dm_messages_on_dm_conversation_id"
     t.index ["sender_id"], name: "index_dm_messages_on_sender_id"
+  end
+
+  create_table "enforcement_templates", force: :cascade do |t|
+    t.string "action_key", null: false
+    t.boolean "active", default: true, null: false
+    t.string "category", default: "", null: false
+    t.datetime "created_at", null: false
+    t.integer "created_by_id"
+    t.string "duration", default: "", null: false
+    t.string "name", null: false
+    t.text "reason", default: "", null: false
+    t.datetime "updated_at", null: false
+    t.integer "uses_count", default: 0, null: false
+    t.index "LOWER(name)", name: "index_enforcement_templates_on_lower_name", unique: true
+    t.index ["action_key"], name: "index_enforcement_templates_on_action_key"
   end
 
   create_table "follow_requests", force: :cascade do |t|

@@ -359,6 +359,38 @@
   <% end %>
 </section>
 
+<%# Enforcement macros. The picker is filtered to the actions this operator
+    already holds, so it offers what they can actually do rather than what
+    exists. The wording a macro records is shown before it is applied: the
+    reason is the member-facing part, and choosing a macro should not mean
+    choosing text you have not read. %>
+<% if @enforcement_templates.present? %>
+  <section class="panel">
+    <h3 class="panel-title">Apply a macro</h3>
+    <p class="muted">
+      Each macro below names an action and the exact reason it records. Applying
+      one runs the same checks as the form above - your own permission for the
+      action, your account, the target's rank - and records the macro's name in
+      the audit trail.
+    </p>
+
+    <% @enforcement_templates.each do |template| %>
+      <div class="macro-row">
+        <div>
+          <strong><%= template.name %></strong>
+          <span class="tag tag-info"><%= template.action_label %></span>
+          <% if template.duration.present? && EnforcementTemplate.duration_choices(template.action_key).any? %>
+            <span class="muted"><%= template.duration_label %></span>
+          <% end %>
+          <p class="muted"><%= template.reason %></p>
+        </div>
+        <%= button_to("Apply", admin_user_apply_template_path(@user, template_id: template.id),
+                      method: :post, class: "btn btn-danger btn-mini", form_class: "inline") %>
+      </div>
+    <% end %>
+  </section>
+<% end %>
+
 <%# Internal notes. They carry context the audit trail cannot: the trail says
     what was done, a note says what staff noticed. Unlike `users.tag_note`,
     which is a single field saved with the tags, these are appended one at a

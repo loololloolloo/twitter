@@ -157,6 +157,16 @@ Rails.application.routes.draw do
     delete "users/:id/notes/:note_id", to: "users#destroy_note", as: :user_note_destroy
     post   "users/:id/impersonate", to: "users#impersonate",   as: :user_impersonate
 
+    # Enforcement macros. Applying one is a POST because it runs the action it
+    # names - through the same guards as the hand-written form - and managing
+    # the shared wording is a POST because every operator records from it.
+    post "users/:id/apply-template", to: "users#apply_template", as: :user_apply_template
+
+    get  "enforcement-templates", to: "enforcement_templates#index", as: :enforcement_templates
+    post "enforcement-templates", to: "enforcement_templates#create"
+    post "enforcement-templates/:id", to: "enforcement_templates#update", as: :enforcement_template
+    post "enforcement-templates/:id/toggle", to: "enforcement_templates#toggle", as: :enforcement_template_toggle
+
     get  "permissions", to: "permissions#index", as: :permissions
     post "permissions", to: "permissions#update"
 

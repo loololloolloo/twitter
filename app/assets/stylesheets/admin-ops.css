@@ -1022,3 +1022,15 @@ h1, h2, h3 { margin: 0; font-weight: 700; }
 .view-summary { flex: 1 1 220px; font-size: 12.5px; color: var(--ops-muted); }
 .view-row form.inline { display: inline; margin: 0; }
 .view-save { padding-top: 12px; border-top: 1px solid var(--ops-line-soft); }
+
+/* Enforcement macros. A macro row puts the action, the parameters and the exact
+   reason it will record together, so picking one is done with the wording read
+   rather than discovered in the trail afterwards. */
+.macro-row {
+  display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap;
+  padding: 10px 0; border-bottom: 1px solid var(--ops-line-soft);
+}
+.macro-row:last-child { border-bottom: 0; }
+.macro-row > div { flex: 1 1 320px; }
+.macro-row p { margin: 4px 0 0; }
+.macro-row form.inline { display: inline; margin: 0; }

@@ -18,6 +18,10 @@ class Permission < ApplicationRecord
     "users.tags"         => "Set operational tags on a user",
     "users.bulk"         => "Run bulk actions on many accounts at once",
     "users.warn"         => "Issue and revoke warnings on a user",
+    # Enforcement macros. Reading them rides on the action's own permission;
+    # editing the shared wording changes what every operator records, so it is
+    # its own grant rather than folded into users.warn.
+    "users.templates"    => "Manage enforcement templates (macros)",
     "users.notes"        => "Keep internal notes on a user",
     "users.permissions"  => "Edit role permissions",
     "users.impersonate"  => "Log in as another user",

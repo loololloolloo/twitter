@@ -4,7 +4,7 @@ module Admin
     before_action :load_user, only: [ :show, :ban, :unban, :suspend, :destroy,
                                        :update_role, :toggle_verified, :set_followers,
                                        :update_email, :release_handle, :update_tags, :impersonate,
-                                       :warn, :revoke_warning,
+                                       :warn, :revoke_warning, :apply_template,
                                        :add_note, :pin_note, :destroy_note ]
     # Every action that writes to the target account has to clear the owner
     # check. `show` is not in this list: the owner account is still viewable,
@@ -16,7 +16,7 @@ module Admin
                                                 :set_followers, :update_email,
                                                 :release_handle,
                                                 :update_tags, :impersonate,
-                                                :warn, :revoke_warning,
+                                                :warn, :revoke_warning, :apply_template,
                                                 :add_note, :pin_note, :destroy_note ]
 
     def index
@@ -74,6 +74,11 @@ module Admin
       # has a request waiting. The model refuses a second one, so the screen
       # has to be able to say why the form is not the way forward this time.
       @pending_approval_by_action = @pending_approvals.index_by(&:action_key)
+      # The macros this operator can actually apply. Filtered by the action's
+      # own permission, so the picker never offers an action the operator would
+      # then be refused - the list is what they can do, not what exists.
+      @enforcement_templates = EnforcementTemplate.active.order(:name)
+                                                  .select { |template| can?(template.permission) }
     end
 
     # Leave an internal note on an account. The note is read-only context for
@@ -167,21 +172,62 @@ module Admin
       category = params[:category].presence_in(UserWarning::CATEGORIES.keys) || "other"
       expires = warning_expiry(params[:duration].presence || "none")
 
-      warning = @user.user_warnings.create!(
-        actor: current_user,
-        category: category,
-        reason: reason,
-        expires_at: expires
-      )
-
-      notify_warning(warning)
-
-      label = expires ? "expires in #{humanize_until(expires)}" : "no expiry"
-      rung = @user.strike_rung
-      audit!("users.warn", target: "user:#{@user.id}",
-                           detail: "warned (#{category}), #{label}, strike #{@user.strike_count}" \
-                                   "#{rung ? " (#{rung.label})" : ''}: #{reason}")
+      create_warning(reason: reason, category: category, expires: expires)
       redirect_to admin_user_path(@user), notice: "Warning issued."
+    end
+
+    # Apply a canned macro to this account. A macro is wording, not authority:
+    # the action it names still runs through the same permission, self-action
+    # and rank guards the hand-written form does, so a macro that names a ban
+    # does not let a moderator who lacks users.ban ban anyone. The macro only
+    # decides the reason and the parameters.
+    def apply_template
+      template = EnforcementTemplate.active.find_by(id: params[:template_id])
+      if template.nil?
+        return redirect_to(admin_user_path(@user), alert: "Unknown or disabled macro.")
+      end
+
+      unless can?(template.permission)
+        return redirect_to(admin_user_path(@user),
+                           alert: "You do not have the #{template.permission} permission this macro needs.")
+      end
+
+      if @user.id == current_user.id
+        return redirect_to(admin_user_path(@user), alert: "You cannot enforce a macro on your own account.")
+      end
+
+      case template.action_key
+      when "warn"
+        create_warning(reason: template.reason, category: template.category,
+                       expires: warning_expiry(template.duration))
+        notice = "Warning issued from #{template.name.inspect}."
+      when "ban"
+        unless outranks?(@user)
+          return redirect_to(admin_user_path(@user),
+                             alert: "You cannot ban a user at or above your own level.")
+        end
+
+        expires = ban_expiry(template.duration)
+        apply_timed_ban(reason: template.reason, expires: expires)
+        notice = "User banned from #{template.name.inspect} (#{humanize_until(expires)})."
+      when "suspend"
+        return redirect_to(admin_user_path(@user), alert: "That account is already suspended.") if @user.is_suspended
+        unless outranks?(@user)
+          return redirect_to(admin_user_path(@user),
+                             alert: "You cannot suspend a user at or above your own level.")
+        end
+
+        @user.update!(is_suspended: true)
+        @user.sessions.destroy_all
+        audit!("users.suspend", target: "user:#{@user.id}",
+                                detail: "applied macro #{template.name.inspect}: suspended")
+        notice = "User suspended from #{template.name.inspect}."
+      else
+        return redirect_to(admin_user_path(@user), alert: "That macro names an unknown action.")
+      end
+
+      template.increment!(:uses_count)
+      redirect_to admin_user_path(@user), notice: notice
     end
 
     # Withdraw a warning that should not count against the account. The row is
@@ -317,18 +363,8 @@ module Admin
         )
       end
 
-      @user.update!(
-        is_banned: true,
-        ban_reason: reason,
-        ban_permanent: false,
-        ban_expires_at: expires
-      )
-
-      # A banned account keeps its session so the ban screen can explain the
-      # ban and offer a log out; the ban gate blocks everything else.
-      label = humanize_until(expires)
-      audit!("users.ban", target: "user:#{@user.id}", detail: "banned for #{label}: #{reason}")
-      redirect_to admin_user_path(@user), notice: "User banned (#{label})."
+      apply_timed_ban(reason: reason, expires: expires)
+      redirect_to admin_user_path(@user), notice: "User banned (#{humanize_until(expires)})."
     end
 
     def unban
@@ -631,6 +667,43 @@ module Admin
              "Standing warnings: #{count}#{rung ? " (#{rung.label})" : ''}."
 
       @user.notifications.create!(actor: current_user, kind: "admin", body: body)
+    end
+
+    # The warning write shared by the hand-written form and a macro, so a macro
+    # cannot produce a warning the form would not: same row, same notification,
+    # same audit entry. The caller has already cleared the permission and
+    # self-action guards.
+    def create_warning(reason:, category:, expires:)
+      warning = @user.user_warnings.create!(
+        actor: current_user,
+        category: category,
+        reason: reason,
+        expires_at: expires
+      )
+
+      notify_warning(warning)
+
+      label = expires ? "expires in #{humanize_until(expires)}" : "no expiry"
+      rung = @user.strike_rung
+      audit!("users.warn", target: "user:#{@user.id}",
+                           detail: "warned (#{category}), #{label}, strike #{@user.strike_count}" \
+                                   "#{rung ? " (#{rung.label})" : ''}: #{reason}")
+    end
+
+    # The timed-ban write shared by the form and a macro. Permanent bans are not
+    # reachable here: they need a second operator and are filed as a request.
+    def apply_timed_ban(reason:, expires:)
+      @user.update!(
+        is_banned: true,
+        ban_reason: reason,
+        ban_permanent: false,
+        ban_expires_at: expires
+      )
+
+      # A banned account keeps its session so the ban screen can explain the
+      # ban and offer a log out; the ban gate blocks everything else.
+      label = humanize_until(expires)
+      audit!("users.ban", target: "user:#{@user.id}", detail: "banned for #{label}: #{reason}")
     end
   end
 end

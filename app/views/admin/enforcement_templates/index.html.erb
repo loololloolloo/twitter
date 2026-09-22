@@ -1,0 +1,125 @@
+<div class="page-head">
+  <div>
+    <h1>Enforcement macros</h1>
+    <p class="page-note">
+      Canned action-and-reason combinations. Applying one records the wording it
+      carries, so the same violation is described the same way by every
+      operator instead of being retyped each time.
+    </p>
+  </div>
+</div>
+
+<%# The blind spot of a one-step action is that it hides its own guards, so the
+    panel leads with what a macro is not. An operator who believes a macro
+    carries authority would reach for it when the hand-written form is what is
+    actually needed. %>
+<div class="panel">
+  <h3 class="panel-title">What a macro does and does not do</h3>
+  <p class="muted">
+    A macro supplies the action, the wording and the parameters. It grants no
+    authority of its own: applying it still checks the acting operator's own
+    permission for that action, still refuses their own account and still
+    refuses an account at or above their rank. A permanent ban is deliberately
+    not available as a macro, because it needs a second operator's approval and
+    a one-step action would route around that.
+  </p>
+  <p class="muted">
+    Disabling a macro keeps its row and its use count. The audit trail can then
+    still name the macro an operator applied months ago, which deleting it would
+    erase.
+  </p>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">New macro</h3>
+  <% if can?('users.templates') %>
+    <%= form_with url: admin_enforcement_templates_path, method: :post, class: "stack" do %>
+      <label>Name
+        <input type="text" name="name" maxlength="<%= EnforcementTemplate::MAX_NAME %>"
+               placeholder="How operators will recognise it" required>
+      </label>
+      <label>Action
+        <select name="action_key">
+          <% EnforcementTemplate::ACTIONS.each do |key, spec| %>
+            <option value="<%= key %>"><%= spec[:label] %></option>
+          <% end %>
+        </select>
+      </label>
+      <label>Duration
+        <select name="duration">
+          <% EnforcementTemplate.duration_choices('warn').each do |value, label| %>
+            <option value="<%= value %>"><%= label %></option>
+          <% end %>
+        </select>
+        <span class="muted">Applies to warnings and timed bans.</span>
+      </label>
+      <label>Warning category
+        <select name="category">
+          <% UserWarning::CATEGORIES.each do |value, label| %>
+            <option value="<%= value %>"><%= label %></option>
+          <% end %>
+        </select>
+        <span class="muted">Only meaningful for a warning.</span>
+      </label>
+      <label>Reason (the wording that is recorded)
+        <textarea name="reason" rows="3" maxlength="<%= EnforcementTemplate::MAX_REASON %>"
+                  placeholder="e.g. Posting targeted harassment under the reply of another account."
+                  required></textarea>
+      </label>
+      <button class="btn btn-primary" type="submit">Create macro</button>
+    <% end %>
+  <% else %>
+    <p class="muted">You can see the macros but not change them.</p>
+  <% end %>
+</div>
+
+<div class="panel">
+  <h3 class="panel-title">
+    The macros
+    <span class="muted"><%= @active_count %> active</span>
+  </h3>
+
+  <% if @templates.present? %>
+    <table class="data-table">
+      <thead>
+        <tr><th class="id">ID</th><th>Name</th><th>Action</th><th>Recorded reason</th>
+            <th class="num">Used</th><th>State</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% @templates.each do |template| %>
+          <tr class="<%= 'row-muted' unless template.active %>">
+            <td class="id"><%= template.id %></td>
+            <td><strong><%= template.name %></strong></td>
+            <td>
+              <span class="tag tag-info"><%= template.action_label %></span>
+              <% if template.duration.present? && EnforcementTemplate.duration_choices(template.action_key).any? %>
+                <span class="muted"><%= template.duration_label %></span>
+              <% end %>
+              <% if template.category.present? %>
+                <span class="muted"><%= template.category_label %></span>
+              <% end %>
+            </td>
+            <td class="muted"><%= template.reason.truncate(140) %></td>
+            <td class="num"><%= number_with_delimiter(template.uses_count) %></td>
+            <td>
+              <% if template.active %>
+                <span class="tag tag-quiet">active</span>
+              <% else %>
+                <span class="tag tag-quiet">off</span>
+              <% end %>
+            </td>
+            <td>
+              <% if can?('users.templates') %>
+                <%= button_to(template.active ? "Turn off" : "Turn on",
+                              admin_enforcement_template_toggle_path(template),
+                              class: "btn btn-mini", form_class: "inline") %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="muted">No macros yet.</p>
+  <% end %>
+</div>

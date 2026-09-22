@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_140000) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -236,6 +236,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_130000) do
     t.integer "user_id", null: false
     t.index ["source", "source_id"], name: "index_moderation_reversals_on_source_and_source_id"
     t.index ["user_id", "created_at"], name: "index_moderation_reversals_on_user_id_and_created_at"
+  end
+
+  create_table "moderator_settings", force: :cascade do |t|
+    t.integer "break_reminder_minutes", default: 90, null: false
+    t.datetime "created_at", null: false
+    t.datetime "last_break_at"
+    t.boolean "sensitive_media_blurred", default: true, null: false
+    t.datetime "shift_started_at"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_moderator_settings_on_user_id", unique: true
   end
 
   create_table "mutes", force: :cascade do |t|

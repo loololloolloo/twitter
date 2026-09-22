@@ -132,6 +132,11 @@
             <%= icon('clock') %><span class="rail-label">Handover</span>
           </a>
         <% end %>
+        <% if can?('wellness.manage') %>
+          <a href="<%= admin_wellness_path %>" class="<%= 'is-active' if controller_name == 'wellness' %>">
+            <%= icon('shield-halved') %><span class="rail-label">Wellness</span>
+          </a>
+        <% end %>
         <% if can?('audit.view') %>
           <a href="<%= admin_audit_path %>" class="<%= 'is-active' if controller_name == 'audit' && action_name != 'verify' %>">
             <%= icon('clock') %><span class="rail-label">Audit log</span>
@@ -215,5 +220,22 @@
 
 <%= javascript_include_tag "jquery.min" %>
 <%= javascript_include_tag "twitter" %>
+<%# The media reveal is local to the panel, so it lives here rather than in the
+    consumer client's script, which this layout deliberately does not load. The
+    reveal is per-element: unblurring one attachment never unblurs the page. %>
+<script>
+  (function () {
+    document.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-reveal-media]");
+      if (!button) return;
+
+      var frame = button.closest("[data-sensitive-media]");
+      if (!frame) return;
+
+      frame.classList.remove("ops-media-blurred");
+      button.remove();
+    });
+  })();
+</script>
 </body>
 </html>

@@ -259,6 +259,15 @@ Rails.application.routes.draw do
     # onto the screen an operator reads at the start of a shift.
     get "handover", to: "handover#show", as: :handover
 
+    # Moderator wellness. The screen is a read, so a GET; each control that
+    # changes the operator's own state is a POST, and the media-blur toggle is
+    # audited both ways.
+    get  "wellness",               to: "wellness#show",       as: :wellness
+    post "wellness/blur",          to: "wellness#blur",       as: :wellness_blur
+    post "wellness/interval",      to: "wellness#interval",   as: :wellness_interval
+    post "wellness/break",         to: "wellness#take_break", as: :wellness_break
+    post "wellness/snooze",        to: "wellness#snooze",     as: :wellness_snooze
+
     # Duplicate-account clusters. Read-only: the screen reports shared signup
     # signals as a hint, and nothing on it changes an account.
     get "duplicates", to: "sockpuppets#index", as: :duplicates

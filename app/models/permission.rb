@@ -79,6 +79,11 @@ class Permission < ApplicationRecord
     "lookup.run"         => "Look up accounts and records by identifier",
     "escalations.view"   => "View the escalation and visibility-limit queue",
     "sessions.view"      => "View and revoke active sessions",
+    # Moderator wellness controls. Blurring and the break reminder are the
+    # operator's own settings, but reaching the screen is granted so an instance
+    # can decide who gets the tooling rather than every panel holder stumbling
+    # into it.
+    "wellness.manage"    => "Use the moderator wellness controls",
     "relations.view"     => "View the block and mute graph",
     "lists.view"         => "View and moderate member lists"
   }.freeze

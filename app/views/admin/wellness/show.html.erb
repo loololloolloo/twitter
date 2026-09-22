@@ -1,0 +1,88 @@
+<div class="page-head">
+  <div>
+    <h1>Moderator wellness</h1>
+    <p class="page-note">
+      The work in this console is the worst content on the site. These controls
+      are yours, not the instance's: they change what you see while reading, and
+      nothing about any account or post.
+    </p>
+  </div>
+</div>
+
+<div class="insight-grid">
+  <div class="panel">
+    <h2 class="section-title">Sensitive media</h2>
+    <p class="page-note">
+      Blurred by default. Each attachment stays hidden until you reveal it, and
+      the reveal lasts only for that view: the next time the item is rendered it
+      is blurred again. This is concealment, not a block &mdash; the media is
+      loaded and one click away, and nothing about the post is changed.
+    </p>
+
+    <p>
+      <span class="pill <%= @setting.sensitive_media_blurred? ? 'pill-ok' : 'pill-warn' %>">
+        <%= @setting.sensitive_media_blurred? ? "Media is blurred by default" : "Media is shown unblurred" %>
+      </span>
+    </p>
+
+    <%= form_with url: admin_wellness_blur_path, method: :post, class: "stack" do %>
+      <%= hidden_field_tag :sensitive_media_blurred, (@setting.sensitive_media_blurred? ? "0" : "1") %>
+      <button class="btn <%= @setting.sensitive_media_blurred? ? '' : 'btn-danger' %>" type="submit">
+        <%= @setting.sensitive_media_blurred? ? "Turn blurring off for me" : "Turn blurring back on" %>
+      </button>
+    <% end %>
+    <p class="muted">
+      Turning blurring off shows every sensitive attachment in full from now on,
+      including in reports and case views. The change is recorded in the audit
+      trail under your account.
+    </p>
+  </div>
+
+  <div class="panel">
+    <h2 class="section-title">Break reminder</h2>
+    <p class="page-note">
+      A prompt to step away after an unbroken stretch of work. It measures from
+      the last break you acknowledged, so it does not fire the moment you open a
+      page, and it is a prompt rather than a rule: you can snooze it.
+    </p>
+
+    <p>
+      <span class="pill <%= @break_due ? 'pill-warn' : '' %>">
+        <%= @setting.break_reminder_minutes %> minute interval &middot; <%= @minutes %> minutes since your last break
+      </span>
+    </p>
+
+    <% if @break_due %>
+      <div class="caution">
+        <p class="caution-text">Time for a break</p>
+        <p class="caution-sub">
+          You have been working for <%= @minutes %> minutes without a break.
+          Stepping away is the part that keeps the decisions good.
+        </p>
+      </div>
+    <% end %>
+
+    <div class="action-row">
+      <%= form_with url: admin_wellness_break_path, method: :post, class: "inline" do %>
+        <button class="btn btn-primary" type="submit">I took a break</button>
+      <% end %>
+      <%= form_with url: admin_wellness_snooze_path, method: :post, class: "inline" do %>
+        <button class="btn" type="submit">Snooze <%= ModeratorSetting::SNOOZE_MINUTES %> minutes</button>
+      <% end %>
+    </div>
+
+    <%= form_with url: admin_wellness_interval_path, method: :post, class: "stack" do %>
+      <label>
+        Minutes of work before the reminder
+        <input type="number" name="break_reminder_minutes" min="<%= ModeratorSetting::MIN_BREAK_MINUTES %>"
+               max="<%= ModeratorSetting::MAX_BREAK_MINUTES %>" value="<%= @setting.break_reminder_minutes %>">
+      </label>
+      <button class="btn" type="submit">Save interval</button>
+    <% end %>
+    <p class="muted">
+      Allowed range: <%= ModeratorSetting::MIN_BREAK_MINUTES %> to
+      <%= ModeratorSetting::MAX_BREAK_MINUTES %> minutes. A value outside it
+      falls back to <%= ModeratorSetting::DEFAULT_BREAK_MINUTES %>.
+    </p>
+  </div>
+</div>

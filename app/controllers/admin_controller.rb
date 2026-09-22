@@ -6,6 +6,7 @@ class AdminController < ApplicationController
   before_action :require_admin_panel!
   before_action :load_open_report_count
   before_action :load_toolbar_counts
+  before_action :load_wellness_state
 
   layout "admin"
 
@@ -27,6 +28,15 @@ class AdminController < ApplicationController
   def load_toolbar_counts
     @escalation_count = User.where(requires_review: true).count if can?("escalations.view")
     @active_session_count = Session.active.count if can?("sessions.view")
+  end
+
+  # Every console screen reads the operator's media-blur preference, so it is
+  # loaded once here. A missing row means the safe default (blurred), and it is
+  # created on first read so the wellness screen and the queues agree.
+  def load_wellness_state
+    return unless current_user
+
+    @wellness_media_blurred = ModeratorSetting.for(current_user).sensitive_media_blurred?
   end
 
   def require_admin_panel!

@@ -156,6 +156,17 @@
           <blockquote class="report-quote">
             <%= report.tweet.body.presence || "(media only)" %>
           </blockquote>
+          <% if report.tweet.media_attached? %>
+            <%# The item an operator is judging is often the attachment, not the
+                text, so it is shown here rather than behind a link. It goes
+                through the wellness blur like media anywhere else in the panel. %>
+            <%= sensitive_media_tag(
+                  url: report.tweet.media_url.presence || "/uploads/#{report.tweet.media_path}",
+                  video: report.tweet.video?,
+                  alt: report.tweet.alt_text.to_s,
+                  content_type: Uploads.content_type(report.tweet.media_path)
+                ) %>
+          <% end %>
           <p class="report-detail">
             <a href="<%= profile_path(report.user.username) %>">View profile</a>
           </p>

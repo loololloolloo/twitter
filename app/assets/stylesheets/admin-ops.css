@@ -1063,3 +1063,18 @@ a.stat:hover { border-color: var(--ops-accent); }
 .macro-row > div { flex: 1 1 320px; }
 .macro-row p { margin: 4px 0 0; }
 .macro-row form.inline { display: inline; margin: 0; }
+
+/* Moderator wellness. Sensitive media is rendered blurred and covered by a
+   reveal button; removing the class is the whole of the "unblur", so the media
+   is never removed from the DOM and never blocked. */
+.ops-media { position: relative; display: block; margin: 8px 0; max-width: 420px; }
+.ops-media img, .ops-media video { display: block; width: 100%; border-radius: 4px; }
+.ops-media-blurred img, .ops-media-blurred video { filter: blur(22px); }
+.ops-media-reveal {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+  border: 1px dashed var(--ops-line); border-radius: 4px;
+  background: var(--ops-surface-alt); color: var(--ops-muted);
+  font: inherit; font-size: 12.5px; font-weight: 700;
+}
+.ops-media-reveal .ico { width: 22px; height: 22px; }

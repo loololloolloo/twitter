@@ -43,6 +43,46 @@ module ApplicationHelper
     svg.html_safe
   end
 
+  # Sensitive media in the console is hidden behind a blur rather than blocked:
+  # research on moderation tooling is consistent that concealment that the
+  # operator can lift deliberately cuts harm exposure without changing the
+  # decision they reach. On means the safe state is the one the operator is
+  # already in; the reveal is a per-view choice, so the same attachment is
+  # blurred again the next time it is rendered.
+  def blurred_media?
+    @wellness_media_blurred
+  end
+
+  def sensitive_media_tag(url:, video:, alt: "", content_type: nil)
+    classes = [ "ops-media" ]
+    classes << "ops-media-blurred" if blurred_media?
+
+    if video
+      content_tag(:div, class: classes.join(" "), data: { sensitive_media: true }) do
+        concat content_tag(:video, tag.source(src: url, type: content_type),
+                           class: "tweet-video", controls: true, preload: "metadata")
+        concat media_reveal_overlay
+      end
+    else
+      content_tag(:div, class: classes.join(" "), data: { sensitive_media: true }) do
+        concat tag.img(src: url, alt: alt, loading: "lazy")
+        concat media_reveal_overlay
+      end
+    end
+  end
+
+  # The cover is a real button, so the reveal works with the keyboard, and it
+  # says out loud what it is hiding rather than relying on the blur alone.
+  def media_reveal_overlay
+    return "".html_safe unless blurred_media?
+
+    content_tag(:button, type: "button", class: "ops-media-reveal",
+                        data: { reveal_media: true }) do
+      concat icon("eye-slash")
+      concat content_tag(:span, "Sensitive media. Click to reveal.")
+    end
+  end
+
   # Avatar image, falling back to the user glyph when nothing is uploaded.
   def pic(path, size = 48)
     if path.present?

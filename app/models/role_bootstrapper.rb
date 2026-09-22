@@ -15,9 +15,9 @@ module RoleBootstrapper
       audit.view backup.export exports.run maintenance.run
       settings.view settings.blocked_terms handover.view
       lookup.run escalations.view sessions.view relations.view lists.view
-      approvals.decide
+      approvals.decide wellness.manage
     ],
-    "moderator" => %w[admin.access users.view users.tags users.warn users.notes tweets.view reports.view reports.resolve reports.views appeals.view appeals.decide cases.view cases.open cases.link cases.decide verification.view verification.decide lookup.run escalations.view settings.view handover.view],
+    "moderator" => %w[admin.access users.view users.tags users.warn users.notes tweets.view reports.view reports.resolve reports.views appeals.view appeals.decide cases.view cases.open cases.link cases.decide verification.view verification.decide lookup.run escalations.view settings.view handover.view wellness.manage],
     "user" => []
   }.freeze
 

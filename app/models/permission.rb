@@ -27,6 +27,14 @@ class Permission < ApplicationRecord
     "reports.resolve"    => "Resolve reports",
     "appeals.view"       => "View the appeals queue",
     "appeals.decide"     => "Decide member appeals",
+    # Cases are a layer above reports: opening one is a judgement that a set of
+    # reports is one investigation, so opening, linking and deciding are three
+    # separate grants rather than one. A front-line reviewer can read a case
+    # without being trusted to close it.
+    "cases.view"         => "View cases",
+    "cases.open"         => "Open cases",
+    "cases.link"         => "Link reports to a case",
+    "cases.decide"       => "Decide cases",
     "verification.view"  => "View the verification request queue",
     "verification.decide" => "Approve or deny verification requests",
     "settings.edit"      => "Edit site settings",

@@ -71,6 +71,15 @@
       </div>
 
       <div class="report-side">
+        <% if can?('cases.open') %>
+          <%# The queue is where a cluster becomes visible, so this is where a
+              case is opened: the report is carried across, not retyped. %>
+          <p class="muted">
+            <a href="<%= admin_cases_path(user_id: report.user_id, tweet_id: report.tweet_id, report_ids: [ report.id ]) %>">
+              Open a case from this report
+            </a>
+          </p>
+        <% end %>
         <% if report.open? %>
           <% if can?('reports.resolve') %>
             <%= form_with url: admin_report_resolve_path(report), method: :post, class: "stack" do %>

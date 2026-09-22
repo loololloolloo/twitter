@@ -1,0 +1,172 @@
+<div class="page-head">
+  <div>
+    <h1>Case #<%= @case.id %></h1>
+    <p class="page-note">
+      <%= @case.title %> - an investigation into
+      <strong><%= @case.subject_label %></strong>.
+      Opened by
+      <%= @case.opened_by ? "@#{@case.opened_by.username}" : "system" %>
+      <%= time_ago(@case.created_at) %>.
+    </p>
+  </div>
+  <div class="panel-actions">
+    <a class="btn" href="<%= admin_cases_path %>">All cases</a>
+  </div>
+</div>
+
+<% unless @case.open? %>
+  <div class="panel">
+    <p class="pill pill-ok"><%= @case.decision_label %></p>
+    <p class="muted">
+      Decided by
+      <%= @case.decided_by ? "@#{@case.decided_by.username}" : "system" %>
+      <%= time_ago(@case.decided_at) %>.
+      <% if @case.opened_by %>
+        Opened by @<%= @case.opened_by.username %>.
+      <% end %>
+    </p>
+    <% if @case.decision_note.present? %>
+      <p class="report-detail"><%= @case.decision_note %></p>
+    <% end %>
+  </div>
+<% end %>
+
+<div class="report-item">
+  <div class="report-main">
+    <h2 class="section-title">Subject</h2>
+    <% if @case.user %>
+      <p class="report-detail">
+        Account:
+        <a href="<%= admin_user_path(@case.user) %>">
+          @<%= @case.user.username %> (id <%= @case.user.id %>)
+        </a>
+      </p>
+    <% end %>
+    <% if @case.tweet %>
+      <p class="report-detail">
+        Post: <code>#<%= @case.tweet.id %></code>
+        <% if @case.tweet.user %>
+          by @<%= @case.tweet.user.username %>
+        <% end %>
+      </p>
+      <blockquote class="report-quote">
+        <%= @case.tweet.body.presence || "(media only)" %>
+      </blockquote>
+    <% end %>
+    <% if @case.summary.present? %>
+      <p class="report-detail"><%= @case.summary %></p>
+    <% end %>
+  </div>
+
+  <div class="report-side">
+    <h2 class="section-title">Decision</h2>
+    <% if @case.open? %>
+      <% if @case.barred_for?(current_user) %>
+        <%# The screen states why this operator is excluded instead of hiding
+            the form, which would leave them to guess. Nobody decides an
+            investigation they opened. %>
+        <div class="caution">
+          <p class="caution-text">You cannot decide this case</p>
+          <p class="caution-sub"><%= @case.bar_reason(current_user) %></p>
+        </div>
+      <% elsif can?('cases.decide') %>
+        <%= form_with url: admin_case_decide_path(@case), method: :post, class: "stack" do %>
+          <label>Outcome
+            <select name="decision">
+              <% ModerationCase::DECISIONS.each do |key, label| %>
+                <option value="<%= key %>"><%= label %></option>
+              <% end %>
+            </select>
+          </label>
+          <label>Rationale
+            <textarea name="note" rows="3"
+                      placeholder="Why this outcome for the whole cluster. Kept on the record."></textarea>
+          </label>
+          <div class="action-row">
+            <button class="btn btn-primary" type="submit">Record decision</button>
+          </div>
+        <% end %>
+      <% else %>
+        <p class="muted">You cannot decide cases.</p>
+      <% end %>
+    <% else %>
+      <p class="muted">
+        This case is closed. Its reports keep their own resolutions; the
+        decision above is the rationale for the cluster.
+      </p>
+    <% end %>
+  </div>
+</div>
+
+<div class="panel">
+  <h2 class="section-title">
+    Linked reports
+    <span class="state-count"><%= @reports.size %></span>
+  </h2>
+
+  <% if @reports.present? %>
+    <% @reports.each do |report| %>
+      <article class="report-item">
+        <div class="report-main">
+          <div class="report-who">
+            <%= pic(report.user.avatar_path, 32) %>
+            <span class="report-subject">@<%= report.user.username %></span>
+            <span class="tag tag-info"><%= report.category_label %></span>
+            <span class="report-when"><%= time_ago(report.created_at) %></span>
+          </div>
+          <% if report.detail.present? %>
+            <p class="report-detail"><%= report.detail %></p>
+          <% end %>
+          <% if report.tweet %>
+            <blockquote class="report-quote">
+              <%= report.tweet.body.presence || "(media only)" %>
+            </blockquote>
+          <% end %>
+        </div>
+        <div class="report-side">
+          <span class="pill <%= report.open? ? 'pill-warn' : 'pill-ok' %>"><%= report.state %></span>
+          <p class="muted">
+            <a href="<%= admin_reports_path(state: report.state) %>">In the report queue</a>
+          </p>
+        </div>
+      </article>
+    <% end %>
+  <% else %>
+    <p class="muted">
+      No reports linked yet. A case with no reports is a placeholder, not an
+      investigation - link the reports it is about below.
+    </p>
+  <% end %>
+</div>
+
+<% if @case.open? && can?('cases.link') %>
+  <div class="panel">
+    <h2 class="section-title">Link report to this case</h2>
+    <p class="page-note">
+      A report can only be on one case. Linking a report that is already on
+      another case moves it here, because two cases deciding the same report is
+      how a cluster gets contradictory outcomes.
+    </p>
+    <% if @linkable.present? %>
+      <%= form_with url: admin_case_link_path(@case), method: :post do %>
+        <fieldset class="link-picker">
+          <legend>Open reports not on a case</legend>
+          <% @linkable.each do |report| %>
+            <label class="check">
+              <input type="checkbox" name="report_ids[]" value="<%= report.id %>">
+              <span>
+                #<%= report.id %> @<%= report.user.username %> -
+                <%= report.category_label %> (<%= time_ago(report.created_at) %>)
+              </span>
+            </label>
+          <% end %>
+        </fieldset>
+        <div class="action-row">
+          <button class="btn btn-primary" type="submit">Link selected</button>
+        </div>
+      <% end %>
+    <% else %>
+      <p class="muted">No open unlinked reports right now.</p>
+    <% end %>
+  </div>
+<% end %>

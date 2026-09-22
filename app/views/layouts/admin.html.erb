@@ -92,6 +92,12 @@
             <span class="rail-group-count"><%= count_label(Report.open.count) %></span>
           </a>
         <% end %>
+        <% if can?('cases.view') %>
+          <a href="<%= admin_cases_path(state: 'open') %>" class="<%= 'is-active' if controller_name == 'cases' %>">
+            <%= icon('link') %><span class="rail-label">Cases</span>
+            <span class="rail-group-count"><%= count_label(ModerationCase.open.count) %></span>
+          </a>
+        <% end %>
         <% if can?('tweets.view') %>
           <a href="<%= admin_tweets_path %>" class="<%= 'is-active' if controller_name == 'tweets' %>">
             <%= icon('comment') %><span class="rail-label">Posts</span>

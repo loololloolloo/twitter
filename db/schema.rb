@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_21_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_000001) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -70,6 +70,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_100000) do
     t.index ["user_id", "created_at"], name: "index_bookmarks_on_user_id_and_created_at"
     t.index ["user_id", "tweet_id"], name: "index_bookmarks_on_user_id_and_tweet_id", unique: true
     t.index ["user_id"], name: "index_bookmarks_on_user_id"
+  end
+
+  create_table "case_links", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "linked_by_id"
+    t.integer "moderation_case_id", null: false
+    t.integer "report_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["moderation_case_id"], name: "index_case_links_on_moderation_case_id"
+    t.index ["report_id"], name: "index_case_links_on_report_id", unique: true
   end
 
   create_table "dm_conversations", force: :cascade do |t|
@@ -145,6 +155,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_100000) do
     t.integer "user_id", null: false
     t.index ["user_id", "name"], name: "index_lists_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_lists_on_user_id"
+  end
+
+  create_table "moderation_cases", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "decided_at"
+    t.integer "decided_by_id"
+    t.text "decision_note", default: "", null: false
+    t.integer "opened_by_id"
+    t.string "state", default: "open", null: false
+    t.text "summary", default: "", null: false
+    t.string "title", default: "", null: false
+    t.integer "tweet_id"
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.index ["state", "created_at"], name: "index_moderation_cases_on_state_and_created_at"
+    t.index ["state"], name: "index_moderation_cases_on_state"
+    t.index ["tweet_id"], name: "index_moderation_cases_on_tweet_id"
+    t.index ["user_id"], name: "index_moderation_cases_on_user_id"
   end
 
   create_table "mutes", force: :cascade do |t|
@@ -385,6 +413,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_100000) do
   add_foreign_key "blocks", "users", column: "blocker_id"
   add_foreign_key "bookmarks", "tweets"
   add_foreign_key "bookmarks", "users"
+  add_foreign_key "case_links", "moderation_cases"
+  add_foreign_key "case_links", "reports"
   add_foreign_key "dm_conversations", "users", column: "user_a_id"
   add_foreign_key "dm_conversations", "users", column: "user_b_id"
   add_foreign_key "dm_messages", "dm_conversations"

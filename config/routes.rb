@@ -187,6 +187,14 @@ Rails.application.routes.draw do
     get  "verification",             to: "verification#index",  as: :verification
     post "verification/:id/decide",  to: "verification#decide", as: :verification_decide
 
+    # Cases. Opening, linking and deciding are each a POST because each one
+    # changes what the queue means for the reports involved.
+    get  "cases",                 to: "cases#index",  as: :cases
+    post "cases",                 to: "cases#create"
+    get  "cases/:id",             to: "cases#show",   as: :case
+    post "cases/:id/link",        to: "cases#link",   as: :case_link
+    post "cases/:id/decide",      to: "cases#decide", as: :case_decide
+
     get "audit",  to: "audit#index",   as: :audit
     get "audit/export", to: "audit#export", as: :audit_export
     get "backup", to: "backup#export", as: :backup

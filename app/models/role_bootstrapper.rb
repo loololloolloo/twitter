@@ -9,12 +9,13 @@ module RoleBootstrapper
       users.followers users.email users.tags users.warn users.notes users.bulk
       tweets.view tweets.delete tweets.pin reports.view
       reports.resolve appeals.view appeals.decide
+      cases.view cases.open cases.link cases.decide
       verification.view verification.decide
       audit.view backup.export maintenance.run
       lookup.run escalations.view sessions.view relations.view lists.view
       settings.view settings.blocked_terms
     ],
-    "moderator" => %w[admin.access users.view users.tags users.warn users.notes tweets.view reports.view reports.resolve appeals.view appeals.decide verification.view verification.decide lookup.run escalations.view settings.view],
+    "moderator" => %w[admin.access users.view users.tags users.warn users.notes tweets.view reports.view reports.resolve appeals.view appeals.decide cases.view cases.open cases.link cases.decide verification.view verification.decide lookup.run escalations.view settings.view],
     "user" => []
   }.freeze
 

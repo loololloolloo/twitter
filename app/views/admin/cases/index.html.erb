@@ -1,0 +1,122 @@
+<div class="page-head">
+  <div>
+    <h1>Cases</h1>
+    <p class="page-note">
+      One investigation standing in for the reports about it. A case links the
+      reports that are the same matter and records a single decision, so a
+      cluster is worked once instead of once per report.
+      <%= @open_count %> open.
+    </p>
+  </div>
+</div>
+
+<nav class="state-tabs">
+  <% (ModerationCase::STATES + ["all"]).each do |state| %>
+    <a class="state-tab <%= 'active' if @state == state %>"
+       href="<%= admin_cases_path(state: state) %>">
+      <%= state == "all" ? "All" : state.capitalize %>
+      <span class="state-count"><%= state == "all" ? @all_count : @counts[state] %></span>
+    </a>
+  <% end %>
+</nav>
+
+<% if can?('cases.open') %>
+  <%# Opening a case is a judgement that a set of reports is one matter. The
+      subject is at least an account or a post; the reports are optional here
+      and can be added on the case page as the investigation grows. %>
+  <details class="panel" <%= 'open' if @prefill_report_ids.present? %>>
+    <summary>Open a case</summary>
+    <div class="stack">
+      <%= form_with url: admin_cases_path, method: :post do %>
+        <div class="stack">
+          <label>Account id
+            <input type="text" name="user_id" value="<%= @prefill_user_id %>"
+                   placeholder="e.g. 42 - the account this case is about">
+          </label>
+          <label>Post id
+            <input type="text" name="tweet_id" value="<%= @prefill_tweet_id %>"
+                   placeholder="e.g. 512 - fill in for a case about a single post">
+          </label>
+          <label>Title
+            <input type="text" name="title" placeholder="Short name for the investigation">
+          </label>
+          <label>Summary
+            <textarea name="summary" rows="3"
+                      placeholder="What the reports have in common and what needs checking."></textarea>
+          </label>
+
+          <fieldset class="link-picker">
+            <legend>Attach reports</legend>
+            <% if @linkable.present? %>
+              <% @linkable.each do |report| %>
+                <label class="check">
+                  <input type="checkbox" name="report_ids[]" value="<%= report.id %>"
+                         <%= 'checked' if @prefill_report_ids.include?(report.id) %>>
+                  <span>
+                    #<%= report.id %> @<%= report.user.username %> -
+                    <%= report.category_label %> (<%= time_ago(report.created_at) %>)
+                  </span>
+                </label>
+              <% end %>
+            <% else %>
+              <p class="muted">No open unlinked reports right now.</p>
+            <% end %>
+          </fieldset>
+
+          <div class="action-row">
+            <button class="btn btn-primary" type="submit">Open case</button>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </details>
+<% end %>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th class="id">ID</th>
+      <th>Subject</th>
+      <th>Title</th>
+      <th class="num">Reports</th>
+      <th>State</th>
+      <th>Opened</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% if @cases.present? %>
+      <% @cases.each do |moderation_case| %>
+        <tr>
+          <td class="id"><%= moderation_case.id %></td>
+          <td><%= moderation_case.subject_label %></td>
+          <td><%= moderation_case.title %></td>
+          <td class="num">
+            <%= moderation_case.report_count %>
+            <% pending = moderation_case.open_report_count %>
+            <% if pending.positive? %>
+              <span class="tag tag-info"><%= pending %> open</span>
+            <% end %>
+          </td>
+          <td>
+            <span class="pill <%= moderation_case.open? ? 'pill-warn' : 'pill-ok' %>">
+              <%= moderation_case.state %>
+            </span>
+            <% if moderation_case.decided_by %>
+              <span class="muted">@<%= moderation_case.decided_by.username %></span>
+            <% end %>
+          </td>
+          <td class="muted">
+            <%= time_ago(moderation_case.created_at) %>
+            <% if moderation_case.opened_by %>
+              <br>by @<%= moderation_case.opened_by.username %>
+            <% end %>
+          </td>
+          <td><a class="btn btn-mini" href="<%= admin_case_path(moderation_case) %>">Open</a></td>
+        </tr>
+      <% end %>
+    <% else %>
+      <tr><td colspan="7" class="muted">Nothing in this queue.</td></tr>
+    <% end %>
+  </tbody>
+</table>

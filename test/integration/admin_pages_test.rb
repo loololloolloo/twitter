@@ -18,6 +18,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     /admin/lookup
     /admin/escalations
     /admin/appeals
+    /admin/cases
     /admin/verification
     /admin/sessions
     /admin/relations
@@ -87,7 +88,7 @@ class AdminPagesTest < ActionDispatch::IntegrationTest
     # read-only tools a front-line reviewer needs, plus the appeals queue they
     # work decisions from.
     [ admin_lookup_path, admin_escalations_path, admin_appeals_path,
-      admin_verification_path ].each do |path|
+      admin_verification_path, admin_cases_path ].each do |path|
       get path
       assert_response :success, "#{path} should be reachable for a moderator"
     end

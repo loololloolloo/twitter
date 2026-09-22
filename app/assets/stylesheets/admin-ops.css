@@ -971,3 +971,18 @@ h1, h2, h3 { margin: 0; font-weight: 700; }
 .bulk-skip { margin: 4px 0 0; }
 .bulk-skip li { font-size: 12.5px; color: var(--ops-muted); padding: 2px 0; }
 
+/* Case linking. The report picker is a long list of checkboxes, so it scrolls
+   inside its own box rather than pushing the decision controls off screen, and
+   the <details> summary reads as a header rather than a browser default. */
+.panel > summary {
+  cursor: pointer; font-size: 13px; font-weight: 800; color: var(--ops-text);
+}
+.panel > summary::marker { color: var(--ops-muted); }
+.link-picker {
+  margin: 8px 0 0; padding: 10px 12px;
+  border: 1px solid var(--ops-line); border-radius: var(--ops-radius);
+  max-height: 260px; overflow-y: auto;
+}
+.link-picker legend {
+  padding: 0 4px; font-size: 12px; font-weight: 700; color: var(--ops-muted);
+}

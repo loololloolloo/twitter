@@ -136,3 +136,13 @@ Checked against the 2019 client and left alone, so a later run does not
   opened the notification panel of Settings rather than a page of its own.
   Added as `a.head-icon` linking to `settings_path(panel: "notifications")`
   (`test/integration/shell_layout_test.rb`).
+* **Activity badge on the actor's picture — fixed.** 2019 stamped a small filled
+  glyph (heart, retweet arrows, person-plus, reply arrow) on the lower-right
+  corner of each notification's actor picture, so the list could be scanned by
+  shape before the sentence was read. The build had a plain row. The row now
+  wraps the picture in `span.notif-avatar` and overlays a coloured
+  `span.notif-badge` carrying the kind's icon (colour varies by kind: blue for
+  follows, green for retweets/quotes, red for likes/favourites). The badge sits
+  inside the avatar anchor, so picture and badge are one link. A kind with no
+  glyph (a bare system notice) renders no badge rather than inventing one.
+  Asserted in `test/integration/shell_layout_test.rb`.

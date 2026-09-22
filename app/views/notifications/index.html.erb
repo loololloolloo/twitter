@@ -28,8 +28,20 @@
       <% if @items.present? %>
         <% @items.each do |note| %>
           <li class="row-item">
+            <%# 2019 overlaid a small filled glyph on the actor's picture naming
+                the kind of activity, so the list could be scanned by shape
+                before the sentence was read. Lives inside the avatar anchor so
+                the badge and the picture share one link. %>
             <a class="row-avatar" href="<%= note.actor ? profile_path(note.actor.username) : home_path %>">
-              <%= pic(note.actor&.avatar_path, 48) %>
+              <span class="notif-avatar">
+                <%= pic(note.actor&.avatar_path, 48) %>
+                <% badge = notification_badge_icon(note.kind) %>
+                <% if badge %>
+                  <span class="notif-badge notif-badge-<%= note.kind %>" title="Notification type">
+                    <%= icon(badge) %>
+                  </span>
+                <% end %>
+              </span>
             </a>
             <div class="row-body">
               <div class="row-title">

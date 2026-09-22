@@ -86,6 +86,37 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
     assert_match(/side-badge[^>]*>\s*1\s*</, response.body, "rail counted silenced actors")
   end
 
+  # 2019 stamped the activity kind on the corner of the actor's picture as a
+  # small filled glyph. The list had a coloured disc per kind; a kind with no
+  # glyph (a bare system notice) renders no badge, so a wrong glyph is not
+  # invented for it. Asserted both the presence for a like and the absence for
+  # a context-free kind.
+  test "a notification carries the 2019 activity badge on the actor's picture" do
+    me = create_user(username: "badge_badge_me")
+    actor = create_user(username: "badge_badge_act")
+    Notification.create!(user: me, actor: actor, kind: "like")
+    Notification.create!(user: me, actor: actor, kind: "retweet")
+    Notification.create!(user: me, actor: actor, kind: "follow")
+    Notification.create!(user: me, actor: actor, kind: "reply", body: "hi")
+
+    sign_in(me)
+    get notifications_path
+    assert_response :success
+
+    assert_match "notif-avatar", response.body, "the actor picture is not wrapped for the badge"
+    assert_match "notif-badge-like", response.body, "a like carries no badge"
+    assert_match "notif-badge-retweet", response.body, "a retweet carries no badge"
+    assert_match "notif-badge-follow", response.body, "a follow carries no badge"
+
+    # The badge is inside the avatar anchor, so picture and badge are one link.
+    avatar = response.body[/<a class="row-avatar".*?<\/a>/m]
+    assert_not_nil avatar, "no avatar link rendered"
+    assert_match "notif-badge", avatar, "the badge escaped the avatar link"
+
+    # A kind with no glyph gets no disc rather than an arbitrary one.
+    assert_no_match(/notif-badge-admin/, response.body)
+  end
+
   test "pages with a rail render search, trends and suggestions" do
     me = create_user(username: "rail_me")
     other = create_user(username: "rail_other")

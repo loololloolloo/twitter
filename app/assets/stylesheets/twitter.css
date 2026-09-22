@@ -703,6 +703,23 @@ html[data-theme="dark"] .tweet:hover { background: rgba(255,255,255,.03); }
 .notif-time { display: block; color: var(--gray); font-size: 11px; margin-top: 2px; }
 .notif-link { font-size: 12px; color: var(--blue); }
 
+/* 2019 stamped the activity kind on the corner of the actor's picture as a
+   filled blue disc, so the list could be scanned by shape. The disc straddles
+   the picture's lower-right edge and is sized to stay legible without covering
+   the face. */
+.notif-avatar { position: relative; display: inline-block; line-height: 0; }
+.notif-badge {
+  position: absolute; right: -3px; bottom: -3px;
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--blue); color: #fff;
+  border: 2px solid var(--card);
+}
+.notif-badge .ico { width: 12px; height: 12px; fill: #fff; }
+.notif-badge-retweet, .notif-badge-quote { background: #17bf63; }
+.notif-badge-follow, .notif-badge-follow_request { background: var(--blue); }
+.notif-badge-like, .notif-badge-favourite { background: #e0245e; }
+
 /* ---------------- direct messages ----------------
    2015 chat: 34px avatars beside bubbles that are flat 4px-rounded blocks -
    blue var(--blue) for sent, grey for received - with a small caret. */

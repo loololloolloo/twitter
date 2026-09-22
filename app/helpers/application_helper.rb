@@ -33,6 +33,26 @@ module ApplicationHelper
     out.html_safe
   end
 
+  # The notification kinds that carry their own glyph. 2019 stamped a small
+  # filled circle on the corner of the actor's picture naming the kind of
+  # activity, so the list could be scanned by shape before the sentence was
+  # read. A kind with no glyph (a plain system notice) simply gets no badge.
+  NOTIFICATION_BADGES = {
+    "like"           => "heart-twitter-solid",
+    "favourite"      => "heart-twitter-solid",
+    "retweet"        => "retweet",
+    "quote"          => "retweet",
+    "reply"          => "reply",
+    "mention"        => "comment",
+    "follow"         => "user-plus",
+    "follow_request" => "user-plus",
+    "admin"          => "bullhorn"
+  }.freeze
+
+  def notification_badge_icon(kind)
+    NOTIFICATION_BADGES[kind.to_s]
+  end
+
   # Inlines one of the SVGs in app/assets/images/icons. Inlining lets CSS
   # colour the glyph, which an <img> tag cannot do.
   def icon(name)

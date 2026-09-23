@@ -13,6 +13,13 @@
 # Only these hosts are ever contacted, and only over https, because the URL
 # comes from a user: an arbitrary host would let a post make the server fetch
 # an internal address.
+#
+# `net/http` is not loaded by default in this app, and `fetch_page`'s rescue
+# turns the resulting NameError into a nil - which reads as "this link cannot be
+# embedded" rather than as a fault. Require it here so the Tenor page path
+# actually reaches the network.
+require "net/http"
+
 module GifLink
   # Hosts whose media can be embedded. Deliberately small: this is an
   # embed allowlist, not a general-purpose proxy.

@@ -46,6 +46,29 @@ class GifLinkTest < ActiveSupport::TestCase
     assert_nil GifLink.resolve("https://tenor.com/view/x-gif-1", fetcher: ->(_url) { nil })
   end
 
+  # Every other test here injects a `fetcher`, so the real reader was the one
+  # path nothing covered - and it shipped broken: `net/http` was never
+  # required, so `fetch_page` raised NameError straight into its own rescue and
+  # every Tenor page link silently failed to embed.
+  #
+  # A behavioural test cannot catch this, which is the trap: the test
+  # environment happens to preload `net/http` while development and production
+  # do not, so calling `fetch_page` here passes whether or not the file
+  # declares the dependency. Assert the declaration itself, because that is
+  # what actually differs between the environments.
+  test "the page reader declares its net/http dependency" do
+    source = File.read(Rails.root.join("app/models/gif_link.rb"))
+
+    assert_match(/^require "net\/http"/, source,
+                 "GifLink#fetch_page needs net/http required in the file: it is " \
+                 "not loaded by default outside the test environment, and the " \
+                 "rescue in fetch_page turns the NameError into a silent nil")
+  end
+
+  test "an unreachable page is refused rather than raising" do
+    assert_nil GifLink.fetch_page("https://127.0.0.1:1/nope")
+  end
+
   test "a host that is not allowlisted is refused" do
     assert_nil GifLink.resolve("https://example.com/not-a-gif.gif")
     assert_nil GifLink.resolve("https://media.tenor.com.evil.example/a.gif")

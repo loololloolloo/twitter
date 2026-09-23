@@ -37,6 +37,7 @@
     page rebuilding it. %>
 <div class="app-shell">
   <%= render "shared/side_nav" %>
+  <%= render "shared/mobile_nav" %>
   <div class="app-main">
     <div class="page <%= 'page-wide' if controller_name == 'profiles' && action_name == 'show' %>">
 <% elsif signed_in? %>

@@ -242,4 +242,45 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a.head-icon[href=?]", settings_path(panel: "notifications")
   end
+
+  # The 2019 phone client dropped the left rail and moved the primaries into a
+  # bar fixed to the bottom edge. The bar is markup present at every width (CSS
+  # hides the rail instead), so it has to carry the same destinations and the
+  # unread count the rail carries, or the two shapes would disagree.
+  test "the phone bar carries the primary destinations and the unread count" do
+    me = create_user(username: "mob_me")
+    actor = create_user(username: "mob_act")
+    Notification.create!(user: me, actor: actor, kind: "mention", body: "hey")
+
+    sign_in(me)
+    get home_path
+    assert_response :success
+
+    bar = response.body[/<nav class="mobile-nav".*?<\/nav>/m]
+    assert_not_nil bar, "the shell is missing the phone bar"
+
+    labels = bar.scan(/class="mobile-label">([^<]+)</).flatten
+    assert_equal %w[Home Explore Notifications Messages], labels
+
+    # The unread count the rail shows has to appear on the phone bar too, or the
+    # count would vanish whenever the rail is the hidden shape.
+    assert_match(/mobile-badge[^>]*>\s*1\s*</, bar, "the phone bar dropped the unread count")
+
+    # The floating compose control stands in for the rail's pill, which is
+    # hidden with the rail.
+    assert_includes response.body, 'class="mobile-compose"'
+  end
+
+  # A media query decides which navigation is visible; the markup can only be
+  # right if the rules that hide the rail and show the bar actually ship.
+  test "the stylesheet drops the rail and shows the phone bar at phone widths" do
+    css = Rails.root.join("app/assets/stylesheets/twitter.css").read
+
+    assert_match(/\.mobile-nav,\s*\.mobile-compose\s*\{\s*display:\s*none/, css,
+                 "the phone bar is not hidden from the desktop rules")
+    assert_match(/@media\s*\(max-width:\s*700px\)\s*\{[^}]*\.side-nav\s*\{\s*display:\s*none/m, css,
+                 "the rail is not dropped at phone widths")
+    assert_match(/\.mobile-nav\s*\{[^}]*position:\s*fixed[^}]*bottom:\s*0/m, css,
+                 "the phone bar is not fixed to the bottom edge")
+  end
 end

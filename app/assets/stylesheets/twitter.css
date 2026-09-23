@@ -47,6 +47,9 @@
   --admin-rail-w: 240px;
   --admin-content-w: 1120px;
   --admin-topbar-h: 46px;
+  /* The phone bar's height. The content band reserves it as bottom padding so
+     the last row of a stream is never trapped under the fixed bar. */
+  --mobile-nav-h: 54px;
 }
 
 /* Night mode. The variables are redefined on the root element so every rule
@@ -199,6 +202,51 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
 .account-popover-check .ico { color: var(--blue); width: 20px; height: 20px; opacity: 1; }
 .account-popover-divider {
   height: 1px; background: var(--xlight-gray); margin: 6px 0;
+}
+
+/* ---------------- mobile bottom bar ----------------
+   The 2019 phone client did not carry the left rail at all: the four primary
+   destinations moved to a bar fixed to the bottom edge, with the compose action
+   floating above it. A collapsed icon rail is still a column that steals width
+   from a narrow stream, so the rail is dropped entirely at phone widths rather
+   than shrunk again. */
+.mobile-nav, .mobile-compose { display: none; }
+
+@media (max-width: 700px) {
+  .side-nav { display: none; }
+  .mobile-nav {
+    display: flex; align-items: stretch;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 900;
+    height: var(--mobile-nav-h);
+    background: var(--white);
+    border-top: 1px solid var(--xlight-gray);
+  }
+  .mobile-link {
+    flex: 1; position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; color: var(--gray); font-size: 11px; font-weight: 700;
+  }
+  .mobile-link .ico { width: 22px; height: 22px; opacity: .75; }
+  .mobile-link.is-active { color: var(--blue); }
+  .mobile-link.is-active .ico { color: var(--blue); opacity: 1; }
+  .mobile-badge {
+    position: absolute; top: 5px; left: 50%; margin-left: 4px;
+    min-width: 16px; padding: 0 4px;
+    background: var(--blue); color: var(--white);
+    border-radius: 9px; font-size: 10px; line-height: 16px; text-align: center;
+  }
+  .mobile-compose {
+    display: flex; align-items: center; justify-content: center;
+    position: fixed; right: 16px; bottom: calc(var(--mobile-nav-h) + 16px); z-index: 901;
+    width: 56px; height: 56px;
+    background: var(--blue); color: var(--white);
+    border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  .mobile-compose .ico { width: 24px; height: 24px; opacity: 1; }
+  /* The band reserves the bar's height so the last row is never trapped
+     underneath a fixed element. Scoped to the 2019 shell, because the legacy
+     and signed-out shells render no bar. */
+  .app-shell .app-main { padding-bottom: var(--mobile-nav-h); }
 }
 
 /* The rail collapses to icons when the viewport can no longer hold it beside
@@ -396,9 +444,13 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
 .col-right:empty { display: none; }
 .col-right > * { width: 100%; }
 /* Below the two-column band the rail moves under the stream rather than
-   squeezing it, which is the redesign's own narrow-desktop behaviour. */
+   squeezing it, which is the redesign's own narrow-desktop behaviour. The
+   cross-axis alignment has to be reset with it: `flex-start` is what keeps the
+   desktop columns from stretching vertically, but once the direction is
+   column it shrinks each child to its content, so a tweet row wider than the
+   viewport pushed the stream past the right edge. */
 @media (max-width: 1000px) {
-  .layout { flex-direction: column; }
+  .layout { flex-direction: column; align-items: stretch; }
   .col-main { max-width: none; }
   .col-right { width: 100%; padding: 15px 0 0; }
 }

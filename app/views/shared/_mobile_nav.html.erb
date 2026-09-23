@@ -1,0 +1,30 @@
+<%# The 2019 phone client dropped the left rail entirely and moved the four
+    primary destinations into a bar fixed to the bottom edge, because a phone's
+    thumb lives at the bottom and a collapsed icon rail still ate 88px of a
+    narrow stream. The bar carries the same destinations, order and count as
+    the rail so the two read as one navigation in two shapes. It renders
+    alongside the rail; CSS decides which one is visible, so the markup is the
+    same at every width and there is nothing to hide from a screen reader. %>
+<% unread_notifications = current_user.unread_notification_count %>
+<nav class="mobile-nav" aria-label="Primary">
+  <a href="<%= home_path %>" class="mobile-link <%= 'is-active' if controller_name == 'timelines' && action_name == 'home' %>">
+    <%= icon('house') %><span class="mobile-label">Home</span>
+  </a>
+  <a href="<%= explore_path %>" class="mobile-link <%= 'is-active' if controller_name == 'timelines' && action_name == 'explore' %>">
+    <%= icon('magnifying-glass') %><span class="mobile-label">Explore</span>
+  </a>
+  <a href="<%= notifications_path %>" class="mobile-link <%= 'is-active' if controller_name == 'notifications' %>">
+    <%= icon('bell') %><span class="mobile-label">Notifications</span>
+    <% if unread_notifications.positive? %>
+      <span class="mobile-badge"><%= unread_notifications > 99 ? "99+" : unread_notifications %></span>
+    <% end %>
+  </a>
+  <a href="<%= messages_path %>" class="mobile-link <%= 'is-active' if controller_name == 'messages' %>">
+    <%= icon('envelope') %><span class="mobile-label">Messages</span>
+  </a>
+</nav>
+
+<%# The rail's compose pill is hidden with the rail, so the phone gets the
+    floating compose button the 2019 client used in its place. It links to the
+    composer on the home timeline, which is where the rail's pill pointed too. %>
+<a class="mobile-compose" href="<%= home_path %>#reply" aria-label="Tweet"><%= icon('compose') %></a>

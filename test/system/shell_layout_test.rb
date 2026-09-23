@@ -84,6 +84,51 @@ class ShellLayoutTest < ApplicationSystemTestCase
                  "the admin bar wrapped onto #{links.uniq.size} rows: #{links.uniq.inspect}"
   end
 
+  # At phone widths the 2019 client carried no left rail: the four primaries
+  # moved into a bar on the bottom edge. Measuring it catches the two ways the
+  # shape can be wrong - the bar rendering off-screen, or the rail keeping its
+  # column and squeezing the stream instead of being dropped.
+  test "the phone bar replaces the rail at a phone width" do
+    page.driver.browser.manage.window.resize_to(390, 844)
+    visit "/home"
+    assert_selector ".app-shell", wait: 5
+
+    assert_equal "none", page.evaluate_script(
+      "getComputedStyle(document.querySelector('.side-nav')).display"
+    ),
+                 "the rail kept its column at a phone width"
+
+    bar = box(".mobile-nav")
+    # A fixed bar is anchored to the layout viewport, so that - not
+    # window.innerHeight, which also counts the scrollbar band - is what it has
+    # to meet. Measuring the wrong box made a correctly-pinned bar look 15px low.
+    bottom_gap, viewport_w = page.evaluate_script(<<~JS)
+      (function () {
+        var r = document.querySelector('.mobile-nav').getBoundingClientRect();
+        return [
+          Math.round(document.documentElement.clientHeight - r.bottom),
+          document.documentElement.clientWidth
+        ];
+      })()
+    JS
+    assert_operator bottom_gap, :<=, 1,
+                    "the bar hangs #{bottom_gap}px below the viewport"
+    assert_operator bar[:width], :>=, viewport_w - 1,
+                    "the bar spans only #{bar[:width]}px of the #{viewport_w}px viewport"
+
+    # The floating compose control stands in for the rail's pill; it has to
+    # clear the bar rather than sit underneath it.
+    clearance = page.evaluate_script(<<~JS)
+      (function () {
+        var bar = document.querySelector('.mobile-nav').getBoundingClientRect();
+        var compose = document.querySelector('.mobile-compose').getBoundingClientRect();
+        return Math.round(bar.top - compose.bottom);
+      })()
+    JS
+    assert_operator clearance, :>=, 0,
+                    "the compose control overlaps the bottom bar by #{-clearance}px"
+  end
+
   private
 
   def visit_home(width)

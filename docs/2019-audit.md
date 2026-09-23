@@ -56,6 +56,25 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
   ancestor the viewer cannot open. Asserted in
   `test/integration/reply_context_test.rb`.
 
+### Shell — phone-width layout
+* 2019's phone client dropped the left rail entirely: at narrow widths the four
+  primary destinations (Home, Explore, Notifications, Messages) moved into a bar
+  fixed to the bottom edge, with the compose action floating above it. A
+  collapsed icon rail was not used, because a rail - collapsed or not - is a
+  column that steals width from an already-narrow stream.
+* Was: the shell kept the rail at every width and shrank it, so at phone widths
+  the stream was squeezed and the page scrolled horizontally. The narrow band
+  also kept `align-items: flex-start` after flipping `.layout` to
+  `flex-direction: column`, which shrank each column to its content width and
+  pushed a wide tweet row past the right edge.
+* Now: `shared/_mobile_nav.html.erb` renders the bottom bar plus a floating
+  compose control at every width (CSS decides visibility, so the markup and the
+  destinations are identical in both shapes), the bar carries the same unread
+  count as the rail, and `twitter.css` sets `align-items: stretch` on the
+  column-mode `.layout` while the content band reserves the bar's height as
+  bottom padding. Asserted in `test/system/shell_layout_test.rb` and
+  `test/integration/shell_layout_test.rb`.
+
 ## Verified correct already
 
 Checked against the 2019 client and left alone, so a later run does not

@@ -245,6 +245,15 @@ Checked against the 2019 client and left alone, so a later run does not
   inside the avatar anchor, so picture and badge are one link. A kind with no
   glyph (a bare system notice) renders no badge rather than inventing one.
   Asserted in `test/integration/shell_layout_test.rb`.
+* **Empty state — fixed.** 2019's Notifications screen, with nothing in the
+  list, was a centred bell glyph over the heading "Nothing to see here - yet"
+  and a one-line explanation of what will fill it, the same shape as the empty
+  Bookmarks screen. Was: a bare "No notifications yet." in a list row
+  (`.empty-note`), which read as a failed row rather than a deliberate empty
+  list. Now: `notifications/index.html.erb` renders `.empty-state` with the
+  `bell` glyph, that heading and that sub-line. Both tabs are empty lists over
+  the same table, so both carry the state; a notification on either tab
+  replaces it. Asserted in `test/integration/notifications_empty_test.rb`.
 
 ## Open fidelity items (resumable backlog)
 

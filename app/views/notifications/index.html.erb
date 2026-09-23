@@ -76,7 +76,18 @@
           </li>
         <% end %>
       <% else %>
-        <li class="empty-note">No notifications yet.</li>
+        <%# 2019's empty Notifications screen was a centred bell glyph over a
+            heading and a one-line explanation of what will fill it - the same
+            shape as the empty Bookmarks screen - rather than a bare sentence in
+            a list row. %>
+        <li>
+          <div class="empty-state">
+            <span class="empty-state-icon" aria-hidden="true"><%= icon('bell') %></span>
+            <h2>Nothing to see here &mdash; yet</h2>
+            <p>From likes to retweets and a whole lot more, this is where all the
+              action happens.</p>
+          </div>
+        </li>
       <% end %>
     </ul>
   </section>

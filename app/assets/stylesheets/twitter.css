@@ -602,6 +602,10 @@ html[data-theme="dark"] .tweet:hover { background: rgba(255,255,255,.03); }
 .tweet-dot { color: var(--gray); }
 .tweet-text { margin: 2px 0 10px; font-size: 15px; line-height: 20px;
               word-wrap: break-word; white-space: pre-wrap; }
+/* 2019's reply label: a quiet line above the body naming the account being
+   answered, so it reads as context rather than as part of the post. */
+.tweet-reply-context { margin: 2px 0 0; color: var(--gray); font-size: 15px; line-height: 20px; }
+.tweet-reply-context a { color: var(--blue); font-weight: 400; }
 .mention, .hashtag { color: var(--blue); }
 .tweet-media img { max-width: 100%; border-radius: 16px; border: 1px solid var(--xlight-gray); margin-bottom: 8px; }
 

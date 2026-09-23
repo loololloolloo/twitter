@@ -39,6 +39,16 @@
         </div>
 
         <div class="permalink-content">
+          <%# A reply opened on its own still names who it answers, the same line
+              the stream shows, so the permalink does not read as a detached
+              post. %>
+          <% reply_target = @tweet.reply_target(current_user) %>
+          <% if reply_target %>
+            <p class="tweet-reply-context">
+              Replying to <a href="<%= profile_path(reply_target.username) %>">@<%= reply_target.username %></a>
+            </p>
+          <% end %>
+
           <% if @tweet.body.present? %>
             <p class="tweet-text tweet-text-lead"><%= linkify(@tweet.body) %></p>
           <% end %>

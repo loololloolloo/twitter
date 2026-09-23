@@ -8,7 +8,7 @@ class BookmarksController < ApplicationController
     @tweets = Tweet.visible
                   .readable_by(current_user)
                   .where(id: current_user.bookmarks.select(:tweet_id))
-                  .includes(:user, retweet_of: :user, quote_of: :user)
+                  .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
                   .recent
                   .limit(100)
   end

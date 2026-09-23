@@ -25,7 +25,7 @@ class List < ApplicationRecord
 
     Tweet.visible
          .where(user_id: ids)
-         .includes(:user, retweet_of: :user, quote_of: :user)
+         .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
          .recent
          .limit(limit)
   end

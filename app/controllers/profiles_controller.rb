@@ -74,11 +74,12 @@ class ProfilesController < ApplicationController
     if @active == "media"
       @media = Tweet.visible.readable_by(current_user).where(user_id: @user.id)
                      .with_media
+                     .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
                      .recent.limit(60)
     elsif @active == "likes"
       @tweets = Tweet.visible.readable_by(current_user)
                      .where(id: @user.likes.favourites.select(:tweet_id))
-                     .includes(:user, retweet_of: :user, quote_of: :user)
+                     .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
                      .recent.limit(60)
     elsif @active == "scheduled"
       # The writer's queue of posts whose moment has not arrived, earliest
@@ -90,13 +91,13 @@ class ProfilesController < ApplicationController
       # "Tweets & replies" is everything the account posted, replies included,
       # which is the unfiltered author scope.
       @tweets = Tweet.visible.readable_by(current_user).where(user_id: @user.id)
-                     .includes(:user, retweet_of: :user, quote_of: :user)
+                     .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
                      .recent.limit(60)
     else
       # The default Tweets tab is the account's own posts without replies,
       # matching the 2019 profile, which hides replies unless asked for.
       @tweets = Tweet.visible.readable_by(current_user).where(user_id: @user.id, parent_id: nil)
-                     .includes(:user, retweet_of: :user, quote_of: :user)
+                     .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
                      .recent.limit(60)
 
       # A pinned post sits at the top of this tab only, the way the 2019 client

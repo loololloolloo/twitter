@@ -105,7 +105,7 @@ class TimelinesController < ApplicationController
       @tab = params[:tab].presence_in(EXPLORE_SECTIONS) || "for-you"
     end
 
-    scope = Tweet.visible.readable_by(current_user).includes(:user, retweet_of: :user, quote_of: :user)
+    scope = Tweet.visible.readable_by(current_user).includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
 
     if @mode == "search"
       # A leading # narrows to hashtags; an @ narrows to accounts. Both are
@@ -206,7 +206,7 @@ class TimelinesController < ApplicationController
          .where(retweet_of_id: nil)
          .or(Tweet.visible.readable_by(current_user).where(user_id: followed_ids))
          .or(Tweet.visible.readable_by(current_user).where(user_id: current_user.id))
-         .includes(:user, retweet_of: :user, quote_of: :user)
+         .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
          .recent
          .limit(120)
   end

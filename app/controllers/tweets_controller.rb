@@ -6,13 +6,18 @@ class TweetsController < ApplicationController
     # Replies the author has hidden stay visible to the author alone, greyed, so
     # the thread reads whole to the one person who hid them. Whether to keep a
     # hidden reply is decided by who is reading, not by who wrote the reply.
-    replies = @tweet.replies.visible.includes(:user).order(:created_at)
+    replies = @tweet.replies.visible.includes(:user, parent: :user).order(:created_at)
     @hidden_count = replies.count(&:reply_hidden?)
     viewer_is_author = @tweet.user_id == current_user.id
     @replies = replies.reject { |reply| reply.reply_hidden? && !viewer_is_author }
+    # The conversation above the focused post, oldest first. Each step is read
+    # through the same `visible.readable_by` rule the focused post passed, so a
+    # protected or banned parent the viewer may not open is not rendered here
+    # just because the reply below it is readable; the chain stops at the first
+    # ancestor that is withheld.
     @ancestors = []
     node = @tweet.parent
-    while node
+    while node && Tweet.visible.readable_by(current_user).exists?(id: node.id)
       @ancestors.unshift(node)
       node = node.parent
     end
@@ -312,7 +317,7 @@ class TweetsController < ApplicationController
     # answer rather than a page that then has to hide its own contents.
     @tweet = Tweet.visible
                   .readable_by(current_user)
-                  .includes(:user, retweet_of: :user, quote_of: :user)
+                  .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
                   .find_by(id: params[:id])
     return if @tweet
 

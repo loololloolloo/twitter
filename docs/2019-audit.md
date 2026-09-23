@@ -34,8 +34,27 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
 * Was: a second `.rail-heading` rule (dead — it styled the removed
   `.rail-block` markup) collided with the card heading and the admin panel's
   uppercase heading style.
-* Now: `.rail-title` is 19px/800, nested section headings are 15px/700, and the
+*   Now: `.rail-title` is 19px/800, nested section headings are 15px/700, and the
   dead `.rail-block` / `.rail-stats` / `.rail-actions-list` rules are gone.
+
+### Stream — reply context line
+* 2019: a reply in any stream was prefixed, above the body, with a quiet
+  **"Replying to @handle"** line whose handle linked to the account being
+  answered. It is what makes a reply legible as half of a conversation rather
+  than a detached post, and the permalink carried the same line.
+* Was: replies rendered with no such line anywhere — the timeline, the
+  permalink, and the profile "Tweets & replies" tab all showed the body alone.
+* Now: `Tweet#reply_target(viewer)` names the parent's author and the shared
+  `_tweet` partial plus `tweets/show.html.erb` render `.tweet-reply-context`
+  above the body. The retweeted entry in the stream does **not** carry it: a
+  retweet of a reply is not itself a reply, and the retweeter answered nobody.
+* The line is a disclosure, so it obeys the parent's own visibility rule: it is
+  withheld when the parent is missing, deleted, authored by a permanently
+  banned account, or authored by a protected account the viewer may not read.
+  The permalink's ancestor block, which rendered the same withheld parents, now
+  walks the chain through `Tweet.visible.readable_by` so it stops at the first
+  ancestor the viewer cannot open. Asserted in
+  `test/integration/reply_context_test.rb`.
 
 ## Verified correct already
 

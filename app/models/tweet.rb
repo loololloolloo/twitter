@@ -209,6 +209,23 @@ class Tweet < ApplicationRecord
     replies.visible.count
   end
 
+  # The account a post answers, when the viewer is allowed to be told. 2019
+  # labelled every reply with "Replying to @handle" in the timeline, but only
+  # for a parent the viewer could already open: naming a protected or banned
+  # account the viewer cannot read would leak the very account the visibility
+  # rule withholds, so those replies render without the line.
+  def reply_target(viewer)
+    return nil if parent_id.nil?
+
+    parent = self.parent
+    return nil if parent.nil?
+    return nil if parent.is_deleted?
+    return nil if parent.user.permanently_banned?
+    return nil unless parent.user.readable_by?(viewer)
+
+    parent.user
+  end
+
   def liked_by?(user)
     return false unless user
 

@@ -59,6 +59,17 @@
         <% end %>
       </div>
 
+      <%# 2019 prefixed a reply's body with "Replying to @handle", the handle
+          linked to the account being answered. A retweet of a reply is not
+          itself a reply - the retweeter answered nobody - so a retweeted entry
+          renders without the line. %>
+      <% reply_target = original ? nil : tweet.reply_target(current_user) %>
+      <% if reply_target %>
+        <p class="tweet-reply-context">
+          Replying to <a href="<%= profile_path(reply_target.username) %>">@<%= reply_target.username %></a>
+        </p>
+      <% end %>
+
       <% if show_body.body.present? %>
         <p class="tweet-text"><%= linkify(show_body.body) %></p>
       <% end %>

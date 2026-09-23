@@ -1747,6 +1747,24 @@ html[data-theme="dark"] .row-item:hover { background: rgba(255,255,255,.03); }
   border-bottom: 1px solid var(--xlight-gray);
 }
 
+/* The 2019 empty state for a saved-content screen (Bookmarks): a centred glyph,
+   a heading and a one-line instruction, not a bare sentence in a list row. The
+   glyph is the screen's own icon in the brand blue, matching the inbox
+   placeholder. */
+.empty-state {
+  padding: 40px 32px; text-align: center; color: var(--gray);
+}
+.empty-state .empty-state-icon { display: inline-flex; color: var(--blue); }
+.empty-state .empty-state-icon .ico { width: 48px; height: 48px; }
+.empty-state h2 {
+  margin: 8px auto 0; max-width: 320px;
+  font-size: 23px; line-height: 28px; font-weight: 800; color: var(--dark);
+}
+.empty-state p {
+  margin: 4px auto 0; max-width: 320px;
+  font-size: 15px; line-height: 20px;
+}
+
 /* ---------------- section card ----------------
    A titled block inside the stream, used for the static pages and for the
    settings sections that are not part of the form grid. */

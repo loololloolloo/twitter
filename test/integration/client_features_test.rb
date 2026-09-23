@@ -35,6 +35,33 @@ class ClientFeaturesTest < ActionDispatch::IntegrationTest
     assert_not Bookmark.exists?(user: @alice, tweet: @post)
   end
 
+  # 2019's Bookmarks screen, with nothing saved, was a centred bookmark glyph
+  # over "You haven't added any Tweets to your Bookmarks yet" and a sub-line
+  # pointing at the share icon - not a bare sentence in a list row.
+  test "an empty bookmarks screen shows the 2019 empty state" do
+    sign_in @alice
+
+    get bookmarks_path
+    assert_response :success
+    assert_match "You haven", response.body
+    assert_match "Tweets to your Bookmarks yet", response.body
+    assert_match "share icon", response.body
+    assert_match "empty-state", response.body
+    assert_select ".empty-state .empty-state-icon"
+  end
+
+  # The empty state is the absence of saved posts, so saving one replaces it.
+  test "the bookmarks empty state disappears once a post is saved" do
+    sign_in @alice
+
+    get bookmarks_path
+    assert_match "empty-state", response.body
+
+    post bookmark_tweet_path(@post)
+    get bookmarks_path
+    assert_no_match(/empty-state/, response.body)
+  end
+
   test "saved posts are private to the account that saved them" do
     sign_in @alice
     post bookmark_tweet_path(@post)

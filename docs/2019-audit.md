@@ -197,10 +197,15 @@ code stands now. Verify against the rendered page before changing anything.
   counts render; the data is on the list record.
 
 ### Bookmarks
-* **Empty-state copy - verify.** 2019 used "You haven't added any Tweets to
-  your Bookmarks yet" with a sub-line telling the member to tap the share icon
-  to add one. Confirm the current empty state matches rather than a shorter
-  message.
+* **Empty state - fixed.** 2019's empty Bookmarks screen was a centred
+  bookmark glyph over the heading "You haven't added any Tweets to your
+  Bookmarks yet", with a sub-line telling the member to use the share icon to
+  add one. Was: a bare "Nothing saved yet. Tap the bookmark icon on a post to
+  keep it here." in a list row (`.empty-note`), with no glyph and no heading.
+  Now: `bookmarks/index.html.erb` renders `.empty-state` with a blue
+  `bookmark-regular` glyph, that exact heading, and a sub-line naming the share
+  icon, matching the inbox placeholder's shape. Asserted in
+  `test/integration/client_features_test.rb`.
 
 ### Profile
 * **Media tab lazy-load affordance - verify.** 2019's profile media grid loaded

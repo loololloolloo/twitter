@@ -18,8 +18,13 @@
       <% if @tweets.present? %>
         <%= render partial: "tweets/tweet", collection: @tweets, as: :tweet %>
       <% else %>
-        <li class="empty-note">
-          Nothing saved yet. Tap the bookmark icon on a post to keep it here.
+        <li>
+          <div class="empty-state">
+            <span class="empty-state-icon" aria-hidden="true"><%= icon('bookmark-regular') %></span>
+            <h2>You haven&rsquo;t added any Tweets to your Bookmarks yet</h2>
+            <p>Tap the share icon on a Tweet and choose Bookmark to keep it here
+              so you can find it again later.</p>
+          </div>
         </li>
       <% end %>
     </ul>

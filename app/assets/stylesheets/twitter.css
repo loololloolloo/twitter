@@ -1976,9 +1976,13 @@ html[data-theme="dark"] .row-item:hover { background: rgba(255,255,255,.03); }
 }
 .dm-list-handle { font-size: 15px; color: var(--gray); flex-shrink: 0; }
 .dm-list-preview {
-  display: block; margin-top: 2px; font-size: 14px; color: var(--gray);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: flex; align-items: baseline; gap: 8px; margin-top: 2px;
+  font-size: 14px; color: var(--gray);
 }
+.dm-list-preview-text {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dm-list-time { margin-left: auto; flex-shrink: 0; font-size: 13px; }
 .dm-thread-pane { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .dm-thread-head {
   display: flex; align-items: center; gap: 12px;

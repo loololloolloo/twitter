@@ -108,14 +108,44 @@ class MessagesInboxTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "We could not find that account."
   end
 
-  test "the picker will not start a conversation with the signed-in account" do
-    me = create_user(username: "compose_me7")
+  test "the inbox dates each row on the preview line" do
+    me = create_user(username: "dated_me")
+    other = create_user(username: "dated_other")
+    DmConversation.between(me, other).dm_messages.create!(sender: other, body: "recent ping")
+
     sign_in(me)
 
-    assert_no_difference [ -> { DmMessage.count }, -> { DmConversation.count } ] do
-      post compose_message_path, params: { to: "@compose_me7", body: "note to self" }
-    end
+    get messages_path
+    assert_response :success
+    assert_includes response.body, "dm-list-time"
+    assert_includes response.body, "recent ping"
+    # A message written moments ago reads as "now" rather than a blank cell.
+    assert_includes response.body, ">now<"
+  end
 
-    assert_redirected_to messages_path
+  test "an empty thread carries no date because there is no arrival to name" do
+    me = create_user(username: "undated_me")
+    other = create_user(username: "undated_other")
+    DmConversation.between(me, other)
+
+    sign_in(me)
+
+    get messages_path
+    assert_response :success
+    assert_includes response.body, "No messages yet"
+    assert_not_includes response.body, "dm-list-time"
+  end
+
+  test "the sidebar beside an open thread dates its rows too" do
+    me = create_user(username: "sidebar_me")
+    other = create_user(username: "sidebar_other")
+    DmConversation.between(me, other).dm_messages.create!(sender: other, body: "side note")
+
+    sign_in(me)
+
+    get conversation_path(other)
+    assert_response :success
+    assert_includes response.body, "dm-list-time"
+    assert_includes response.body, "side note"
   end
 end

@@ -74,7 +74,14 @@
                     <span class="dm-list-name"><%= other.display_name.presence || other.username %></span>
                     <span class="dm-list-handle">@<%= other.username %></span>
                   </span>
-                  <span class="dm-list-preview"><%= last&.body.presence || "No messages yet" %></span>
+                  <%# 2019 dated the row on the preview line, so the list could
+                      be scanned for what arrived lately, not just for who. Only
+                      a conversation that has a message carries a date; a thread
+                      with nothing in it has no arrival to name. %>
+                  <span class="dm-list-preview">
+                    <span class="dm-list-preview-text"><%= last&.body.presence || "No messages yet" %></span>
+                    <% if last %><span class="dm-list-time"><%= time_ago(last.created_at) %></span><% end %>
+                  </span>
                 </span>
               </a>
             </li>

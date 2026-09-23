@@ -262,6 +262,16 @@ without redoing the audit. Each names the page, what 2019 did, and where the
 code stands now. Verify against the rendered page before changing anything.
 
 ### Messages
+* **Inbox row dates - fixed.** 2019 put a relative timestamp at the right edge
+  of each conversation row's preview line ("now", "3h", "12 Mar"), so the list
+  could be scanned for what arrived lately rather than only for who. Was: the
+  preview rendered the last message body alone, with no date, on both the inbox
+  and the sidebar beside an open thread. Now: `messages/index.html.erb` and
+  `messages/show.html.erb` render `.dm-list-time` after `.dm-list-preview-text`
+  inside a flex `.dm-list-preview`, using the shared `time_ago` helper. A
+  conversation holding no message renders no date, because there is no arrival
+  to name. Asserted in `test/integration/messages_inbox_test.rb`.
+
 * **Compose control in the inbox header - fixed.** 2019's Messages inbox carried
   a compose affordance at the top of the conversation list (a search box plus a
   new-message control) so a conversation could be started without visiting a

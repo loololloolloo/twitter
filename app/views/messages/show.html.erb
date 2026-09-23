@@ -20,7 +20,12 @@
                   <span class="dm-list-name"><%= other.display_name.presence || other.username %></span>
                   <span class="dm-list-handle">@<%= other.username %></span>
                 </span>
-                <span class="dm-list-preview"><%= last&.body.presence || "No messages yet" %></span>
+                <%# The row carries the same relative date as the inbox's, so
+                    the sidebar beside an open thread reads identically. %>
+                <span class="dm-list-preview">
+                  <span class="dm-list-preview-text"><%= last&.body.presence || "No messages yet" %></span>
+                  <% if last %><span class="dm-list-time"><%= time_ago(last.created_at) %></span><% end %>
+                </span>
               </span>
             </a>
           </li>

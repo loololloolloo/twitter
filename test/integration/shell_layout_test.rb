@@ -162,6 +162,30 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
     assert_match(/\.rail-search\s*\{[^}]*top:\s*var\(--header-h\)/, css)
   end
 
+  # 2019's composer toolbar read media, GIF, poll, emoji, schedule in that
+  # order, and the prompt defaulted to "What's happening?". The sequence is
+  # asserted because a reordered toolbar reads as a different client, and the
+  # placeholder because it is operator-editable and the default is the 2019
+  # string.
+  test "the composer toolbar keeps the 2019 order and prompt" do
+    me = create_user(username: "composer_me")
+    sign_in(me)
+
+    get home_path
+    assert_response :success
+
+    tools = response.body[/<div class="compose-tools">.*?<\/div>/m]
+    assert_not_nil tools, "the composer has no toolbar group"
+
+    order = %w[data-media-input data-gif-open data-poll-open data-emoji-open data-schedule-open]
+    positions = order.map { |marker| tools.index(marker) }
+    assert_not_includes positions, nil, "a 2019 toolbar control is missing: #{order.inspect}"
+    assert_equal positions.sort, positions,
+                 "the toolbar is out of the 2019 order (media, GIF, poll, emoji, schedule)"
+
+    assert_includes response.body, 'placeholder="What&#39;s happening?"'
+  end
+
   test "the admin panel keeps its own sidebar layout" do
     owner = create_user(username: "shell_admin", role: "owner")
     sign_in(owner)

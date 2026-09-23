@@ -129,10 +129,12 @@ Checked against the 2019 client and left alone, so a later run does not
 
 ### Sidebar
 * 2019 ordered the rail: Home, Explore, Notifications, Messages, Bookmarks,
-  Lists, Profile, More, then the Tweet button. The current order matches, but
-  the **account switcher** sits at the foot; 2019 put it at the very bottom as a
-  wide button with the avatar, display name, handle and an overflow. Confirm the
-  markup matches rather than approximating it.
+  Lists, Profile, More, then the Tweet button. The current order matches, and
+  the **account switcher** is verified: `_side_nav.html.erb` puts `.side-account`
+  at the foot of the rail (`margin-top: auto` pins it there), and the trigger is
+  the wide button 2019 used - avatar, display name, @handle and an overflow
+  caret, opening the upward popover rather than navigating. Markup and position
+  match; no change needed.
 * **Notifications unread badge — fixed.** Was: the rail had a `.side-badge`
   pill, but only Follow requests ever rendered one; Notifications carried no
   count. 2019: a blue count sat on the Notifications item naming how much was
@@ -149,8 +151,13 @@ Checked against the 2019 client and left alone, so a later run does not
 
 ### Composer
 * 2019's composer placeholder was "What's happening?" and the toolbar showed
-  image, GIF, poll, emoji and schedule in that order. Verify the toolbar icons
-  and their order on the home timeline.
+  image, GIF, poll, emoji and schedule in that order. Verified: `_composer.html.erb`
+  renders exactly that sequence in `.compose-tools` (image, GIF, chart-simple for
+  poll, emoji, clock for schedule), and the placeholder defaults to the 2019
+  string through `site_tagline`. No change needed - the earlier "verify" note is
+  closed. The order and placeholder now have a regression guard in
+  `test/integration/shell_layout_test.rb` ("the composer toolbar keeps the 2019
+  order and prompt").
 * **Scheduling — fixed.** 2019's schedule control was the last toolbar item and
   opened a small panel (like the GIF picker) with a date and time; confirming it
   changed the Tweet button to a Schedule action and closed the panel. This build
@@ -285,9 +292,10 @@ code stands now. Verify against the rendered page before changing anything.
   first. Asserted in `test/integration/profile_media_pagination_test.rb`.
 
 ### Shell
-* **Left sidebar "More" disclosure - verify position.** 2019 kept More inline in
-  the sidebar list, expanding under the trigger rather than as an overlay. The
-  shell already renders `side-more` and `test/integration/shell_layout_test.rb`
-  asserts the labels; confirm the expanded panel is positioned under the item,
-  not centred or detached.
+* **Left sidebar "More" disclosure - verified.** 2019 kept More inline in the
+  sidebar list, expanding under the trigger rather than as an overlay. Confirmed:
+  `.side-more-list` is a static flex column inside the `<li>` (no `position:
+  absolute`), indented under the summary with a left rule, so it pushes the list
+  below it down rather than floating. `test/integration/shell_layout_test.rb`
+  asserts the labels. No change needed.
 

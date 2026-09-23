@@ -130,6 +130,62 @@ class ClientFeaturesTest < ActionDispatch::IntegrationTest
                "a list must not create a follow"
   end
 
+  # 2019's list header printed the member count and the follower count inline
+  # beside the name. Membership and following are separate facts - you can read
+  # a list without being on it - so both have to render.
+  test "a list header shows the member and follower counts" do
+    list = List.create!(user: @alice, name: "Reading")
+    list.list_memberships.create!(user: @bob)
+    list.list_memberships.create!(user: @carol)
+    list.list_subscriptions.create!(user: @alice)
+
+    sign_in @alice
+    get list_path(list)
+    assert_response :success
+    assert_match "2 members", response.body
+    assert_match "1 follower", response.body
+  end
+
+  test "an account can follow and unfollow another account's list without joining it" do
+    list = List.create!(user: @bob, name: "Public")
+
+    sign_in @alice
+    assert_difference -> { ListSubscription.count }, 1 do
+      post list_follow_path(list)
+    end
+    assert_response :redirect
+    assert list.subscribed_by?(@alice)
+    assert_not list.includes?(@alice), "following a list must not add the account to it"
+    assert_not Follow.exists?(follower_id: @alice.id, followee_id: @bob.id)
+
+    get list_path(list)
+    assert_match "1 follower", response.body
+
+    assert_difference -> { ListSubscription.count }, -1 do
+      delete list_follow_path(list)
+    end
+    assert_not list.subscribed_by?(@alice)
+  end
+
+  test "creating a list makes the owner its first follower" do
+    sign_in @alice
+
+    post lists_path, params: { list: { name: "Tech", description: "People" } }
+    list = List.last
+    assert list.subscribed_by?(@alice)
+    assert_equal 1, list.subscriber_count
+  end
+
+  test "a private list of another account cannot be followed" do
+    list = List.create!(user: @bob, name: "Secret", is_private: true)
+
+    sign_in @alice
+    assert_no_difference -> { ListSubscription.count } do
+      post list_follow_path(list)
+    end
+    assert_response :not_found
+  end
+
   test "a private list of another account is not readable" do
     list = List.create!(user: @bob, name: "Secret", is_private: true)
 

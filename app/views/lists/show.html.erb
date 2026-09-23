@@ -6,15 +6,25 @@
         <span class="stream-sub">
           @<%= @list.user.username %>
           &middot; <%= @list.member_count %> <%= 'member'.pluralize(@list.member_count) %>
+          &middot; <%= @list.subscriber_count %> <%= 'follower'.pluralize(@list.subscriber_count) %>
           <% if @list.is_private %> &middot; Private<% end %>
         </span>
       </div>
-      <% if @is_owner %>
-        <div class="stream-head-actions">
+      <div class="stream-head-actions">
+        <% if @following_list %>
+          <%= form_with url: list_follow_path(@list), method: :delete, class: "inline" do %>
+            <button class="btn btn-following" type="submit">Following</button>
+          <% end %>
+        <% else %>
+          <%= form_with url: list_follow_path(@list), method: :post, class: "inline" do %>
+            <button class="btn btn-follow" type="submit">Follow</button>
+          <% end %>
+        <% end %>
+        <% if @is_owner %>
           <a class="btn btn-pill" href="<%= list_members_path(@list) %>">Edit members</a>
           <a class="btn btn-pill" href="<%= edit_list_path(@list) %>">Edit list</a>
-        </div>
-      <% end %>
+        <% end %>
+      </div>
     </div>
 
     <% if @list.description.present? %>

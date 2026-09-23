@@ -17,6 +17,28 @@ class ListsController < ApplicationController
   def show
     @members = @list.members.order(:username).limit(100)
     @tweets = @list.timeline(limit: 100).readable_by(current_user)
+    @following_list = @list.subscribed_by?(current_user)
+  end
+
+  # Following a list subscribes the account to it. It changes neither the
+  # membership nor the follow graph: reading a list and being on it are
+  # different things, which is why the header reports both counts.
+  def follow
+    list = List.find_by(id: params[:list_id].presence || params[:id])
+    return render_not_found if list.nil? || (list.user_id != current_user.id && list.is_private)
+
+    list.list_subscriptions.find_or_create_by!(user_id: current_user.id)
+    audit!("list.follow", target: "list:#{list.id}", detail: "followed list #{list.name}")
+    redirect_to list_path(list), notice: "You are now following this list."
+  end
+
+  def unfollow
+    list = List.find_by(id: params[:list_id].presence || params[:id])
+    return render_not_found if list.nil? || (list.user_id != current_user.id && list.is_private)
+
+    list.list_subscriptions.where(user_id: current_user.id).delete_all
+    audit!("list.unfollow", target: "list:#{list.id}", detail: "unfollowed list #{list.name}")
+    redirect_to list_path(list), notice: "You are no longer following this list."
   end
 
   def new
@@ -27,6 +49,9 @@ class ListsController < ApplicationController
     @list = current_user.lists.new(list_params)
 
     if @list.save
+      # The owner reads their own list, so they are its first follower. Without
+      # this every new list would open on a follower count of zero.
+      @list.list_subscriptions.create!(user_id: current_user.id)
       audit!("list.create", target: "list:#{@list.id}", detail: "created list #{@list.name}")
       redirect_to list_path(@list), notice: "Your list was created."
     else

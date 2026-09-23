@@ -7,6 +7,8 @@ class List < ApplicationRecord
   belongs_to :user
   has_many :list_memberships, dependent: :destroy
   has_many :members, through: :list_memberships, source: :user
+  has_many :list_subscriptions, dependent: :destroy
+  has_many :subscribers, through: :list_subscriptions, source: :user
 
   validates :name, presence: true, length: { maximum: 25 }
   validates :description, length: { maximum: 100 }
@@ -30,6 +32,16 @@ class List < ApplicationRecord
 
   def member_count
     list_memberships.count
+  end
+
+  def subscriber_count
+    list_subscriptions.count
+  end
+
+  def subscribed_by?(account)
+    return false if account.nil?
+
+    list_subscriptions.exists?(user_id: account.id)
   end
 
   def includes?(account)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_050000) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -193,6 +193,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_150000) do
     t.index ["list_id", "user_id"], name: "index_list_memberships_on_list_id_and_user_id", unique: true
     t.index ["list_id"], name: "index_list_memberships_on_list_id"
     t.index ["user_id"], name: "index_list_memberships_on_user_id"
+  end
+
+  create_table "list_subscriptions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "list_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["list_id", "user_id"], name: "index_list_subscriptions_on_list_id_and_user_id", unique: true
+    t.index ["list_id"], name: "index_list_subscriptions_on_list_id"
+    t.index ["user_id"], name: "index_list_subscriptions_on_user_id"
   end
 
   create_table "lists", force: :cascade do |t|

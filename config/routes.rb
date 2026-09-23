@@ -61,6 +61,8 @@ Rails.application.routes.draw do
     get    "members", to: "lists#members", as: :members
     post   "members", to: "lists#add_member"
     delete "members/:user_id", to: "lists#remove_member", as: :member
+    post   "follow",   to: "lists#follow",   as: :follow
+    delete "follow",   to: "lists#unfollow", as: :unfollow
   end
 
   # Asks to follow a protected account, which the account approves or declines.

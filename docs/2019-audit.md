@@ -191,10 +191,18 @@ code stands now. Verify against the rendered page before changing anything.
   is unchanged.
 
 ### Lists
-* **List header counts - open.** 2019's list page header printed the member and
-  follower counts inline beside the list name ("3 members"). Check
-  `app/views/lists/show.html.erb` (or the lists partial) for whether those
-  counts render; the data is on the list record.
+* **List header counts - fixed.** 2019's list page header printed the member and
+  follower counts inline beside the list name ("3 members"). Was: the header
+  rendered the member count alone, because there was no way to follow a list -
+  the only membership was `list_memberships`, which names who is *on* the list.
+  2019 followed lists the same way it followed accounts, so the follower count
+  was missing data, not just missing markup. Now: a `list_subscriptions` table
+  and `ListSubscription` model back a real follow, the list page carries a
+  Follow/Following button, and the header renders both counts
+  ("2 members · 1 follower"). The owner is subscribed on creation so a new list
+  does not open on zero followers. Following a list never touches the follow
+  graph or the membership, which is the point of a list. Asserted in
+  `test/integration/client_features_test.rb`.
 
 ### Bookmarks
 * **Empty state - fixed.** 2019's empty Bookmarks screen was a centred

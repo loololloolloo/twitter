@@ -630,3 +630,46 @@ $(function () {
   syncTag();
   sync();
 });
+
+// The profile media grid fills itself a page at a time. The "Load more" link
+// works on its own, but following it would redraw the whole profile, so the
+// script fetches just the next page of cells and appends them. The link's href
+// stays as the no-script fallback, and the grid's data attribute is the cursor
+// the two share so the page never fetches the same page twice.
+$(function () {
+  var $grid = $('[data-media-grid]');
+  if (!$grid.length) return;
+
+  var $more = $('[data-media-more]');
+  var $link = $('[data-media-link]');
+  var busy = false;
+
+  $link.on('click', function (e) {
+    e.preventDefault();
+    if (busy) return;
+
+    var next = parseInt($grid.data('media-next'), 10);
+    if (!next) return;
+
+    busy = true;
+    $link.text('Loading…');
+
+    $.getJSON($grid.data('media-url'), { page: next })
+      .done(function (data) {
+        if (!data) return;
+
+        if (data.html) $grid.append(data.html);
+
+        if (data.next_page) {
+          $grid.data('media-next', data.next_page);
+          $link.attr('href', $link.attr('href').replace(/page=\d+/, 'page=' + data.next_page));
+        } else {
+          $more.prop('hidden', true);
+        }
+      })
+      .always(function () {
+        busy = false;
+        $link.text('Load more');
+      });
+  });
+});

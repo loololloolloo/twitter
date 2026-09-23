@@ -106,6 +106,9 @@ Rails.application.routes.draw do
   get    "u/:username",           to: "profiles#show",      as: :profile
   get    "u/:username/following", to: "profiles#following", as: :following
   get    "u/:username/followers", to: "profiles#followers", as: :followers
+  # The profile media grid extends itself by page. Addressed by username so it
+  # reads through the same visibility checks as the profile it belongs to.
+  get    "u/:username/media",     to: "profiles#media",     as: :profile_media
   post   "u/:username/follow",    to: "follows#create",     as: :follow_user
   delete "u/:username/follow",    to: "follows#destroy"
 

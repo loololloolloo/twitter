@@ -6,6 +6,13 @@ class ProfilesController < ApplicationController
   # is kept as an accepted alias because older links and tests still use it.
   TABS = %w[tweets replies media likes favorites scheduled].freeze
 
+  # The media grid is the one profile panel that can grow without bound: a
+  # prolific account's grid is hundreds of cells, and the 2019 client filled it
+  # a page at a time rather than shipping every thumbnail in the first
+  # response. The extra row fetched past the page size is how "is there more?"
+  # is answered without a second COUNT query.
+  MEDIA_PER_PAGE = 60
+
   def show
     @active = params[:tab].presence_in(TABS) || "tweets"
     @active = "likes" if @active == "favorites"
@@ -72,10 +79,12 @@ class ProfilesController < ApplicationController
     @suggestions = profile_suggestions
 
     if @active == "media"
-      @media = Tweet.visible.readable_by(current_user).where(user_id: @user.id)
-                     .with_media
-                     .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
-                     .recent.limit(60)
+      # `page` is how many pages the reader has asked to see, not which single
+      # page to show: without JavaScript the "Load more" link is an ordinary
+      # request that must render everything up to that point, or following it
+      # would replace the grid instead of extending it.
+      @media_page = media_page_number
+      load_media_pages(@media_page)
     elsif @active == "likes"
       @tweets = Tweet.visible.readable_by(current_user)
                      .where(id: @user.likes.favourites.select(:tweet_id))
@@ -130,7 +139,60 @@ class ProfilesController < ApplicationController
     render :connections
   end
 
+  # Serves the next page of the media grid as rendered cells, so the profile
+  # can extend the grid without a full reload. It reads through the same
+  # visibility scope as the tab, so a block, a lock or a deleted post hides a
+  # cell here exactly as it would in the first page.
+  def media
+    @active = "media"
+
+    if @user.permanently_banned? || current_user.blocked_with?(@user) || !@user.readable_by?(current_user)
+      return render json: { html: "", next_page: nil }
+    end
+
+    @media_page = media_page_number
+    rows = media_scope.offset((@media_page - 1) * MEDIA_PER_PAGE)
+                      .limit(MEDIA_PER_PAGE + 1)
+                      .to_a
+    has_more = rows.size > MEDIA_PER_PAGE
+    rows = rows.first(MEDIA_PER_PAGE)
+
+    render json: {
+      html: render_to_string(partial: "profiles/media_cells", formats: [ :html ],
+                             locals: { media: rows }),
+      next_page: has_more ? @media_page + 1 : nil
+    }
+  end
+
   private
+
+  # Renders every page up to `page`, the way the pre-JavaScript client did, so
+  # following "Load more" adds to the grid rather than replacing it. The extra
+  # row fetched past a page's end is what answers "is there another page?"
+  # without a COUNT.
+  def load_media_pages(page)
+    limit = page * MEDIA_PER_PAGE
+    rows = media_scope.limit(limit + 1).to_a
+
+    @media_has_more = rows.size > limit
+    @media = rows.first(limit)
+    @media_next_page = page + 1
+  end
+
+  # The account's own posts that carry media, in the visibility the viewer is
+  # entitled to. Shared by the tab and the pagination endpoint so the two can
+  # never disagree about what is on the grid.
+  def media_scope
+    Tweet.visible.readable_by(current_user).where(user_id: @user.id)
+         .with_media
+         .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
+         .recent
+  end
+
+  def media_page_number
+    page = params[:page].to_i
+    page < 1 ? 1 : page
+  end
 
   # Who to follow, excluding the viewer, the account being viewed, anyone
   # already followed, and anyone the viewer has blocked or muted. Shared by both

@@ -209,23 +209,21 @@
       </div>
     <% elsif @active == "media" %>
       <% if @media.present? %>
-        <div class="media-rail">
-          <% @media.each do |tweet| %>
-            <a class="media-cell" href="<%= tweet_path(tweet) %>">
-              <% if tweet.video? %>
-                <%# A video in the grid shows its first frame with the play glyph
-                    over it, which is how the 2019 media grid distinguished the
-                    two. Loading the metadata rather than the file keeps a grid
-                    of videos cheap. %>
-                <video class="media-cell-video" preload="metadata"
-                       src="/uploads/<%= tweet.media_path %>"></video>
-                <span class="media-play" aria-label="Video"><%= icon('play') %></span>
-              <% else %>
-                <img src="<%= tweet.media_url.presence || "/uploads/#{tweet.media_path}" %>"
-                     alt="<%= tweet.alt_text.to_s %>" loading="lazy">
-              <% end %>
-            </a>
-          <% end %>
+        <%# The grid is filled a page at a time. The control below is a real
+            link, so it works without JavaScript by loading a page that already
+            carries everything up to that point; the script upgrades it to
+            appending only the newly arrived cells. The page number lives on the
+            grid so the script reads it from the same place the link was built. %>
+        <div class="media-rail" data-media-grid
+             data-media-url="<%= profile_media_path(@user.username) %>"
+             data-media-next="<%= @media_next_page %>">
+          <%= render "profiles/media_cells", media: @media %>
+        </div>
+        <div class="media-more" data-media-more <%= "hidden" unless @media_has_more %>>
+          <a class="btn load-more-btn" data-media-link
+             href="<%= profile_path(@user.username, tab: 'media', page: @media_next_page) %>">
+            Load more
+          </a>
         </div>
       <% else %>
         <p class="empty profile-empty">No photos or videos yet.</p>

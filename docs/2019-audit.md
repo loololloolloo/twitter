@@ -254,8 +254,18 @@ code stands now. Verify against the rendered page before changing anything.
   `test/integration/client_features_test.rb`.
 
 ### Profile
-* **Media tab lazy-load affordance - verify.** 2019's profile media grid loaded
-  progressively; the build may render the whole set at once. Low priority.
+* **Media tab progressive loading - fixed.** 2019's profile media grid filled a
+  page at a time rather than shipping every thumbnail in the first response.
+  Was: the media tab rendered up to 60 cells at once with no way to reach the
+  rest, so a prolific account's grid was truncated silently. Now the grid draws
+  one page of 60 cells and ends in a "Load more" control. The control is a real
+  link (`?tab=media&page=N`) so it works without JavaScript, and asking for
+  page N renders every page up to N, which is how the pre-script client
+  extended rather than replaced the grid. With JavaScript the link appends only
+  the newly fetched cells through `GET /u/:username/media`, which reads through
+  the same visibility scope as the tab, so a block, a permanent ban or a
+  protected account hides a cell on a fetched page exactly as it does on the
+  first. Asserted in `test/integration/profile_media_pagination_test.rb`.
 
 ### Shell
 * **Left sidebar "More" disclosure - verify position.** 2019 kept More inline in

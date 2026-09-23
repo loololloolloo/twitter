@@ -1614,6 +1614,11 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 }
 .media-play .ico { width: 12px; height: 12px; color: var(--white); opacity: 1; }
 
+/* The grid's "Load more" control, centred under the cells the way the 2019
+   client ended a page of the media grid. */
+.media-more { margin: 14px 0 4px; text-align: center; }
+.load-more-btn { display: inline-block; padding: 8px 18px; font-size: 14px; font-weight: 700; }
+
 /* ---------------- banned screen ---------------- */
 .banned-page {
   min-height: 80vh; display: flex; align-items: center; justify-content: center;

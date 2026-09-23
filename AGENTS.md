@@ -88,6 +88,24 @@ Debian trixie ships 3.3.8, which matches the vendored bundle, and `bundler`
 `./bin/bundle check` should report the dependencies are satisfied and no
 `bundle install` is needed.
 
+## The test environment loads libraries that development does not
+
+`RAILS_ENV=test` has `net/http` loaded; development and production do not. A
+class that uses `Net::HTTP` without requiring it therefore passes the whole
+suite and fails only in the real app - and if its own `rescue` swallows the
+`NameError`, it fails silently, as a nil that reads like a legitimate "cannot
+be used" answer.
+
+`GifLink#fetch_page` shipped with exactly this bug, so every pasted Tenor page
+link was refused. Two lessons, both cheap to apply:
+
+* Require what a file uses, in that file. Do not rely on another library having
+  pulled it in.
+* A test that injects a stub never exercises the real collaborator. Where the
+  real one can fail on a dependency, assert the dependency is declared rather
+  than only asserting behaviour - a behavioural test cannot see the difference
+  when the test environment supplies it for free.
+
 ## Parallel tests share files on disk, not just the database
 
 `parallelize_setup` in `test/test_helper.rb` gives each worker its own database

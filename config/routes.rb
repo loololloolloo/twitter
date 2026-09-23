@@ -125,6 +125,10 @@ Rails.application.routes.draw do
   delete "tweet/:id/hide",    to: "tweets#unhide_reply"
   # The per-post analytics screen ("View Tweet activity").
   get    "tweet/:id/activity", to: "tweets#activity", as: :tweet_activity
+  # The posts that quote this one, reached from the "Quote Tweets" figure on
+  # the permalink's count line. 2019 addressed it as a route of its own so the
+  # figure could be a link rather than a tooltip.
+  get    "tweet/:id/quotes",  to: "tweets#quotes",  as: :tweet_quotes
   # Casting a poll vote. Addressed by the choice, since a poll belongs to its
   # post and the reader picks one of its options.
   post   "poll_option/:id/vote", to: "polls#vote", as: :poll_option_vote

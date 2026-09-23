@@ -495,6 +495,72 @@ class ClientFeaturesTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # ------------------------------------------------------- quote tweets list
+
+  # 2019's permalink count line linked "Quote Tweets" to a screen of the quotes
+  # themselves. The figure is only useful if it opens that list.
+  test "the permalink quote figure links to the quotes screen" do
+    sign_in @alice
+
+    get tweet_path(@post)
+    assert_response :success
+    assert_select "a.stat-quote[href=?]", tweet_quotes_path(@post)
+
+    get tweet_quotes_path(@post)
+    assert_response :success
+    assert_match "Quote Tweets", response.body
+    # The source post leads the list, so the reader knows what is being quoted.
+    assert_match "hello from bob", response.body
+  end
+
+  test "the quotes screen lists the posts that quote this one" do
+    quote = Tweet.create!(user: @carol, body: "worth quoting", quote_of: @post)
+
+    sign_in @alice
+    get tweet_quotes_path(@post)
+    assert_response :success
+    assert_match "worth quoting", response.body
+    assert_select "li.tweet[data-tweet=?]", quote.id
+  end
+
+  test "an unquoted post shows the 2019 empty state" do
+    sign_in @alice
+
+    get tweet_quotes_path(@post)
+    assert_response :success
+    assert_match "No Quote Tweets yet", response.body
+    assert_select ".empty-state .empty-state-icon"
+  end
+
+  # The count answers "how many", the list answers "which ones you may read", so
+  # a quote by a blocked account is withheld from the list without changing the
+  # figure on the permalink.
+  test "a quote from a blocked account is withheld from the quotes list" do
+    Tweet.create!(user: @carol, body: "hidden quote", quote_of: @post)
+    @alice.block!(@carol)
+
+    sign_in @alice
+    get tweet_quotes_path(@post)
+    assert_response :success
+    assert_no_match "hidden quote", response.body
+    assert_match "No Quote Tweets yet", response.body
+  end
+
+  test "a quote by a permanently banned account is withheld from the quotes list" do
+    Tweet.create!(user: @carol, body: "banned quote", quote_of: @post)
+    @carol.update!(is_banned: true, ban_permanent: true)
+
+    sign_in @alice
+    get tweet_quotes_path(@post)
+    assert_response :success
+    assert_no_match "banned quote", response.body
+  end
+
+  test "the quotes screen requires a signed-in account" do
+    get tweet_quotes_path(@post)
+    assert_response :redirect
+  end
+
   # -------------------------------------------------------- hidden replies
 
   test "the parent's author can hide a reply from everyone but themselves" do

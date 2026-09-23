@@ -29,6 +29,25 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
   About card carried an explanatory sentence.
 * Now: "Show more" always renders, and the About card is links plus copyright.
 
+### Permalink — "Quote Tweets" figure opens the quotes screen
+* 2019's permalink count line showed "N Quote Tweets" next to the replies and
+  retweets and the figure was a link into a screen listing the quotes
+  themselves, with the source post carried onto that screen.
+* Was: `tweets/show.html.erb` rendered the quote figure as static text in the
+  count line - the number was visible but there was no way to reach the posts
+  behind it, so a reader could see that a post was quoted without being able to
+  read the quotes.
+* Now: the figure is `<a class="stat stat-quote" href="/tweet/:id/quotes">`,
+  backed by `tweets#quotes` and `tweets/quotes.html.erb`. The source post leads
+  the list, then the quoting posts through `@tweet.quotes.visible
+  .readable_by(current_user)` - the same visibility rule as every timeline - so
+  a quote by a blocked, silenced or permanently banned account is withheld,
+  while the live count on the permalink keeps including it (the count answers
+  "how many", the list answers "which ones you may read"). An unquoted post
+  shows the centred empty state. The permalink stats payload carries
+  `quote_count_label` so the figure stays in step while the page polls.
+  Asserted in `test/integration/client_features_test.rb`.
+
 ### Rail typography
 * 2019: card titles were 19px/800; the stream body is 15px.
 * Was: a second `.rail-heading` rule (dead — it styled the removed

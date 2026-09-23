@@ -875,6 +875,7 @@ html[data-theme="dark"] .tweet:hover { background: rgba(255,255,255,.03); }
 .tweet-stats .stat:hover { color: var(--blue); text-decoration: underline; }
 .tweet-stats .stat-retweet:hover { color: #24a15b; }
 .tweet-stats .stat-fav:hover { color: #d9a012; }
+.tweet-stats .stat-quote:hover { color: var(--blue); }
 
 /* ---------------- auth pages ----------------
    Geometry and copy follow the 2015 twitter_logged_out / t1_signup bundles:

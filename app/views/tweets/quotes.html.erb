@@ -1,0 +1,48 @@
+<div class="layout">
+  <section class="col-main">
+    <div class="stream-head">
+      <a class="head-back" href="<%= tweet_path(@tweet) %>" title="Back">&#8592;</a>
+      <div class="stream-head-title">
+        <h1>Quote Tweets</h1>
+        <span class="stream-sub">@<%= @tweet.user.username %></span>
+      </div>
+    </div>
+
+    <%# The post being quoted leads the list, the way 2019 carried the source
+        post onto the quotes screen instead of making the reader remember it. %>
+    <article class="tweet permalink-tweet" data-tweet="<%= @tweet.id %>">
+      <div class="tweet-main">
+        <%= pic(@tweet.user.avatar_path, 48) %>
+        <div class="tweet-body">
+          <div class="tweet-head">
+            <span class="tweet-name"><%= @tweet.user.display_name.presence || @tweet.user.username %></span>
+            <span class="tweet-handle">@<%= @tweet.user.username %></span>
+            <span class="tweet-dot">&middot;</span>
+            <span class="tweet-time"><%= time_ago(@tweet.created_at) %></span>
+          </div>
+          <% if @tweet.body.present? %>
+            <p class="tweet-text"><%= linkify(@tweet.body) %></p>
+          <% end %>
+        </div>
+      </div>
+    </article>
+
+    <ul class="tweet-list">
+      <% if @quotes.present? %>
+        <%= render partial: "tweets/tweet", collection: @quotes, as: :tweet %>
+      <% else %>
+        <li>
+          <div class="empty-state">
+            <span class="empty-state-icon" aria-hidden="true"><%= icon('retweet') %></span>
+            <h2>No Quote Tweets yet</h2>
+            <p>When someone quotes this Tweet, it will show up here.</p>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+
+  <aside class="col-right">
+    <%= render "shared/rail" %>
+  </aside>
+</div>

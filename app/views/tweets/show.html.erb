@@ -90,6 +90,13 @@
               timeline's icon row. %>
           <div class="tweet-stats">
             <span><strong><%= count_label(@tweet.retweet_count) %></strong> Retweets</span>
+            <%# 2019 made the quote figure its own linked counter, so the reader
+                could open the quotes rather than only count them. It is shown
+                even at zero, because "0 Quote Tweets" is a fact about the post
+                the client stated, unlike a reaction the reader has not made. %>
+            <a class="stat stat-quote" href="<%= tweet_quotes_path(@tweet) %>">
+              <strong><%= count_label(@tweet.quote_count) %></strong> Quote Tweets
+            </a>
             <span><strong><%= count_label(@tweet.favourite_count) %></strong> Favorites</span>
             <span><strong><%= count_label(@tweet.like_count) %></strong> Likes</span>
             <span><strong><%= count_label(@replies.size) %></strong> Replies</span>

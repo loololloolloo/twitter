@@ -415,8 +415,9 @@ $(function () {
     $('.permalink-tweet[data-tweet="' + data.id + '"] .tweet-stats').each(function () {
       var $stats = $(this);
       var $spans = $stats.children();
-      var figures = [ data.retweet_count_label, data.favourite_count_label,
-                      data.like_count_label, data.reply_count_label ];
+      var figures = [ data.retweet_count_label, data.quote_count_label,
+                      data.favourite_count_label, data.like_count_label,
+                      data.reply_count_label ];
 
       $spans.each(function (i) {
         if (figures[i] === undefined) return;

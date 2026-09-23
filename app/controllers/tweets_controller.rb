@@ -1,6 +1,6 @@
 class TweetsController < ApplicationController
   before_action :require_login!
-  before_action :load_tweet, only: [ :show, :retweet, :destroy, :stats, :activity ]
+  before_action :load_tweet, only: [ :show, :retweet, :destroy, :stats, :activity, :quotes ]
 
   def show
     # Replies the author has hidden stay visible to the author alone, greyed, so
@@ -42,6 +42,19 @@ class TweetsController < ApplicationController
     @profile_visits = ProfileView.where(user_id: @tweet.user_id).count
     @engagement = @tweet.like_count + @tweet.favourite_count + @tweet.retweet_count + @tweet.reply_count
     @rate = @impressions.positive? ? (@engagement.to_f / @impressions * 100).round(1) : 0.0
+  end
+
+  # The posts that quote this one, which the permalink's "Quote Tweets" figure
+  # opens. Read through the same `visible.readable_by` rule as every timeline,
+  # so a quote by an account the viewer has blocked or silenced, or by a
+  # permanently banned account, is not surfaced here even though the live count
+  # on the permalink still includes it - the count answers "how many", this
+  # screen answers "which ones, that you may read".
+  def quotes
+    @quotes = @tweet.quotes.visible
+                     .readable_by(current_user)
+                     .includes(:user, quote_of: :user)
+                     .recent
   end
 
   # Current engagement for the focused post and its replies, so the permalink
@@ -335,6 +348,8 @@ class TweetsController < ApplicationController
       favourite_count_label: helpers.count_label(tweet.favourite_count),
       retweet_count: tweet.retweet_count,
       retweet_count_label: helpers.count_label(tweet.retweet_count),
+      quote_count: tweet.quote_count,
+      quote_count_label: helpers.count_label(tweet.quote_count),
       reply_count: tweet.reply_count,
       reply_count_label: helpers.count_label(tweet.reply_count)
     }

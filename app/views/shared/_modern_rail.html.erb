@@ -26,9 +26,15 @@
     <div class="rail-section">
       <h3 class="rail-heading"><%= trends_heading %></h3>
       <ul class="trend-list">
-        <% @trends.first(5).each do |tag, count, authors| %>
+        <% @trends.first(5).each do |tag, count, authors, category| %>
           <li>
             <a href="<%= explore_path(q: "##{tag}") %>">
+              <%# 2019 placed the vertical above the tag ("Trending in
+                  Technology"); a tag with no known vertical carries no label
+                  rather than a bare "Trending". %>
+              <% if category.present? %>
+                <span class="trend-category">Trending in <%= category %></span>
+              <% end %>
               <span class="trend-tag">#<%= tag %></span>
               <span class="trend-count">
                 <%= count %> <%= 'Tweet'.pluralize(count) %>

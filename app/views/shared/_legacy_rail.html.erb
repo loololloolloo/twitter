@@ -49,9 +49,12 @@
   <div class="panel">
     <h3 class="panel-title"><%= heading %></h3>
     <ul class="trend-list">
-      <% @trends.first(5).each do |tag, count, authors| %>
+      <% @trends.first(5).each do |tag, count, authors, category| %>
         <li>
           <a href="<%= explore_path(q: "##{tag}") %>">
+            <% if category.present? %>
+              <span class="trend-category">Trending in <%= category %></span>
+            <% end %>
             <span class="trend-tag">#<%= tag %></span>
             <span class="trend-count">
               <%= count %> <%= 'Tweet'.pluralize(count) %>

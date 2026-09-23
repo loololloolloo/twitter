@@ -37,6 +37,23 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
 *   Now: `.rail-title` is 19px/800, nested section headings are 15px/700, and the
   dead `.rail-block` / `.rail-stats` / `.rail-actions-list` rules are gone.
 
+### Trends — category labels
+* 2019: a trend could be labelled with the vertical it belonged to, e.g.
+  **"Trending in Technology"** above the tag, so the list read as topics rather
+  than as a wall of hashtags.
+* Was: trends rendered as a bare `#tag` plus the count line, with no vertical
+  anywhere (`_modern_rail.html.erb`, `_legacy_rail.html.erb`,
+  `timelines/explore.html.erb`).
+* Now: `Tweet::TREND_CATEGORIES` maps tag words to a vertical and
+  `Tweet.trend_category` returns it; `compute_top_trends` carries the category
+  as the fourth element of each trend tuple and the rail, the legacy rail and
+  Explore render "Trending in <vertical>" above the tag. Matching is on whole
+  words, so `#guardrails` does not read as Technology. A tag with no known
+  vertical carries **no** label rather than a bare "Trending" the data cannot
+  back. The trend cache key is versioned (`.../v2/...`) so a result computed
+  before the fourth element existed is not read with the new shape
+  (`test/integration/trend_categories_test.rb`).
+
 ### Stream — reply context line
 * 2019: a reply in any stream was prefixed, above the body, with a quiet
   **"Replying to @handle"** line whose handle linked to the account being

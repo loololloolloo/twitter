@@ -158,8 +158,40 @@ class Tweet < ApplicationRecord
   # it still reads five thousand rows and groups them in Ruby.
   TRENDS_CACHE_TTL = 60.seconds
 
+  # 2019 labelled a trend with where it was trending ("Trending in Technology")
+  # when it knew a vertical for the tag. There is no category table here, so the
+  # label is derived from the tag's own words: a tag that names a known vertical
+  # is labelled with it and every other tag is left unlabelled, rather than
+  # inventing "Trending" for tags the data cannot place. The lists are matched
+  # by tag or keyword against the tag text at read time, so no scan is added to
+  # the trend computation.
+  TREND_CATEGORIES = {
+    "Technology" => %w[tech technology code coding developer software rails ruby python javascript java ai
+                       crypto blockchain nft web3 gadget gadgets app apps phone iphone android linux server cloud data],
+    "Sports" => %w[sports sport game games match team win victory score goal league nba nfl mlb nhl
+                   soccer football basketball baseball cricket olympics fifa uefa],
+    "Entertainment" => %w[movie movies film films music album song songs concert concerts show shows
+                          series actor actress celebrity art artist netflix],
+    "News" => %w[news breaking report election politics government court war world weather climate],
+    "Science" => %w[science space nasa physics biology chemistry research discovery mars moon],
+    "Business" => %w[business market markets stock stocks finance economy money investing startup]
+  }.freeze
+
+  # The vertical a tag names, or nil when none applies. Matching is on whole
+  # words so "#developer" reads as Technology while "#unruly" does not read as
+  # Ruby, and the first matching vertical wins in the order declared above.
+  def self.trend_category(tag)
+    words = tag.to_s.downcase.split(/[^a-z0-9]+/).reject(&:empty?)
+    TREND_CATEGORIES.each do |name, terms|
+      return name if (words & terms).any?
+    end
+    nil
+  end
+
   def self.top_trends(limit = 8, window: TREND_WINDOW)
-    Rails.cache.fetch("tweet_top_trends/#{limit}/#{window.to_i}", expires_in: TRENDS_CACHE_TTL) do
+    # The key is versioned so a cached result from before trends carried a
+    # category is not read with the new shape.
+    Rails.cache.fetch("tweet_top_trends/v2/#{limit}/#{window.to_i}", expires_in: TRENDS_CACHE_TTL) do
       compute_top_trends(limit, window: window)
     end
   end
@@ -187,7 +219,7 @@ class Tweet < ApplicationRecord
       .select { |tag, count| authors[tag].size >= TREND_MIN_AUTHORS && count.positive? }
       .sort_by { |tag, count| [ -authors[tag].size, -count, tag ] }
       .first(limit)
-      .map { |tag, count| [ tag, count, authors[tag].size ] }
+      .map { |tag, count| [ tag, count, authors[tag].size, trend_category(tag) ] }
   end
 
   # Displayed counts. Real reactions from accounts are counted from their own

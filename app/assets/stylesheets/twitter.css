@@ -528,6 +528,9 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
 .trend-list li a:hover { background: var(--bg); text-decoration: none; }
 .trend-tag { display: block; font-weight: 700; font-size: 15px; color: var(--dark); }
 .trend-count { display: block; color: var(--gray); font-size: 13px; line-height: 18px; }
+/* 2019 put the vertical above the tag in the same quiet grey as the count
+   line, so the tag itself stays the loudest thing in the row. */
+.trend-category { display: block; color: var(--gray); font-size: 13px; line-height: 18px; }
 
 .section-title {
   margin: 0; padding: 14px 16px; font-size: 20px; font-weight: 800;

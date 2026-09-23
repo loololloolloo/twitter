@@ -52,10 +52,13 @@
         <div class="section-card">
           <h2><%= @tab == "trending" || @tab == "for-you" ? "Trends for you" : @section["heading"] %></h2>
           <ul class="row-list">
-            <% section_trends.first(5).each do |tag, count, authors| %>
+            <% section_trends.first(5).each do |tag, count, authors, category| %>
               <li class="row-item">
                 <div class="row-body">
                   <div class="row-title">
+                    <% if category.present? %>
+                      <span class="trend-category">Trending in <%= category %></span>
+                    <% end %>
                     <a class="row-name" href="<%= explore_path(q: "##{tag}") %>">#<%= tag %></a>
                   </div>
                   <span class="row-handle">

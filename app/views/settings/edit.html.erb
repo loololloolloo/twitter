@@ -14,19 +14,38 @@
 
     <div class="settings-shell">
       <nav class="settings-nav" aria-label="Settings sections">
+        <%# 2019 put a field at the top of the section list that narrowed the
+            list as you typed. It only filters the links shown here - the
+            selected section keeps rendering below, so a search never changes
+            what the page is showing, only how quickly the next section is
+            found. Without the script every link is simply always visible. %>
+        <div class="settings-search">
+          <%= icon('magnifying-glass') %>
+          <input type="search" class="settings-search-input" data-settings-search
+                 placeholder="Search settings" aria-label="Search settings"
+                 autocomplete="off">
+        </div>
+        <p class="settings-nav-empty" data-settings-empty hidden>No settings matched.</p>
         <a class="settings-nav-link <%= 'is-active' if section == 'account' %>"
+           data-settings-link data-settings-match="account"
            href="<%= settings_path(panel: 'account') %>">Account</a>
         <a class="settings-nav-link <%= 'is-active' if section == 'security' %>"
+           data-settings-link data-settings-match="security account access password"
            href="<%= settings_path(panel: 'security') %>">Security and account access</a>
         <a class="settings-nav-link <%= 'is-active' if section == 'privacy' %>"
+           data-settings-link data-settings-match="privacy safety protected tweets messages"
            href="<%= settings_path(panel: 'privacy') %>">Privacy and safety</a>
         <a class="settings-nav-link <%= 'is-active' if section == 'notifications' %>"
+           data-settings-link data-settings-match="notifications"
            href="<%= settings_path(panel: 'notifications') %>">Notifications</a>
         <a class="settings-nav-link <%= 'is-active' if section == 'preferences' %>"
+           data-settings-link data-settings-match="preferences design"
            href="<%= settings_path(panel: 'preferences') %>">Preferences</a>
         <a class="settings-nav-link <%= 'is-active' if section == 'accessibility' %>"
+           data-settings-link data-settings-match="accessibility display languages theme dark light"
            href="<%= settings_path(panel: 'accessibility') %>">Accessibility, display, and languages</a>
         <a class="settings-nav-link <%= 'is-active' if section == 'data' %>"
+           data-settings-link data-settings-match="your account data"
            href="<%= settings_path(panel: 'data') %>">Your account data</a>
       </nav>
 

@@ -259,6 +259,78 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
     assert_match(/Delete all my messages/, response.body)
   end
 
+  # ------------------------------------------------------------ nav filter
+
+  # The section filter is client-side, so what the server promises is the
+  # markup contract the script reads: a search field, a match hint on every
+  # link, and a no-match note. Each of these has to be present or the filter
+  # silently does nothing, which is why the shape is asserted rather than the
+  # behaviour.
+
+  test "the settings nav opens with the 2019 search field" do
+    get settings_path
+
+    assert_response :success
+    assert_match(/placeholder="Search settings"/, response.body)
+    assert_match(/type="search"/, response.body)
+  end
+
+  test "every section link carries a match hint for the filter" do
+    get settings_path
+
+    %w[data-settings-link data-settings-match].each do |attr|
+      # Seven sections, one of each attribute per link.
+      assert_equal 7, response.body.scan(/#{attr}/).length, "expected #{attr} on all seven links"
+    end
+  end
+
+  test "the match hint reaches words the label alone would not" do
+    get settings_path
+
+    # A member looking for the password form searches "password", not the
+    # section's full title, so the hint has to carry it.
+    assert_match(/data-settings-match="security account access password"/, response.body)
+    assert_match(/data-settings-match="[^"]*dark[^"]*"/, response.body)
+  end
+
+  test "the no-match note is rendered hidden rather than absent" do
+    get settings_path
+
+    # The script flips the hidden attribute; the element has to be in the page
+    # from the start so the filter has something to reveal.
+    assert_match(/data-settings-empty hidden/, response.body)
+  end
+
+  test "the whole section list renders without the script" do
+    get settings_path
+
+    # The filter only ever hides links, so the plain-HTML page is the complete
+    # list - a section that needed script would be unreachable without it.
+    [ "Account", "Security and account access", "Privacy and safety",
+      "Notifications", "Preferences",
+      "Accessibility, display, and languages", "Your account data" ].each do |label|
+      assert_match(/>#{Regexp.escape(label)}</, response.body)
+    end
+  end
+
+  test "the filter does not replace the section that is selected" do
+    get settings_path(panel: "security")
+
+    # Searching is navigation, not a page of its own: the security panel still
+    # renders under the filtered nav.
+    assert_match(/Security and account access/, response.body)
+    assert_match(/Current password/, response.body)
+  end
+
+  test "the search field is offered on every settings panel" do
+    SettingsController::SECTIONS.each do |panel|
+      get settings_path(panel: panel)
+
+      assert_response :success
+      assert_match(/placeholder="Search settings"/, response.body, "missing on the #{panel} panel")
+    end
+  end
+
   # ------------------------------------------------------- access control
 
   test "settings is not reachable while signed out" do

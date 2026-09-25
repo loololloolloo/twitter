@@ -674,3 +674,41 @@ $(function () {
       });
   });
 });
+
+// The settings section list carries a filter field above it. It only narrows
+// the links in the list; the selected section below is left alone, so filtering
+// can never change what the page is showing. Nothing here runs without script,
+// and every link stays visible, which is the plain-HTML fallback.
+$(function () {
+  var $input = $('[data-settings-search]');
+  if (!$input.length) return;
+
+  var $links = $('[data-settings-link]');
+  var $empty = $('[data-settings-empty]');
+
+  var apply = function () {
+    var query = $.trim($input.val()).toLowerCase();
+
+    if (!query) {
+      $links.removeClass('is-filtered');
+      $empty.attr('hidden', true);
+      return;
+    }
+
+    var shown = 0;
+    $links.each(function () {
+      var $link = $(this);
+      var haystack = ($link.text() + ' ' + ($link.data('settings-match') || '')).toLowerCase();
+      var match = haystack.indexOf(query) !== -1;
+      $link.toggleClass('is-filtered', !match);
+      if (match) shown++;
+    });
+
+    // Only the "no match" note needs the hidden attribute flipped; a matched
+    // link is hidden by the stylesheet class so the anchor keeps its layout.
+    $empty.attr('hidden', shown !== 0);
+  };
+
+  $input.on('input search', apply);
+});
+

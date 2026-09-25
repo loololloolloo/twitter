@@ -108,8 +108,29 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
   destinations are identical in both shapes), the bar carries the same unread
   count as the rail, and `twitter.css` sets `align-items: stretch` on the
   column-mode `.layout` while the content band reserves the bar's height as
-  bottom padding. Asserted in `test/system/shell_layout_test.rb` and
+  bottom padding. Asserted in
+  `test/system/shell_layout_test.rb` and
   `test/integration/shell_layout_test.rb`.
+
+### Settings — "Search settings" section filter
+* 2019: the Settings screen opened its left column with a **"Search settings"**
+  field above the section list. Typing into it narrowed the column to the
+  sections whose names matched, so a member with a setting in mind did not have
+  to scan seven headings. It was a filter on the navigation only - the selected
+  section kept rendering in the detail column; the field never searched the
+  site or changed what was on screen.
+* Was: `settings/edit.html.erb` rendered the seven section links with no way to
+  narrow them, and `docs/2019-audit.md` did not cover the Settings screen at all.
+* Now: the nav opens with `.settings-search` (a magnifying-glass glyph and a
+  `type="search"` field) and each section link carries
+  `data-settings-match` with the words that should find it (so "password"
+  reaches Security and "dark" reaches Accessibility). `twitter.js` filters the
+  links on the visible label plus those words and shows a
+  `.settings-nav-empty` note when nothing matches. It is a filter over the
+  links, deliberately client-side and progressive: with no script every link
+  stays reachable. The selected section is not pinned open - it disappears like
+  any other non-match, leaving only the way back to it. Asserted in
+  `test/integration/settings_features_test.rb`.
 
 ## Verified correct already
 

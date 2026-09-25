@@ -148,6 +148,30 @@ class ExploreTabsTest < ActionDispatch::IntegrationTest
     assert_equal 200, status_for(explore_path(q: "x", tab: "haxxor"))
   end
 
+  # 2019 treated a search that matched nothing as a deliberate empty state - a
+  # centred magnifier, the query echoed back, and a line on what to try - not as
+  # a bare row. The shape is shared with the other empty screens, so the search
+  # screen does not read as a timeline that failed to load.
+  test "a search with no matches renders the centred no-results state" do
+    get explore_path(q: "zzzznothing")
+    assert_response :success
+
+    assert_match(/class="empty-state"/, response.body)
+    assert_match(/No results for &ldquo;zzzznothing&rdquo;/, response.body)
+    assert_match(%r{Try searching for another keyword}, response.body)
+    assert_no_match(/Nothing found/, response.body,
+                    "the bare failed-row note should not remain")
+  end
+
+  # A landing section always falls back to the site stream, so it never reaches
+  # this branch; guard the branch that names the query so an empty landing
+  # section does not print "No results for".
+  test "a landing section does not render a search no-results state" do
+    get explore_path(tab: "for-you")
+    assert_response :success
+    assert_no_match(/No results for/, response.body)
+  end
+
   private
 
   def status_for(path)

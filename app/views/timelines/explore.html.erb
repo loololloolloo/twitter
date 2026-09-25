@@ -99,7 +99,22 @@
           <%= render "tweets/tweet", tweet: tweet %>
         <% end %>
       <% else %>
-        <li class="empty-note">Nothing found.</li>
+        <%# A search that matched nothing is a deliberate empty state, not a
+            failed row. 2019 centred a magnifier over "No results for …" and a
+            line telling the reader what to try instead; the same shape as the
+            other empty screens. A landing section that produced no posts keeps
+            its note, because there was no query to name. %>
+        <% if @mode == "search" %>
+          <li>
+            <div class="empty-state">
+              <span class="empty-state-icon" aria-hidden="true"><%= icon('magnifying-glass') %></span>
+              <h2>No results for &ldquo;<%= @query %>&rdquo;</h2>
+              <p>Try searching for another keyword or check your spelling.</p>
+            </div>
+          </li>
+        <% else %>
+          <li class="empty-note">Nothing to see here yet.</li>
+        <% end %>
       <% end %>
     </ul>
   </section>

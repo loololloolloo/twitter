@@ -233,6 +233,18 @@ Checked against the 2019 client and left alone, so a later run does not
   (`test/integration/explore_tabs_test.rb`). Verified against the rendered
   page - the earlier "single stream" note is stale.
 
+* **Search no-results state - fixed.** 2019's search screen, when nothing
+  matched, was a centred magnifier over "No results for <query>" and a line
+  telling the reader to try another keyword or check the spelling - the same
+  shape as the empty Bookmarks, Notifications and Lists screens. Was: a bare
+  "Nothing found." in a list row (`.empty-note`), which read as a timeline row
+  that had failed to render. Now: `timelines/explore.html.erb` renders
+  `.empty-state` with the `magnifying-glass` glyph, the query echoed in the
+  heading and the retry line, and only in search mode - a landing section
+  falls back to the site stream so it never reaches this branch, and it keeps a
+  plain note rather than printing "No results for" over a section name.
+  Asserted in `test/integration/explore_tabs_test.rb`.
+
 ### Messages
 * **Inbox placeholder — fixed.** 2019's Messages inbox, with no conversation
   open, showed a centred envelope glyph over the prompt "Select a message" and

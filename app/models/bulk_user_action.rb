@@ -182,8 +182,10 @@ module BulkUserAction
       user.update!(is_verified: false)
     when "tag_on"
       user.update!(result.tag => true, tag_note: reason.presence || user.tag_note)
+      user.update!(review_reason: reason) if result.tag == User::ELEVATED_TAG && reason.present?
     when "tag_off"
       user.update!(result.tag => false, tag_note: reason.presence || user.tag_note)
+      user.update!(review_reason: "") if result.tag == User::ELEVATED_TAG
     when "delete"
       user.destroy!
     end

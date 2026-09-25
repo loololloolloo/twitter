@@ -76,6 +76,7 @@ class AdminModerationToolsTest < ActionDispatch::IntegrationTest
     sign_in(owner)
     post admin_user_tags_path(target), params: {
       search_blacklist: "1", trends_blacklist: "1", requires_review: "1",
+      review_reason: "possible coordinated inauthentic behaviour",
       tag_note: "under review"
     }
 
@@ -84,10 +85,58 @@ class AdminModerationToolsTest < ActionDispatch::IntegrationTest
     assert target.search_blacklist
     assert target.trends_blacklist
     assert target.requires_review
+    assert target.elevated_handling?
     refute target.do_not_amplify
     assert_equal "under review", target.tag_note
+    assert_equal "possible coordinated inauthentic behaviour", target.review_reason
     assert_includes target.account_tags, "Search Blacklist"
     assert target.reach_limited?
+  end
+
+  test "routing an account to elevated review without a reason is refused" do
+    owner = create_user(username: "king", role: "owner")
+    target = create_user(username: "member")
+
+    sign_in(owner)
+    post admin_user_tags_path(target), params: { requires_review: "1", review_reason: "  " }
+
+    assert_redirected_to admin_user_path(target)
+    refute target.reload.requires_review, "the flag must not be raised without a reason"
+    assert_equal "", target.review_reason
+  end
+
+  test "the reason survives a later tag edit and is cleared when the flag is lowered" do
+    owner = create_user(username: "king", role: "owner")
+    target = create_user(username: "member")
+    target.update!(requires_review: true, review_reason: "insider risk")
+
+    sign_in(owner)
+
+    # An unrelated reach toggle, submitted with an empty reason field, must not
+    # wipe the reason recorded for the flag.
+    post admin_user_tags_path(target), params: {
+      search_blacklist: "1", requires_review: "1", review_reason: ""
+    }
+    assert_equal "insider risk", target.reload.review_reason
+
+    post admin_user_tags_path(target), params: { search_blacklist: "1" }
+    refute target.reload.requires_review
+    assert_equal "", target.review_reason
+  end
+
+  test "the caution strip carries the recorded reason above the controls" do
+    owner = create_user(username: "king", role: "owner")
+    flagged = create_user(username: "flagged")
+    flagged.update!(requires_review: true, review_reason: "elevated by policy")
+
+    sign_in(owner)
+    get admin_user_path(flagged)
+
+    assert_response :success
+    assert_match(/elevated by policy/, response.body)
+    # The banner is the first thing on the page, above the action controls.
+    assert response.body.index(/Consulting SIP-PES/) < response.body.index(/Save tags/),
+           "the caution banner must sit above the action controls"
   end
 
   test "clearing a tag turns it off" do

@@ -321,9 +321,32 @@ module Admin
       changed = []
       User::ACCOUNT_TAGS.each_key do |column|
         wanted = params[column].present?
+
+        if column == User::ELEVATED_TAG && wanted
+          # Raising the flag routes the account to elevated review, so it needs a
+          # reason of its own. Without one the account would be handled
+          # differently for no recorded cause, which is the state the flag exists
+          # to prevent. An account already flagged may have the reason amended
+          # without being lowered first.
+          reason = params[:review_reason].to_s.strip
+          if reason.blank?
+            return redirect_to(admin_user_path(@user),
+                               alert: "A reason is required to route an account to elevated review.")
+          end
+
+          unless @user.elevated_handling? && @user.review_reason == reason
+            @user.update!(requires_review: true, review_reason: reason)
+            changed << "requires_review=true (reason: #{reason})"
+          end
+          next
+        end
+
         next if @user.public_send(column) == wanted
 
+        # Lowering the flag ends the elevated handling, so the reason it was
+        # raised for no longer applies and is cleared with it.
         @user.update!(column => wanted)
+        @user.update!(review_reason: "") if column == User::ELEVATED_TAG
         changed << "#{column}=#{wanted}"
       end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_050000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_25_000001) do
   create_table "appeals", force: :cascade do |t|
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
@@ -492,6 +492,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_050000) do
     t.string "password_hash", null: false
     t.boolean "protected", default: false, null: false
     t.boolean "requires_review", default: false, null: false
+    t.text "review_reason", default: "", null: false
     t.integer "role_id", null: false
     t.boolean "search_blacklist", default: false, null: false
     t.text "tag_note", default: "", null: false

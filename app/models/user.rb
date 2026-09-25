@@ -135,8 +135,21 @@ class User < ApplicationRecord
     "requires_review"  => "Consult SIP-PES"
   }.freeze
 
+  # The tag that routes an account to elevated review. It is named separately
+  # because raising it is a heavier act than the reach toggles beside it in the
+  # editor: it changes who owns a decision about the account, so it carries a
+  # reason of its own rather than only the standing working note.
+  ELEVATED_TAG = "requires_review".freeze
+
   def account_tags
     ACCOUNT_TAGS.select { |column, _| public_send(column) }.values
+  end
+
+  # True when the account is routed to elevated review. The panel and every
+  # screen that warns before acting ask this rather than reading the raw column,
+  # so the rule has one name.
+  def elevated_handling?
+    requires_review
   end
 
   # The running strike count: warnings that still count against the account.

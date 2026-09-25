@@ -241,17 +241,22 @@ module ApplicationHelper
   end
 
   # The red strip the tool puts above an account whose actions have to be
-  # escalated before anything is done to it.
+  # escalated before anything is done to it. When a reason was recorded for the
+  # flag it is shown here, so the operator sees why the account is handled
+  # differently without opening the tag editor.
   def review_caution(user)
-    return "".html_safe unless user.requires_review
+    return "".html_safe unless user.elevated_handling?
 
-    content_tag(:div, class: "caution") do
-      safe_join([
-        content_tag(:p, "Do Not Take Action on This Account Without Consulting SIP-PES",
-                    class: "caution-text"),
-        content_tag(:p, "The account is tagged for escalation. Confirm the decision with the policy team before suspending, banning or deleting.",
-                    class: "caution-sub")
-      ])
+    lines = [
+      content_tag(:p, "Do Not Take Action on This Account Without Consulting SIP-PES",
+                  class: "caution-text"),
+      content_tag(:p, "The account is tagged for escalation. Confirm the decision with the policy team before suspending, banning or deleting.",
+                  class: "caution-sub")
+    ]
+    if user.review_reason.present?
+      lines << content_tag(:p, "Reason: #{user.review_reason}", class: "caution-sub")
     end
+
+    content_tag(:div, class: "caution") { safe_join(lines) }
   end
 end

@@ -304,6 +304,18 @@ code stands now. Verify against the rendered page before changing anything.
   graph or the membership, which is the point of a list. Asserted in
   `test/integration/client_features_test.rb`.
 
+* **Empty state - fixed.** 2019's Lists screen, with no lists on it, was not
+  two bare sentences in list rows: each section carried a centred glyph over a
+  heading and a one-line explanation of what would fill it, the same shape as
+  the empty Bookmarks, Notifications and Messages screens. Was: "You have not
+  created any lists yet." and "You are not on anyone else's list." as bare
+  `.empty-note` rows, each reading as a row that had failed to render. Now:
+  `lists/index.html.erb` renders `.empty-state` in both sections - the `list`
+  glyph over "You haven't created any Lists yet", the `users` glyph over
+  "You're not on any Lists yet" - with a sub-line apiece. Asserted in
+  `test/integration/client_features_test.rb` (both states present when empty,
+  the "Your lists" state replaced once a list exists).
+
 ### Bookmarks
 * **Empty state - fixed.** 2019's empty Bookmarks screen was a centred
   bookmark glyph over the heading "You haven't added any Tweets to your

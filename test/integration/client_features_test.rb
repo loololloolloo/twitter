@@ -222,6 +222,37 @@ class ClientFeaturesTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # 2019's Lists screen, with nothing on it, was not two bare sentences in list
+  # rows: each section carried a centred glyph, a heading and a line explaining
+  # what would fill it, the same shape as the empty Bookmarks and Notifications
+  # screens. Both sections are asserted, because a reader with no lists of their
+  # own is exactly the reader most likely to also be on nobody else's.
+  test "an empty lists screen shows the 2019 empty state" do
+    sign_in @alice
+
+    get lists_path
+    assert_response :success
+    assert_select ".empty-state", count: 2
+    assert_select ".empty-state .empty-state-icon", count: 2
+    assert_match "haven", response.body
+    assert_match "created any Lists yet", response.body
+    assert_match "on any Lists yet", response.body
+    # The old bare rows must be gone, or the two shapes would coexist.
+    assert_no_match "You have not created any lists yet", response.body
+  end
+
+  test "the lists empty state is replaced once a list exists" do
+    sign_in @alice
+
+    get lists_path
+    assert_select ".empty-state", count: 2
+
+    post lists_path, params: { list: { name: "Tech", description: "People" } }
+    get lists_path
+    assert_select ".empty-state", count: 1
+    assert_match "Tech", response.body
+  end
+
   # ------------------------------------------------------ follow requests
 
   test "following a protected account creates a request, not a follow" do

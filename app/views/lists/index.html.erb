@@ -33,7 +33,14 @@
             </li>
           <% end %>
         <% else %>
-          <li class="empty-note">You have not created any lists yet.</li>
+          <li>
+            <div class="empty-state">
+              <span class="empty-state-icon" aria-hidden="true"><%= icon('list') %></span>
+              <h2>You haven&rsquo;t created any Lists yet</h2>
+              <p>When you create a List, you can follow its members&rsquo; posts
+                without following each account.</p>
+            </div>
+          </li>
         <% end %>
       </ul>
     </div>
@@ -56,7 +63,14 @@
             </li>
           <% end %>
         <% else %>
-          <li class="empty-note">You are not on anyone else's list.</li>
+          <li>
+            <div class="empty-state">
+              <span class="empty-state-icon" aria-hidden="true"><%= icon('users') %></span>
+              <h2>You&rsquo;re not on any Lists yet</h2>
+              <p>When someone adds you to a List, it shows up here so you can see
+                who grouped you and what they are reading.</p>
+            </div>
+          </li>
         <% end %>
       </ul>
     </div>

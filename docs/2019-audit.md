@@ -382,3 +382,15 @@ code stands now. Verify against the rendered page before changing anything.
   below it down rather than floating. `test/integration/shell_layout_test.rb`
   asserts the labels. No change needed.
 
+### Following / Followers
+* **Empty state - fixed.** When an account follows nobody, or has no followers,
+  2019 centred a glyph over a heading and a sub-line, the same shape as every
+  other empty screen. Was: `profiles/connections.html.erb` left a bare sentence
+  in a list row (`.empty-note`) - "@user isn't following anyone yet." - with no
+  glyph and no heading, the one 2019 surface still using that older pattern.
+  Now both tabs render `.empty-state`: the `users` glyph over "… isn't following
+  anyone yet" on Following, the `user` glyph over "… doesn't have any followers
+  yet" on Followers, each with a sub-line naming when the list fills. Asserted in
+  `test/integration/profile_layout_test.rb` (each heading present on its own tab
+  and absent on the other, and the state replaced once a follow exists).
+

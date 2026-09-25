@@ -60,12 +60,20 @@
           </li>
         <% end %>
       <% else %>
-        <li class="empty-note">
-          <% if @active == "following" %>
-            @<%= @user.username %> isn't following anyone yet.
-          <% else %>
-            @<%= @user.username %> doesn't have any followers yet.
-          <% end %>
+        <%# 2019 centred a glyph over a heading and a sub-line here rather than
+            leaving a bare sentence in a list row, matching the other empty
+            screens; followers get a different glyph from following. %>
+        <li>
+          <div class="empty-state">
+            <span class="empty-state-icon" aria-hidden="true"><%= icon(@active == "following" ? 'users' : 'user') %></span>
+            <% if @active == "following" %>
+              <h2>@<%= @user.username %> isn&rsquo;t following anyone yet</h2>
+              <p>When they follow someone, they&rsquo;ll be listed here.</p>
+            <% else %>
+              <h2>@<%= @user.username %> doesn&rsquo;t have any followers yet</h2>
+              <p>When someone follows them, they&rsquo;ll be listed here.</p>
+            <% end %>
+          </div>
         </li>
       <% end %>
     </ul>

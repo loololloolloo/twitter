@@ -224,6 +224,41 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_match(/\.profile-aside[^{]*\{[^}]*width:\s*100%/, rail)
   end
 
+  # The Following and Followers screens empty out the same way the other 2019
+  # surfaces do: a centred glyph over a heading and a sub-line, not a bare
+  # sentence left in a list row. The two screens name the relationship they are
+  # missing, so an empty Following tab must not read like an empty Followers
+  # one.
+  test "an empty following list shows the 2019 empty state" do
+    get following_path(@subject.username)
+
+    assert_response :success
+    assert_match(/empty-state/, response.body)
+    assert_select ".empty-state .empty-state-icon"
+    assert_match(/isn&rsquo;t following anyone yet/, response.body)
+    assert_no_match(/doesn&rsquo;t have any followers yet/, response.body)
+  end
+
+  test "an empty followers list shows its own empty state" do
+    get followers_path(@subject.username)
+
+    assert_response :success
+    assert_match(/empty-state/, response.body)
+    assert_match(/doesn&rsquo;t have any followers yet/, response.body)
+    assert_no_match(/isn&rsquo;t following anyone yet/, response.body)
+  end
+
+  # The empty state stands in for the rows, so once there is someone to list it
+  # is gone and the row is shown instead.
+  test "the connections empty state gives way once there is a follow" do
+    Follow.create!(follower: @subject, followee: @me)
+
+    get following_path(@subject.username)
+
+    assert_match(/@viewer_one/, response.body)
+    assert_no_match(/empty-state/, response.body)
+  end
+
   # Pulls out every @media block with the given header. A balanced-brace scan is
   # needed because a block contains nested rules whose closing braces would
   # otherwise end a naive non-greedy match at the first inner rule. There is more

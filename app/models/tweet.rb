@@ -63,6 +63,37 @@ class Tweet < ApplicationRecord
   scope :roots,   -> { visible.where(parent_id: nil) }
   scope :recent,  -> { order(created_at: :desc, id: :desc) }
 
+  # The reach limits are per-surface, so each scope names the surface it governs
+  # rather than testing `reach_limited?`. A search blacklist, a trends
+  # blacklist and do-not-amplify have three different blast radii, and folding
+  # them into one check would apply a search limit to an account's timeline.
+  #
+  # Discovery: a search-blacklisted author is left out of search and the
+  # suggestion lists. The account still posts and its posts still open directly.
+  scope :from_searchable_authors, -> { where.not(user_id: User.where(search_blacklist: true).select(:id)) }
+
+  # Trends: a trend-blacklisted author's tags do not count toward a trend.
+  scope :from_trend_authors, -> { where.not(user_id: User.where(trends_blacklist: true).select(:id)) }
+
+  # Do-not-amplify: the author's posts are kept out of other people's timelines,
+  # and a retweet of one of them is suppressed too - the retweet is somebody
+  # else lending reach, which is the amplification the flag cuts. The author
+  # still sees their own posts, so the flag never hides an account from itself.
+  scope :amplifiable_to, lambda { |viewer|
+    limited = User.where(do_not_amplify: true).select(:id)
+    # No flagged author means no limit to apply. Returning the scope untouched
+    # also avoids emitting `NOT IN ()`, which SQLite rejects as a syntax error.
+    return all unless User.where(do_not_amplify: true).exists?
+
+    sql = "(tweets.user_id NOT IN (?) AND (tweets.retweet_of_id IS NULL OR tweets.retweet_of_id NOT IN (?)))"
+    binds = [ limited, Tweet.where(user_id: limited).select(:id) ]
+    if viewer.respond_to?(:id) && viewer.id
+      sql += " OR tweets.user_id = ?"
+      binds << viewer.id
+    end
+    where(sql, *binds)
+  }
+
   # Replies the author has hidden are dropped for everybody except their own
   # author, who still sees them greyed so the thread reads whole. This is a
   # scope rather than a column check at each call site because every thread read
@@ -198,6 +229,7 @@ class Tweet < ApplicationRecord
 
   def self.compute_top_trends(limit, window: TREND_WINDOW)
     rows = visible
+           .from_trend_authors
            .where("created_at >= ?", window.ago)
            .where("body LIKE ?", "%#%")
            .recent

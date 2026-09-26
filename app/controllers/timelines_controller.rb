@@ -24,11 +24,14 @@ class TimelinesController < ApplicationController
       end
 
     # Suggestions exclude accounts already followed, blocked either way, and
-    # muted, so the panel never proposes somebody the reader has silenced.
+    # muted, so the panel never proposes somebody the reader has silenced. A
+    # search-blacklisted account is kept out too: the suggestion list is a
+    # discovery surface, which is exactly what the flag limits.
     @suggestions = User.visible
                        .where.not(id: current_user.id)
                        .where.not(id: current_user.following.select(:id))
                        .where.not(id: current_user.silenced_account_ids)
+                       .where(search_blacklist: false)
                        .order(Arel.sql("RANDOM()"))
                        .limit(3)
 
@@ -111,6 +114,10 @@ class TimelinesController < ApplicationController
       # A leading # narrows to hashtags; an @ narrows to accounts. Both are
       # matched against the stored text, which is how the classic search worked.
       term = @query.delete_prefix("@").delete_prefix("#")
+      # A search-blacklisted author is withheld from search results; the post
+      # is still reachable directly, so this is a discovery limit rather than a
+      # deletion.
+      scope = scope.from_searchable_authors
       scope = scope.where("tweets.body LIKE ?", "%#{term}%")
       scope = scope.where("tweets.body LIKE ?", "%##{term}%") if @query.start_with?("#")
     end
@@ -127,11 +134,13 @@ class TimelinesController < ApplicationController
         term = @query.delete_prefix("@").delete_prefix("#")
         User.visible
             .where.not(id: current_user.silenced_account_ids)
+            .where(search_blacklist: false)
             .where("username LIKE ? OR display_name LIKE ?", "%#{term}%", "%#{term}%")
             .limit(20)
       else
         User.visible.where.not(id: current_user.id)
             .where.not(id: current_user.silenced_account_ids)
+            .where(search_blacklist: false)
             .order(Arel.sql("RANDOM()")).limit(10)
       end
   end
@@ -203,8 +212,9 @@ class TimelinesController < ApplicationController
 
     Tweet.visible
          .readable_by(current_user)
+         .amplifiable_to(current_user)
          .where(retweet_of_id: nil)
-         .or(Tweet.visible.readable_by(current_user).where(user_id: followed_ids))
+         .or(Tweet.visible.readable_by(current_user).amplifiable_to(current_user).where(user_id: followed_ids))
          .or(Tweet.visible.readable_by(current_user).where(user_id: current_user.id))
          .includes(:user, retweet_of: :user, quote_of: :user, parent: :user)
          .recent

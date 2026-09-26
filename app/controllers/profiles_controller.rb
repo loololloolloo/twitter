@@ -203,6 +203,7 @@ class ProfilesController < ApplicationController
 
     User.visible
         .where.not(id: excluded)
+        .where(search_blacklist: false)
         .order(Arel.sql("RANDOM()"))
         .limit(3)
   end

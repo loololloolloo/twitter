@@ -152,6 +152,22 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
   its query-specific inline copy, because the heading interpolates the escaped
   query. Asserted in `test/integration/stream_empty_states_test.rb`.
 
+### Stream — the share control on the action row
+* 2019 ended every action row with a **share** control (the boxed arrow),
+  opening the actions that leave the row rather than the ones that react to it:
+  quote, copy link, bookmark and send via Direct Message. It is what a reader
+  reaches for to pass a post on.
+* Was: `tweets/_tweet.html.erb` had no share control at all. Copy link lived
+  only in the overflow menu and only on your own posts, so a reader could not
+  share another account's post anywhere.
+* Now: the row ends with `details.tweet-share`, a flex item pushed right by
+  `margin-left: auto` (so it sits outside the delete branch and appears on
+  every post), carrying Quote Tweet (another account's post, not a retweet),
+  Copy link to Tweet (always), and Send via Direct Message (another account's
+  post, signed in). Bookmarking keeps its own toggling control on the row; the
+  share menu does not duplicate it. Asserted in
+  `test/integration/client_features_test.rb`.
+
 ## Verified correct already
 
 Checked against the 2019 client and left alone, so a later run does not

@@ -2188,6 +2188,11 @@ html[data-theme="dark"] .quote-card:hover { background: rgba(255,255,255,.03); }
    a pinned corner button, so it keeps the relative positioning the dropdown is
    measured from and sits inline with the buttons beside it. */
 .tweet-menu-inline { position: relative; margin-left: 8px; flex-shrink: 0; }
+/* 2019's action row ended with a share control on the right, opening the
+   actions that leave the row. It is a flex item of the row rather than the
+   pinned corner button, so its dropdown is measured from it and stays under
+   the row. Defined after `.tweet-menu`, which it overrides to `relative`. */
+.tweet-share { position: relative; margin-left: auto; }
 
 /* ---------------- protected accounts ---------------- */
 .lock-badge { color: var(--gray); }

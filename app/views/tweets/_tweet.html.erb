@@ -49,7 +49,6 @@
               <% end %>
               <% if show_body.user_id == current_user.id %>
                 <a href="<%= tweet_activity_path(show_body) %>">View Tweet activity</a>
-                <a href="<%= tweet_path(show_body) %>" data-copy-link="<%= tweet_url(show_body) %>">Copy link to Tweet</a>
               <% end %>
               <% if can_report %>
                 <a href="<%= new_report_path(tweet_id: show_body.id) %>">Report Tweet</a>
@@ -186,6 +185,23 @@
             <button class="act act-del" type="submit" title="Delete">&#215;</button>
           <% end %>
         <% end %>
+
+        <%# 2019 carried a share control at the end of every action row, opening
+            the actions that leave the row: quoting, copying the link, and
+            messaging the author. It sits outside the delete branch because
+            sharing is available on every post, not only your own. %>
+        <details class="tweet-menu tweet-share">
+          <summary class="act act-share" title="Share" aria-label="Share"><%= icon('share') %></summary>
+          <div class="tweet-menu-list">
+            <% if signed_in? && show_body.user_id != current_user.id && !show_body.retweet_of_id %>
+              <a href="<%= tweet_path(show_body, quote: 1) %>">Quote Tweet</a>
+            <% end %>
+            <a href="<%= tweet_path(show_body) %>" data-copy-link="<%= tweet_url(show_body) %>">Copy link to Tweet</a>
+            <% if signed_in? && show_body.user_id != current_user.id %>
+              <a href="<%= conversation_path(show_body.user_id) %>">Send via Direct Message</a>
+            <% end %>
+          </div>
+        </details>
       </div>
     </div>
   </div>

@@ -655,6 +655,39 @@ class ClientFeaturesTest < ActionDispatch::IntegrationTest
 
   # --------------------------------------------------------- misc pages
 
+  # 2019 ended every action row with a share control, opening the actions that
+  # leave the row rather than the ones that react to it. It is what a reader
+  # reaches for to pass a post on, and its absence left the row with no way to
+  # share at all.
+  test "the action row carries the 2019 share control" do
+    sign_in @alice
+
+    get home_path
+    assert_response :success
+    assert_match "act-share", response.body
+    assert_match "Copy link to Tweet", response.body
+  end
+
+  test "share offers messaging the author but not the author's own post" do
+    sign_in @alice
+    get home_path
+    assert_match "Send via Direct Message", response.body
+
+    sign_in @bob
+    get home_path
+    assert_no_match "Send via Direct Message", response.body
+  end
+
+  test "share offers quote only on another account's post" do
+    sign_in @alice
+    get home_path
+    assert_match "Quote Tweet", response.body
+
+    sign_in @bob
+    get home_path
+    assert_no_match "Quote Tweet", response.body
+  end
+
   test "the lists index renders for a signed-in account" do
     sign_in @alice
     get lists_path

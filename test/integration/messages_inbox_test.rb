@@ -148,4 +148,35 @@ class MessagesInboxTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "dm-list-time"
     assert_includes response.body, "side note"
   end
+
+  # With no conversation at all the inbox is the 2019 centred state - a glyph
+  # over a heading and a line saying what will fill it - not a bare row that
+  # reads as a row that failed to render.
+  test "an empty inbox is the centred empty state, not a bare note" do
+    me = create_user(username: "empty_inbox")
+    sign_in(me)
+
+    get messages_path
+    assert_response :success
+    assert_includes response.body, "dm-empty-state"
+    assert_includes response.body, "dm-empty-icon"
+    assert_includes response.body, "You don't have any messages yet"
+    assert_includes response.body, "When you start a conversation"
+    assert_not_includes response.body, "No conversations yet."
+  end
+
+  # The state is the list's own placeholder, so it gives way to the rows once
+  # there is a conversation to show.
+  test "the empty state is replaced once a conversation exists" do
+    me = create_user(username: "empty_inbox2")
+    other = create_user(username: "empty_other")
+    DmConversation.between(me, other).dm_messages.create!(sender: other, body: "first ping")
+
+    sign_in(me)
+
+    get messages_path
+    assert_response :success
+    assert_includes response.body, "first ping"
+    assert_not_includes response.body, "You don't have any messages yet"
+  end
 end

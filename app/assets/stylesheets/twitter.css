@@ -2029,6 +2029,10 @@ html[data-theme="dark"] .row-item:hover { background: rgba(255,255,255,.03); }
 .dm-empty-state .dm-empty-icon .ico { width: 48px; height: 48px; }
 .dm-empty-state h2 { margin: 0; font-size: 23px; font-weight: 800; color: var(--dark); }
 .dm-empty-state p { margin: 0; max-width: 320px; font-size: 15px; line-height: 20px; color: var(--gray); }
+/* The same empty state as a row inside the conversation list. The list is a
+   scrollable flex column, so the row takes the remaining height and centres in
+   it instead of stretching to the pane. */
+.dm-list > .dm-empty-state { flex: 1; }
 /* An outgoing message sits on the right in the brand blue, an incoming one on
    the left on the page tint, both as rounded bubbles. */
 .dm-line { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 12px; }

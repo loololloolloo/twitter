@@ -323,6 +323,19 @@ code stands now. Verify against the rendered page before changing anything.
   The profile Message button still starts a conversation by account id, which
   is unchanged.
 
+* **Empty inbox - fixed.** 2019 emptied an inbox with no conversations into
+  the same centred shape as the rest of the client: the envelope glyph over a
+  heading and a line naming what fills the list, the twin of the right pane's
+  "Select a message" placeholder. Was: `messages/index.html.erb` left a bare
+  "No conversations yet." in a `.empty-note` row, which the audit has called
+  out elsewhere as reading like a row that failed to render rather than a
+  deliberate empty screen. Now: the list renders `.dm-empty-state` - the
+  `envelope` glyph over "You don't have any messages yet" and "When you start a
+  conversation, it will show up here." - reusing the placeholder's classes with
+  a `flex: 1` rule so the state centres in the list column. Asserted in
+  `test/integration/messages_inbox_test.rb` (the state present when empty and
+  replaced once a conversation exists).
+
 ### Lists
 * **List header counts - fixed.** 2019's list page header printed the member and
   follower counts inline beside the list name ("3 members"). Was: the header

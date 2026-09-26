@@ -87,7 +87,15 @@
             </li>
           <% end %>
         <% else %>
-          <li class="empty-note">No conversations yet.</li>
+          <%# 2019 emptied the inbox into the same centred shape as the rest
+              of the client - a glyph over a heading and a line naming what
+              fills it - not a bare note in a row that reads as a row that
+              failed to render. %>
+          <li class="dm-empty-state">
+            <span class="dm-empty-icon" aria-hidden="true"><%= icon('envelope') %></span>
+            <h2>You don't have any messages yet</h2>
+            <p>When you start a conversation, it will show up here.</p>
+          </li>
         <% end %>
       </ul>
     </div>

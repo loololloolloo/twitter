@@ -372,7 +372,22 @@ $(function () {
       }
     });
 
-    // Writes refreshed engagement onto every row for the given tweets, keyed by
+    // The permalink page's count line is a separate block from the buttons.
+    $('.permalink-tweet[data-tweet="' + data.id + '"] .tweet-stats').each(function () {
+      var $stats = $(this);
+      var $spans = $stats.children();
+      var figures = [ data.retweet_count_label, data.quote_count_label,
+                      data.favourite_count_label, data.like_count_label,
+                      data.reply_count_label ];
+
+      $spans.each(function (i) {
+        if (figures[i] === undefined) return;
+        $(this).find('strong').text(figures[i]);
+      });
+    });
+  }
+
+  // Writes refreshed engagement onto every row for the given tweets, keyed by
   // id. Shared by the timeline poll and the permalink poll.
   //
   // A control the reader has already used is skipped: those show a word
@@ -404,21 +419,6 @@ $(function () {
         if (fresh($reply)) paintCount($reply, data.reply_count_label, false, null);
       });
     }
-  }
-
-  // The permalink page's count line is a separate block from the buttons.
-    $('.permalink-tweet[data-tweet="' + data.id + '"] .tweet-stats').each(function () {
-      var $stats = $(this);
-      var $spans = $stats.children();
-      var figures = [ data.retweet_count_label, data.quote_count_label,
-                      data.favourite_count_label, data.like_count_label,
-                      data.reply_count_label ];
-
-      $spans.each(function (i) {
-        if (figures[i] === undefined) return;
-        $(this).find('strong').text(figures[i]);
-      });
-    });
   }
 
   function paintCount($el, label, active, activeLabel) {
@@ -551,7 +551,12 @@ $(function () {
       }
 
       $timeline.prepend(html);
-      $timeline.find('.empty').remove();
+      // The empty home stream renders the shared empty-state block inside its
+      // list row, so the row has to be found through that block. A `.empty`
+      // selector here stopped matching when the empty row was moved onto the
+      // shared shape, which left the "Your Home timeline is empty" state sitting
+      // above the first revealed entries.
+      $timeline.find('.empty-state').closest('li').remove();
       pending = {};
       pendingCount = 0;
       $('#new-tweets').prop('hidden', true);

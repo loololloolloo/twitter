@@ -45,7 +45,11 @@
             </li>
           <% end %>
         <% else %>
-          <li class="empty-note">This list has no members yet.</li>
+          <li>
+            <%= render "shared/empty_state", glyph: "users",
+                                             heading: "This List has no members yet",
+                                             note: "Add an account by handle above, or pick one from the suggestions below." %>
+          </li>
         <% end %>
       </ul>
     </div>
@@ -75,7 +79,11 @@
             </li>
           <% end %>
         <% else %>
-          <li class="empty-note">No accounts left to suggest.</li>
+          <li>
+            <%= render "shared/empty_state", glyph: "user-plus",
+                                             heading: "No accounts left to suggest",
+                                             note: "Every account you can add is already on this List." %>
+          </li>
         <% end %>
       </ul>
     </div>

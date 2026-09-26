@@ -168,6 +168,27 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
   share menu does not duplicate it. Asserted in
   `test/integration/client_features_test.rb`.
 
+### Stream — the last bare-row empty states
+* Four surfaces were still on the old pattern the other empty-state fixes had
+  been retiring: a bare sentence in a list row (`.empty-note`) with no glyph and
+  no heading. On the follow-requests screen, the who-to-follow directory, the
+  list timeline and the list member manager, that reads as a row that failed to
+  render rather than as a deliberate empty screen. 2019 centred a glyph over a
+  heading and a one-line note on every one of them.
+* Was: `follow_requests/index.html.erb` rendered "No pending follow requests."
+  as a bare `.empty-note` row; `people/index.html.erb` rendered "Nobody else has
+  signed up yet." the same way; `lists/show.html.erb` rendered "No Tweets in this
+  List yet." inside the `<ul class="tweet-list">` as a bare `<li>`; and
+  `lists/members.html.erb` had two - "This List has no members yet." and "No
+  accounts left to suggest."
+* Now: all four render `shared/_empty_state.html.erb` with a matching glyph
+  (`user-plus`, `users`, `list`, `users`/`user-plus`) over a heading and a
+  sub-line naming what fills the screen. The list timeline keeps the state
+  inside its `<ul>` so the list markup stays valid. Asserted in
+  `test/integration/list_and_people_empty_states_test.rb` (each empty heading
+  present with a glyph and no `.empty-note`, and each replaced once the data
+  exists).
+
 ## Verified correct already
 
 Checked against the 2019 client and left alone, so a later run does not

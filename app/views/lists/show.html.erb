@@ -35,8 +35,10 @@
       <% if @tweets.present? %>
         <%= render partial: "tweets/tweet", collection: @tweets, as: :tweet %>
       <% else %>
-        <li class="empty-note">
-          Nothing here yet. Posts from the accounts on this list appear here.
+        <li>
+          <%= render "shared/empty_state", glyph: "list",
+                                           heading: "No Tweets in this List yet",
+                                           note: "Posts from the accounts on this List appear here." %>
         </li>
       <% end %>
     </ul>

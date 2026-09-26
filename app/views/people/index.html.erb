@@ -37,7 +37,11 @@
           </li>
         <% end %>
       <% else %>
-        <li class="empty-note">Nobody else has signed up yet.</li>
+        <li>
+          <%= render "shared/empty_state", glyph: "users",
+                                           heading: "Nobody else has signed up yet",
+                                           note: "Accounts on this site appear here so you can follow them." %>
+        </li>
       <% end %>
     </ul>
   </section>

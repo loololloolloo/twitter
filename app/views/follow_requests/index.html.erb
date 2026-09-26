@@ -36,7 +36,11 @@
           </li>
         <% end %>
       <% else %>
-        <li class="empty-note">No pending follow requests.</li>
+        <li>
+          <%= render "shared/empty_state", glyph: "user-plus",
+                                           heading: "No pending follow requests",
+                                           note: "When somebody asks to follow your protected account, the request shows up here." %>
+        </li>
       <% end %>
     </ul>
   </section>

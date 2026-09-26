@@ -18,6 +18,14 @@ the owner and holds every permission.
 ## Commands
 
 - Test everything: `./bin/bundle exec rails test`
+  - `rails test` does **not** run `test/system/`. Browser-driven tests need
+    `./bin/bundle exec rails test:system` (Capybara + headless Chrome), so a
+    change covered only by a system test can pass `rails test` while the test
+    that guards it never ran.
+  - `test:system` has 4 failures and 1 error on a clean checkout
+    (`shell_layout_test.rb` sidebar geometry under headless Chrome). They are
+    pre-existing and unrelated; do not treat them as caused by your change, and
+    do not "fix" them by loosening the assertions.
 - One test file: `./bin/bundle exec rails test test/integration/<name>_test.rb`
 - Ruby one-off: `./bin/bundle exec rails runner script.rb`
   - Put the script in a file. Inline `runner` strings with quotes or `#{}` are

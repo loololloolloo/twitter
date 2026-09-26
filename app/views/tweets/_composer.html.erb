@@ -4,7 +4,12 @@
     `quote_of` attaches another post beneath whatever is written here. %>
 <% parent_id = local_assigns[:parent_id] %>
 <% quote_of = local_assigns[:quote_of] %>
+<% reply_to = local_assigns[:reply_to] %>
 <% placeholder = local_assigns[:placeholder] || @site_tagline %>
+<%# 2019 labelled the submit by what it does: a reply says "Reply", an original
+    post says "Tweet". The label lives on the button so the schedule script can
+    restore it without guessing which composer it is in. %>
+<% submit_label = local_assigns[:submit_label] || "Tweet" %>
 
 <div class="compose timeline-tweet-box" id="reply">
   <%= pic(current_user&.avatar_path, 48) %>
@@ -17,6 +22,13 @@
       <input type="hidden" name="quote_of_id" value="<%= quote_of.id %>">
     <% end %>
     <div class="tweet-content">
+      <%# 2019 named who a reply was addressed to above the box, so the writer
+          could see the addressee without leaving the timeline. It is a fact
+          about the composer, not a control. %>
+      <% if reply_to %>
+        <p class="reply-context">Replying to
+          <a href="<%= profile_path(reply_to.username) %>">@<%= reply_to.username %></a></p>
+      <% end %>
       <textarea class="tweet-box" name="body" maxlength="<%= @max_len %>"
                 placeholder="<%= placeholder %>" data-counter></textarea>
 
@@ -75,7 +87,7 @@
           </button>
         </div>
         <span class="tweet-counter counter" data-counter-output><%= @max_len %></span>
-        <button class="btn primary-btn tweet-btn" type="submit">Tweet</button>
+        <button class="btn primary-btn tweet-btn" type="submit" data-label="<%= submit_label %>"><%= submit_label %></button>
       </div>
 
       <%# The schedule panel. The value is a single local string so the server

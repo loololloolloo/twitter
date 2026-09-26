@@ -207,7 +207,9 @@ $(function () {
     $form.find('[data-schedule-input]').val('');
     $form.find('[data-schedule-chip]').prop('hidden', true).text('');
     $form.find('[data-schedule-note]').prop('hidden', true).text('');
-    $form.find('.tweet-btn').text('Tweet');
+    // Restore the label the composer shipped with - "Reply" on a permalink,
+    // "Tweet" on the timeline - rather than assuming an original post.
+    $form.find('.tweet-btn').text($form.find('.tweet-btn').data('label') || 'Tweet');
   });
 
   // The emoji picker inserts at the caret rather than at the end, which is

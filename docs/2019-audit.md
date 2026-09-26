@@ -330,6 +330,20 @@ Checked against the 2019 client and left alone, so a later run does not
   when the clock passes, and notifies nobody until then. The author's profile
   carries a Scheduled tab, visible only to the author. Asserted in
   `test/integration/scheduled_tweets_test.rb`.
+* **Reply composer — fixed.** 2019's inline reply box on a permalink named the
+  addressee above the prompt ("Replying to @handle") and labelled its submit
+  **"Reply"** rather than "Tweet", the way its schedule control relabels the
+  same button. Was: `_composer.html.erb` always rendered the "Tweet" label, and
+  the permalink folded the addressee into the placeholder ("Reply to @handle")
+  instead of showing the 2019 "Tweet your reply" prompt with its own
+  "Replying to @handle" line above, so the composer read as an original-post
+  box once a draft replaced the prompt. Now
+  the partial takes `reply_to` and `submit_label`; `tweets/show.html.erb`
+  passes the parent's author and "Reply" for a reply, and the quote path keeps
+  "Tweet" with no addressee line, because a quote is not a reply. The schedule
+  script restores the shipped label from a `data-label` attribute instead of
+  hard-coding "Tweet", so clearing a schedule no longer relabels a reply.
+  Asserted in `test/integration/redesign_pages_test.rb`.
 
 ### Profile
 * 2019 used a two-column header: avatar straddling the banner edge at 67/67px

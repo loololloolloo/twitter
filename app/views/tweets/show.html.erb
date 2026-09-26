@@ -185,7 +185,9 @@
     </div>
 
     <%= render "tweets/composer", parent_id: @tweet.id, quote_of: @quote_of,
-                                  placeholder: @quote_of ? "Add a comment" : "Reply to @#{@tweet.user.username}" %>
+                                  reply_to: (@quote_of ? nil : @tweet.user),
+                                  submit_label: (@quote_of ? "Tweet" : "Reply"),
+                                  placeholder: @quote_of ? "Add a comment" : "Tweet your reply" %>
 
     <%# Hidden replies are the author's own moderation. The author sees the
         count and can put them back; everyone else simply does not see them. %>

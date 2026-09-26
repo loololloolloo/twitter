@@ -77,6 +77,30 @@ class RedesignPagesTest < ActionDispatch::IntegrationTest
     assert_match "Describe this image", response.body
   end
 
+  # 2019's reply composer named the addressee above the box and labelled the
+  # submit "Reply", the way its schedule control relabels the same button.
+  # Was: the permalink's box carried the 2019 prompt but the button still read
+  # "Tweet" with no addressee line, so a reply read as an original post.
+  test "the permalink reply composer names the addressee and says Reply" do
+    get tweet_path(@tweet)
+    assert_response :success
+    assert_match "reply-context", response.body
+    assert_match "Replying to", response.body
+    assert_match "@design_other", response.body
+    assert_match 'placeholder="Tweet your reply"', response.body
+    assert_match 'data-label="Reply"', response.body
+  end
+
+  # A quote tweet is not a reply, so its composer keeps the original-post label
+  # and prompt and carries no addressee line.
+  test "a quote composer keeps the Tweet label and no addressee line" do
+    get tweet_path(@tweet, quote: 1)
+    assert_response :success
+    assert_match 'data-label="Tweet"', response.body
+    assert_match 'placeholder="Add a comment"', response.body
+    assert_no_match(/class="reply-context"/, response.body)
+  end
+
   test "a quote tweet renders both bodies in the stream" do
     Tweet.create!(user: @me, body: "quoting redesign", quote_of_id: @tweet.id)
 

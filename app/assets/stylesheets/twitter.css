@@ -556,6 +556,14 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
   outline: none; color: var(--dark);
 }
 .compose textarea::placeholder { color: var(--gray); }
+/* 2019 named the reply addressee above the box in the quiet grey, above a
+   divider, so the writer sees who they are answering without leaving the page. */
+.reply-context {
+  margin: 0 0 4px; padding-bottom: 8px; font-size: 15px; color: var(--gray);
+  border-bottom: 1px solid var(--xlight-gray);
+}
+.reply-context a { color: var(--blue); text-decoration: none; }
+.reply-context a:hover { text-decoration: underline; }
 .compose-bar {
   display: flex; align-items: center; gap: 12px; justify-content: flex-end;
   margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--xlight-gray);

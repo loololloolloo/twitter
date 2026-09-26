@@ -6,6 +6,20 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
 
 ## Fixed
 
+### Composer — character counter and Tweet button
+* **Selector drift - fixed.** 2019's composer counted the characters down from
+  the limit, turned the number red past it, and held the Tweet button until
+  there was something to send. Was: the front-end script still bound to the
+  pre-redesign markup (`.composer textarea`, `.composer .counter`, and
+  `.btn-primary` for the button), while the 2019 composer renders `.compose`,
+  `.tweet-counter` and `.tweet-btn`. None of those matched, so the counter sat
+  frozen on its initial value, never went red, and the Tweet button stayed live
+  on an empty composer. A stale `.open-reply` focus handler that no view ever
+  emitted was removed with them. Now `twitter.js` binds the live classes, and
+  `test/system/composer_counter_test.rb` exercises the real script in a browser
+  (countdown, the red past-limit state, and the disabled button) so the same
+  drift cannot return silently.
+
 ### Right rail — trends card title
 * 2019: the card was titled **"What's happening"**, with the trends nested
   beneath a smaller **"Trends for you"** subheading.

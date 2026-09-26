@@ -45,17 +45,18 @@ $(function () {
     }
   });
 
-  // Character counter on the composer, turning red past the limit.
-  var $composer = $('.composer textarea');
+  // Character counter on the composer, turning red past the limit and holding
+  // the Tweet button until there is something to send.
+  var $composer = $('.compose textarea');
   if ($composer.length) {
     var limit = parseInt($composer.attr('maxlength'), 10) || 140;
-    var $counter = $('.composer .counter');
+    var $counter = $('.compose .tweet-counter');
 
     var update = function () {
       var remaining = limit - $composer.val().length;
       $counter.text(remaining);
       $counter.toggleClass('over', remaining < 0);
-      $composer.closest('form').find('.btn-primary')
+      $composer.closest('form').find('.tweet-btn')
         .prop('disabled', remaining < 0 || $composer.val().trim() === '');
     };
 
@@ -275,12 +276,6 @@ $(function () {
   $(document).on('click', function (e) {
     if ($(e.target).closest('.dm-compose').length) return;
     $('.dm-compose[open]').removeAttr('open');
-  });
-
-  // Clicking a reply link focuses the reply box on a tweet page.
-  $('.open-reply').on('click', function (e) {
-    e.preventDefault();
-    $('.composer textarea').focus();
   });
 
   // Favourite, like and retweet are toggles, so they are answered in place

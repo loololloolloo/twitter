@@ -373,6 +373,22 @@ code stands now. Verify against the rendered page before changing anything.
   the same visibility scope as the tab, so a block, a permanent ban or a
   protected account hides a cell on a fetched page exactly as it does on the
   first. Asserted in `test/integration/profile_media_pagination_test.rb`.
+* **Stream tab empty states - fixed.** 2019 emptied every profile tab into the
+  same centred shape the rest of the client uses: a glyph over a heading and a
+  line naming what fills the tab. Was: the Media tab (`p.empty.profile-empty`,
+  "No photos or videos yet."), the Scheduled tab ("Nothing scheduled.") and the
+  shared Tweets / Tweets & replies / Likes branch each left a bare sentence,
+  the last of them as a `<li>` in the timeline, so an account with nothing in a
+  tab read as a row that had failed to render. Now all of them render
+  `profiles/_empty_state.html.erb` (`.empty-state`, reusing the class the other
+  2019 screens use): the `image` glyph on Media, `clock` on Scheduled, and on
+  the timeline `heart` for Likes, `compose` for your own empty timeline and
+  `comment` for a visitor's. The copy differs per tab because what fills a tab
+  differs - Likes fills when the account reacts to a post, Media when it
+  attaches one - and the timeline speaks in the first person only on your own
+  profile. Asserted in `test/integration/profile_layout_test.rb` (each heading
+  present on its tab, the two timeline voices kept distinct, and the state
+  replaced once the tab has content).
 
 ### Shell
 * **Left sidebar "More" disclosure - verified.** 2019 kept More inline in the

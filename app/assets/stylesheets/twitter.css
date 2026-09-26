@@ -1582,8 +1582,6 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 .pt-item a:hover { color: var(--dark); background: var(--bg); text-decoration: none; }
 .pt-item.is-active span { color: var(--dark); font-weight: 700; border-bottom-color: var(--blue); }
 
-.profile-empty { padding: 30px 16px; text-align: center; }
-
 /* The profile's right rail follows the same collapse as the rest of the site:
    below the rail breakpoint it moves under the stream instead of beside it. */
 .profile-aside { min-width: 0; }

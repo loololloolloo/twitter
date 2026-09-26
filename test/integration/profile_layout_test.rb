@@ -119,6 +119,58 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_match(/media-rail/, response.body)
   end
 
+  # Every stream tab empties into the same centred shape the rest of the client
+  # uses - a glyph over a heading and a line naming what fills the tab - rather
+  # than a bare sentence in a list row, which reads as a row that failed to
+  # render. Media is checked for the shape and for giving way once a post
+  # carries an attachment.
+  test "the empty media tab shows the 2019 empty state" do
+    get profile_path(@subject.username, tab: "media")
+
+    assert_match(/empty-state/, response.body)
+    assert_select ".empty-state .empty-state-icon"
+    assert_match(/No photos or videos yet/, response.body)
+
+    Tweet.create!(user: @subject, body: "look", media_path: "media/watched_one_1.png")
+
+    get profile_path(@subject.username, tab: "media")
+    assert_no_match(/empty-state/, response.body)
+  end
+
+  # The Likes list fills when the account reacts to a post, so its empty state
+  # says that rather than borrowing the tweet copy. It also speaks in the first
+  # person only on your own profile.
+  test "the empty likes tab names what fills it, in the right voice" do
+    get profile_path(@subject.username, tab: "likes")
+    assert_match(/No likes yet/, response.body)
+    assert_match(/@watched_one hasn’t liked any posts yet/, response.body)
+
+    get profile_path(@me.username, tab: "likes")
+    assert_match(/Posts you like will show up here/, response.body)
+  end
+
+  # A visitor's empty timeline names the account it belongs to; your own says
+  # "you". The two branches cannot collapse into one string.
+  test "the empty timeline distinguishes your own profile from a visitor's" do
+    get profile_path(@me.username)
+    assert_match(/You haven’t tweeted yet/, response.body)
+
+    get profile_path(@subject.username)
+    assert_match(/No tweets yet/, response.body)
+    assert_match(/When @watched_one posts, it will show up here/, response.body)
+    assert_no_match(/You haven’t tweeted yet/, response.body)
+  end
+
+  # The scheduled queue is the writer's own, so its empty state only has to
+  # appear on your own profile.
+  test "the empty scheduled tab shows the 2019 empty state" do
+    get profile_path(@me.username, tab: "scheduled")
+
+    assert_match(/empty-state/, response.body)
+    assert_match(/Nothing scheduled/, response.body)
+    assert_match(/Posts you schedule wait here until their time comes/, response.body)
+  end
+
   test "the suggestion rail never suggests the profile being viewed" do
     create_user(username: "third_one", display_name: "Third Person")
 

@@ -226,7 +226,9 @@
           </a>
         </div>
       <% else %>
-        <p class="empty profile-empty">No photos or videos yet.</p>
+        <%= render "profiles/empty_state", glyph: "image",
+                   heading: "No photos or videos yet",
+                   note: "When a post carries a photo or video, it will appear here." %>
       <% end %>
     <% elsif @active == "scheduled" %>
       <% if @scheduled.present? %>
@@ -244,7 +246,9 @@
           <% end %>
         </ul>
       <% else %>
-        <p class="empty profile-empty">Nothing scheduled.</p>
+        <%= render "profiles/empty_state", glyph: "clock",
+                   heading: "Nothing scheduled",
+                   note: "Posts you schedule wait here until their time comes." %>
       <% end %>
     <% else %>
       <ul class="timeline">
@@ -263,11 +267,20 @@
             <%= render "tweets/tweet", tweet: tweet %>
           <% end %>
         <% else %>
-          <li class="empty profile-empty">
-            <% if @active == "likes" %>No likes yet.
-            <% elsif @active == "media" %>No photos or videos yet.
-            <% elsif @is_me %>You haven't tweeted yet.
-            <% else %>No tweets yet.<% end %>
+          <li>
+            <% if @active == "likes" %>
+              <%= render "profiles/empty_state", glyph: "heart",
+                         heading: "No likes yet",
+                         note: @is_me ? "Posts you like will show up here." : "@#{@user.username} hasn’t liked any posts yet." %>
+            <% elsif @is_me %>
+              <%= render "profiles/empty_state", glyph: "compose",
+                         heading: "You haven’t tweeted yet",
+                         note: "When you post, it will show up here." %>
+            <% else %>
+              <%= render "profiles/empty_state", glyph: "comment",
+                         heading: "No tweets yet",
+                         note: "When @#{@user.username} posts, it will show up here." %>
+            <% end %>
           </li>
         <% end %>
       </ul>

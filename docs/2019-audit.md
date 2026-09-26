@@ -146,6 +146,26 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
   any other non-match, leaving only the way back to it. Asserted in
   `test/integration/settings_features_test.rb`.
 
+### Settings — the Preferences design picker
+* 2019: Preferences offered a block of client designs to choose between, each
+  rendered as a selectable option with its name over a line describing it, and
+  the live one outlined in the accent colour — the same chosen/unchosen
+  treatment the light/dark buttons use one section over.
+* Was: `settings/edit.html.erb` rendered `.settings-design-choices` /
+  `.settings-design-form` / `.settings-design-choice` (plus `.is-active`,
+  `.settings-design-name`, `.settings-design-note`), but `twitter.css` carried
+  no rules for any of them. The three controls are real `<button type="submit">`
+  elements, so they fell back to the browser's default button chrome: all three
+  off-white and identical, with no visible selected state, so the member could
+  not tell which design was live before clicking.
+* Now: `.settings-design-choice` is a full-width stacked option card (name over
+  its note) with a hairline border, and `.is-active` outlines it in
+  `var(--blue)` — the same selected treatment `.btn-theme.is-active` uses. The
+  active card's name takes the accent colour too, so the choice reads at a
+  glance. Asserted in `test/integration/settings_features_test.rb` (the picker
+  renders every design with the live one marked, the choice persists, an unknown
+  value falls back to the default, and the stylesheet rules exist).
+
 ### Stream — empty states
 * 2019 emptied every stream surface into the same centred shape: a glyph over a
   heading and a one-line note naming what would fill it. The audit had already

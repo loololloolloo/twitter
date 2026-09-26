@@ -1028,6 +1028,25 @@ input.submit.button.signup:hover {
 }
 .settings-theme-choices .btn-theme .ico { width: 18px; height: 18px; }
 
+/* The design picker. Each design is a stacked option card - name over the note
+   that describes it - and the active one is outlined in the accent colour, the
+   same selected treatment the theme buttons use. The buttons are real submit
+   buttons, so the rules clear the browser's button chrome that would otherwise
+   render all three in default off-white with no way to tell the live one. */
+.settings-design-choices { display: flex; margin-top: 12px; }
+.settings-design-form { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.settings-design-choice {
+  display: flex; flex-direction: column; gap: 2px; width: 100%;
+  padding: 12px 14px; text-align: left; cursor: pointer;
+  font-family: var(--font); color: var(--dark);
+  background: var(--white); border: 1px solid var(--xlight-gray); border-radius: 12px;
+}
+.settings-design-choice:hover { background: var(--bg); }
+.settings-design-choice.is-active { border-color: var(--blue); }
+.settings-design-name { font-size: 15px; font-weight: 700; }
+.settings-design-choice.is-active .settings-design-name { color: var(--blue); }
+.settings-design-note { font-size: 13px; color: var(--gray); line-height: 1.4; }
+
 /* Below the rail breakpoint the section list sits above the detail column
    rather than beside it. */
 @media (max-width: 960px) {

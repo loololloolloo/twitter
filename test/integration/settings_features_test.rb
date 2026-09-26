@@ -77,6 +77,56 @@ class SettingsFeaturesTest < ActionDispatch::IntegrationTest
     assert_match(/data-theme="light"/, response.body)
   end
 
+  # --------------------------------------------------------------- design
+
+  test "the design picker offers every design and marks the live one" do
+    get settings_path(panel: "preferences")
+
+    assert_response :success
+    assert_match(/class="settings-design-choices"/, response.body)
+    User::DESIGNS.each do |design|
+      assert_match(/name="design" value="#{design}"/, response.body,
+                   "the #{design} option is missing")
+    end
+
+    # The current design is the default, so the 2019 card is the selected one.
+    assert_match(/settings-design-choice is-active[^>]*\n?[^>]*value="2019"/m, response.body)
+  end
+
+  test "choosing a design saves it to the account" do
+    patch design_path, params: { design: "2015" }
+    assert_response :redirect
+
+    assert_equal "2015", @me.reload.design
+
+    # The active card follows the account, so the picker reflects the change.
+    get settings_path(panel: "preferences")
+    assert_match(/settings-design-choice is-active[^>]*\n?[^>]*value="2015"/m, response.body)
+  end
+
+  test "an unknown design falls back to the default rather than being stored" do
+    patch design_path, params: { design: "neo-brutalist" }
+
+    assert_equal "2019", @me.reload.design
+  end
+
+  # The design cards are real submit buttons, so without a rule clearing the
+  # browser's button chrome all three render in default off-white with no
+  # visible active state - the markup is right but the screen is not. The
+  # failure lives in the stylesheet alone, so the class rules are checked here.
+  test "the design picker has stylesheet rules for its cards and active state" do
+    css = Rails.root.join("app/assets/stylesheets/twitter.css").read
+
+    assert_match(/\.settings-design-choice\s*\{[^}]*border:\s*1px solid/m, css,
+                 "the design cards have no card border")
+    assert_match(/\.settings-design-choice\.is-active\s*\{[^}]*border-color:\s*var\(--blue\)/m, css,
+                 "the selected design is not outlined")
+    assert_match(/\.settings-design-name\s*\{[^}]*font-weight:\s*700/m, css,
+                 "the design name is not set apart from its note")
+    assert_match(/\.settings-design-note\s*\{[^}]*color:\s*var\(--gray\)/m, css,
+                 "the design note is not styled")
+  end
+
   # -------------------------------------------------------------- accounts
 
   test "signing in registers the account for switching" do

@@ -238,6 +238,20 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
   `test/integration/stream_header_subline_test.rb` (the styled class carries the
   text on each header, and no `.stream-sub` remains).
 
+### Notifications — the All / Mentions tab strip
+* 2019's Notifications screen split the list with the same tab strip every other
+  stream uses: the active cell bold dark with a blue underline, the inactive cell
+  grey, each cell an equal share of the bar. The appearance lives entirely on the
+  `.pt-item` cell; `.profile-tabs` only lays the bar out.
+* Was: `notifications/index.html.erb` was the one `.profile-tabs` strip in the
+  app whose `<li>` cells carried no `pt-item` class (Explore and the profile
+  tabs both did), so the All / Mentions row fell back to the plain link rule -
+  blue, underlined on hover, no active weighting - and read as two stray links
+  rather than as a tab strip.
+* Now: both cells carry `pt-item`, so the strip matches Explore and the profile.
+  Asserted in `test/integration/notifications_tabs_test.rb` (both cells styled,
+  the active cell carries its label and the other links to its tab).
+
 ## Verified correct already
 
 Checked against the 2019 client and left alone, so a later run does not

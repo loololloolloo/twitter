@@ -15,11 +15,14 @@
 
     <%# The All / Mentions split, as the 2019 client had it. Both are filters
         over the same list rather than separate stores. %>
+    <%# The tab cells carry `pt-item`: it is the only class the tab CSS styles,
+        and without it the strip inherits the plain link styling instead of the
+        bold underlined active tab the rest of the client uses. %>
     <ul class="profile-tabs">
-      <li class="<%= 'is-active' if @tab == 'all' %>">
+      <li class="pt-item <%= 'is-active' if @tab == 'all' %>">
         <% if @tab == "all" %><span>All</span><% else %><a href="<%= notifications_path %>">All</a><% end %>
       </li>
-      <li class="<%= 'is-active' if @tab == 'mentions' %>">
+      <li class="pt-item <%= 'is-active' if @tab == 'mentions' %>">
         <% if @tab == "mentions" %><span>Mentions</span><% else %><a href="<%= notifications_path(tab: 'mentions') %>">Mentions</a><% end %>
       </li>
     </ul>

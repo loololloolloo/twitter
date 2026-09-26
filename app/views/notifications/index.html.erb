@@ -47,9 +47,16 @@
               </span>
             </a>
             <div class="row-body">
+              <%# 2019 led the row with the actor's display name in bold and the
+                  handle beside it in grey, the same title shape as the people
+                  directory and the profile tabs, so the account was recognised
+                  by name before the sentence was read. The handle alone, as
+                  this did, made the row read like a raw identifier. %>
               <div class="row-title">
                 <% if note.actor %>
-                  <a class="row-name" href="<%= profile_path(note.actor.username) %>">@<%= note.actor.username %></a>
+                  <a class="row-name" href="<%= profile_path(note.actor.username) %>"><%= note.actor.display_name.presence || note.actor.username %></a>
+                  <% if note.actor.is_verified %><span class="verified-badge" title="Verified account"><%= icon('verified') %></span><% end %>
+                  <span class="row-handle">@<%= note.actor.username %></span>
                 <% end %>
                 <% if !note.is_read %><span class="chip">New</span><% end %>
               </div>

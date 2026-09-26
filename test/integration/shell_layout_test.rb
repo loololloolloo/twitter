@@ -64,6 +64,26 @@ class ShellLayoutTest < ActionDispatch::IntegrationTest
     assert_no_match(/side-badge/, response.body, "count survived opening the list")
   end
 
+  # 2019's notification row led with the actor's display name in bold and the
+  # handle beside it, the title shape every other account row uses. Rendering
+  # the handle alone made the row read as an identifier rather than an account.
+  test "a notification row names the actor by display name and handle" do
+    me = create_user(username: "notif_name_me")
+    actor = create_user(username: "notif_name_act", display_name: "Ada Lovelace")
+    Notification.create!(user: me, actor: actor, kind: "like")
+
+    sign_in(me)
+    get notifications_path
+    assert_response :success
+
+    title = response.body[%r{<div class="row-title">.*?</div>}m]
+    assert_not_nil title, "no notification row title rendered"
+    assert_match(/class="row-name"[^>]*>Ada Lovelace</, title, "the display name does not lead the row")
+    assert_match(/class="row-handle"[^>]*>@notif_name_act</, title, "the handle is missing from the row")
+    assert title.index("Ada Lovelace") < title.index("@notif_name_act"),
+           "the handle renders before the display name"
+  end
+
   # A muted or blocked actor's notifications are filtered out of the list, so
   # counting them would leave a badge that opening the page never clears.
   test "the notification count ignores silenced actors" do

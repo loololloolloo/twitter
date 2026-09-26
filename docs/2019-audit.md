@@ -398,6 +398,17 @@ Checked against the 2019 client and left alone, so a later run does not
   inside the avatar anchor, so picture and badge are one link. A kind with no
   glyph (a bare system notice) renders no badge rather than inventing one.
   Asserted in `test/integration/shell_layout_test.rb`.
+* **Row identity — fixed.** 2019 led each notification row with the actor's
+  display name in bold and the handle beside it in grey - the same title shape
+  as the people directory and the profile's following tabs - so the account was
+  recognised by name before the sentence was read. Was: the row rendered
+  `@handle` alone, which read as a raw identifier rather than an account and did
+  not match any other 2019 account row. Now: `notifications/index.html.erb`
+  renders `a.row-name` with `display_name` (falling back to the handle when a
+  display name is blank), the handle as `span.row-handle`, and the verified
+  badge between them when the actor holds it. Asserted in
+  `test/integration/shell_layout_test.rb`.
+
 * **Empty state — fixed.** 2019's Notifications screen, with nothing in the
   list, was a centred bell glyph over the heading "Nothing to see here - yet"
   and a one-line explanation of what will fill it, the same shape as the empty

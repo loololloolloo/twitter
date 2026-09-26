@@ -213,7 +213,13 @@
           <% end %>
         <% end %>
       <% else %>
-        <li class="empty">No replies yet.</li>
+        <%# A post with no replies is a deliberate state, not a row that failed
+            to render: the same centred shape every other stream empties into. %>
+        <li>
+          <%= render "shared/empty_state", glyph: "comment",
+                     heading: "No replies yet",
+                     note: "Be the first to reply and the conversation will show up here." %>
+        </li>
       <% end %>
     </ul>
   </section>

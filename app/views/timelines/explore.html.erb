@@ -113,7 +113,13 @@
             </div>
           </li>
         <% else %>
-          <li class="empty-note">Nothing to see here yet.</li>
+          <%# A landing section with no posts keeps the same centred shape as a
+              search that matched nothing, rather than a bare note. %>
+          <li>
+            <%= render "shared/empty_state", glyph: "magnifying-glass",
+                       heading: "Nothing to see here yet",
+                       note: "When there is something to explore, it will show up here." %>
+          </li>
         <% end %>
       <% end %>
     </ul>

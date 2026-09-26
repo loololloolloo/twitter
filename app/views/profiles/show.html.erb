@@ -226,7 +226,7 @@
           </a>
         </div>
       <% else %>
-        <%= render "profiles/empty_state", glyph: "image",
+        <%= render "shared/empty_state", glyph: "image",
                    heading: "No photos or videos yet",
                    note: "When a post carries a photo or video, it will appear here." %>
       <% end %>
@@ -246,7 +246,7 @@
           <% end %>
         </ul>
       <% else %>
-        <%= render "profiles/empty_state", glyph: "clock",
+        <%= render "shared/empty_state", glyph: "clock",
                    heading: "Nothing scheduled",
                    note: "Posts you schedule wait here until their time comes." %>
       <% end %>
@@ -269,15 +269,15 @@
         <% else %>
           <li>
             <% if @active == "likes" %>
-              <%= render "profiles/empty_state", glyph: "heart",
+              <%= render "shared/empty_state", glyph: "heart",
                          heading: "No likes yet",
                          note: @is_me ? "Posts you like will show up here." : "@#{@user.username} hasn’t liked any posts yet." %>
             <% elsif @is_me %>
-              <%= render "profiles/empty_state", glyph: "compose",
+              <%= render "shared/empty_state", glyph: "compose",
                          heading: "You haven’t tweeted yet",
                          note: "When you post, it will show up here." %>
             <% else %>
-              <%= render "profiles/empty_state", glyph: "comment",
+              <%= render "shared/empty_state", glyph: "comment",
                          heading: "No tweets yet",
                          note: "When @#{@user.username} posts, it will show up here." %>
             <% end %>

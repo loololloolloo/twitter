@@ -41,7 +41,14 @@
           <%= render "tweets/tweet", tweet: tweet %>
         <% end %>
       <% else %>
-        <li class="empty">No tweets yet. Follow someone or post the first one.</li>
+        <%# An empty home stream is a deliberate state, not a row that failed to
+            render: 2019 centred the same glyph-over-heading shape the rest of
+            the client empties into. %>
+        <li>
+          <%= render "shared/empty_state", glyph: "house",
+                     heading: "Your Home timeline is empty",
+                     note: "Follow some accounts or post the first Tweet, and it will fill up." %>
+        </li>
       <% end %>
     </ul>
   </section>

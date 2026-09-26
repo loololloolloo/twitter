@@ -132,6 +132,26 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
   any other non-match, leaving only the way back to it. Asserted in
   `test/integration/settings_features_test.rb`.
 
+### Stream — empty states
+* 2019 emptied every stream surface into the same centred shape: a glyph over a
+  heading and a one-line note naming what would fill it. The audit had already
+  converted the empty Bookmarks, Notifications, Messages, Lists, profile tabs,
+  Explore search and the quote list to that shape, calling out each time that a
+  bare sentence in a list row reads as a row that failed to render rather than
+  as a deliberate empty screen.
+* Was: three surfaces were still on the old pattern — the home timeline
+  (`<li class="empty">No tweets yet. Follow someone or post the first one.</li>`),
+  the permalink reply list (`<li class="empty">No replies yet.</li>`) and an
+  Explore landing section with no posts (`<li class="empty-note">Nothing to see
+  here yet.</li>`).
+* Now: a single `shared/_empty_state.html.erb` renders the shape (the
+  `profiles/_empty_state.html.erb` duplicate is folded into it and its five
+  call sites repointed), and the three streams above use it — house glyph over
+  "Your Home timeline is empty", comment glyph over "No replies yet",
+  magnifier over "Nothing to see here yet". The search no-results branch keeps
+  its query-specific inline copy, because the heading interpolates the escaped
+  query. Asserted in `test/integration/stream_empty_states_test.rb`.
+
 ## Verified correct already
 
 Checked against the 2019 client and left alone, so a later run does not

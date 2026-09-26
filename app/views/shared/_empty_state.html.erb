@@ -1,0 +1,9 @@
+<%# Every stream surface that empties out uses the same centred shape the client
+    already uses elsewhere - a glyph over a heading and a line naming what will
+    fill it - rather than a bare sentence sitting in a list row, which reads as
+    a row that failed to render. Locals: `glyph`, `heading`, `note`. %>
+<div class="empty-state">
+  <span class="empty-state-icon" aria-hidden="true"><%= icon(glyph) %></span>
+  <h2><%= heading %></h2>
+  <p><%= note %></p>
+</div>

@@ -166,6 +166,25 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
   its query-specific inline copy, because the heading interpolates the escaped
   query. Asserted in `test/integration/stream_empty_states_test.rb`.
 
+### Stream — the "New tweets" bar on the home timeline
+* 2019 kept an open timeline current without interrupting a read: a post that
+  arrived after the page was drawn was counted in the background and announced
+  by a bar at the top of the stream ("New tweets" with the avatars of those who
+  posted), which the reader clicked to load them. The bar is the whole point of
+  the poll, and it only works if the poll can run and the reveal can clear the
+  stream it replaces.
+* Was: two faults kept the bar hidden, so an open timeline never announced
+  anything. `paintCounts` had been left nested inside `paint`, so every tick
+  threw `ReferenceError: paintCounts is not defined` before it reached the
+  queue. And the reveal handler still removed `.empty` to clear the empty
+  stream, but that row had since moved onto the shared `.empty-state` shape, so
+  "Your Home timeline is empty" stayed sitting above the first revealed entry.
+* Now: `paintCounts` sits in the scope both polls share, and the reveal removes
+  the row that holds the empty-state block (`.empty-state` → `closest('li')`).
+  Asserted in `test/system/timeline_empty_state_test.rb`: the bar unhides once an
+  entry is queued, the reveal clears the empty state, and the timeline is left
+  holding only the revealed entry.
+
 ### Stream — the share control on the action row
 * 2019 ended every action row with a **share** control (the boxed arrow),
   opening the actions that leave the row rather than the ones that react to it:

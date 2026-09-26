@@ -554,3 +554,17 @@ code stands now. Verify against the rendered page before changing anything.
   `test/integration/profile_layout_test.rb` (each heading present on its own tab
   and absent on the other, and the state replaced once a follow exists).
 
+* **Tab strip control — fixed.** 2019's Following and Followers screen is a view
+  of the profile, so it carried the same Tweets / Following / Followers tab strip
+  the profile and Notifications screens use: equal-width cells, the active one
+  bold dark with a blue underline, no card behind the bar. Was:
+  `profiles/connections.html.erb` was the last 2019 strip built on the older
+  `.page-tabs` / `.page-tab` control — a card-backed bar whose links were always
+  bold and whose active state lived on the `<a>` rather than the `<li>` cell, so
+  the screen read as a different widget from the profile one tap away. Now the
+  strip is `ul.profile-tabs` with `li.pt-item` cells and the active cell rendered
+  as a `<span>`, matching the profile, Notifications and Explore strips; the
+  dead `.page-tabs` / `.page-tab` rules were removed from `twitter.css`. Asserted
+  in `test/integration/profile_layout_test.rb` ("the following and followers
+  screen uses the shared 2019 tab control").
+

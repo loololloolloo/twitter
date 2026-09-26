@@ -300,6 +300,27 @@ class ProfileLayoutTest < ActionDispatch::IntegrationTest
     assert_no_match(/isn&rsquo;t following anyone yet/, response.body)
   end
 
+  # Following and Followers are a view of the profile, so they carry the same
+  # tab strip the profile and notifications do: the styling lives on `.pt-item`
+  # and the active cell is a bold `<span>` rather than a link. A cell that drops
+  # the class falls back to a plain link and the strip stops reading as tabs.
+  test "the following and followers screen uses the shared 2019 tab control" do
+    get following_path(@subject.username)
+
+    assert_response :success
+    strip = response.body[%r{<ul class="profile-tabs">(.*?)</ul>}m, 1]
+    assert_not_nil strip, "the Following screen lost its Tweets/Following/Followers strip"
+    assert_equal 3, strip.scan(/class="pt-item/).size,
+                 "each tab cell must carry pt-item or the tab CSS never applies"
+    assert_select "ul.profile-tabs li.pt-item.is-active span", text: "Following"
+    assert_select "ul.profile-tabs li.pt-item a[href=?]", followers_path(@subject.username), text: "Followers"
+
+    get followers_path(@subject.username)
+
+    assert_select "ul.profile-tabs li.pt-item.is-active span", text: "Followers"
+    assert_select "ul.profile-tabs li.pt-item a[href=?]", following_path(@subject.username), text: "Following"
+  end
+
   # The empty state stands in for the rows, so once there is someone to list it
   # is gone and the row is shown instead.
   test "the connections empty state gives way once there is a follow" do

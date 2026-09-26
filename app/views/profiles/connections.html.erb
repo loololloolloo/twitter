@@ -8,15 +8,23 @@
       </div>
     </nav>
 
-    <ul class="page-tabs">
-      <li class="page-tab">
+    <%# The same strip as the profile and notifications screens: the 2019
+        control weights the active cell bold with a blue underline through
+        `.pt-item`, and `.profile-tabs` only lays the bar out. The Following and
+        Followers pages are a view of the profile, so they carry the profile's
+        tab control rather than the older card-backed `.page-tabs` bar, which
+        read as a different widget on the one account surface still using it. %>
+    <ul class="profile-tabs">
+      <li class="pt-item">
         <a href="<%= profile_path(@user.username) %>">Tweets</a>
       </li>
-      <li class="page-tab <%= 'is-active' if @active == 'following' %>">
-        <a href="<%= following_path(@user.username) %>">Following</a>
+      <li class="pt-item <%= 'is-active' if @active == 'following' %>">
+        <% if @active == 'following' %><span>Following</span>
+        <% else %><a href="<%= following_path(@user.username) %>">Following</a><% end %>
       </li>
-      <li class="page-tab <%= 'is-active' if @active == 'followers' %>">
-        <a href="<%= followers_path(@user.username) %>">Followers</a>
+      <li class="pt-item <%= 'is-active' if @active == 'followers' %>">
+        <% if @active == 'followers' %><span>Followers</span>
+        <% else %><a href="<%= followers_path(@user.username) %>">Followers</a><% end %>
       </li>
     </ul>
 

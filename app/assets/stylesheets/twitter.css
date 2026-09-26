@@ -1785,26 +1785,6 @@ body:has(.announcement-banner) .flash-wrap { margin-top: 10px; }
 /* Right-aligned slot in the header, for a follow button or an action. */
 .head-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
-/* ---------------- tab strip ----------------
-   Equal-width tabs with a blue underline on the active one. This is the same
-   control on the profile and on the notifications page. */
-.page-tabs {
-  display: flex; list-style: none; margin: 0; padding: 0;
-  border-bottom: 1px solid var(--xlight-gray);
-  background: var(--card);
-}
-.page-tab { flex: 1 1 0; min-width: 0; }
-.page-tab a {
-  display: block; padding: 16px 4px; text-align: center;
-  font-size: 15px; font-weight: 700; color: var(--gray);
-  border-bottom: 2px solid transparent; transition: background .15s ease, color .15s ease;
-}
-.page-tab a:hover {
-  background: rgba(29,161,242,.1); color: var(--blue); text-decoration: none;
-}
-.page-tab.is-active a { color: var(--dark); border-bottom-color: var(--blue); }
-.page-tab-count { color: var(--gray); font-weight: 400; font-size: 13px; }
-
 /* ---------------- uniform list rows ----------------
    People, notifications and conversations are all the same row: a picture, a
    flexible body and an optional trailing action. */

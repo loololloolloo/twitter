@@ -222,6 +222,22 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
   present with a glyph and no `.empty-note`, and each replaced once the data
   exists).
 
+### Stream header — the secondary line on the inner pages
+* 2019's stream header is two lines: the page title, then the account or
+  context the screen belongs to in a smaller grey line (`.stream-head-sub`).
+  The profile, connections, people directory and Explore headers all carried it.
+* Was: seven other headers marked that line with a `.stream-sub` class that no
+  stylesheet defines - the lists index ("@user"), list page ("@owner · N
+  members · N followers"), list members and list edit (the list name), bookmarks
+  ("@user"), quote tweets ("@author") and follow requests ("@user"). With no
+  rule behind it the line inherited the heading's 19px, weight-800 dark text,
+  so the subline rendered as part of the title instead of under it.
+* Now: those seven headers (the lists index, list show, list members, list
+  edit, bookmarks, quotes and follow requests) use `.stream-head-sub`, the
+  class the profile header already used and the stylesheet styles. Asserted in
+  `test/integration/stream_header_subline_test.rb` (the styled class carries the
+  text on each header, and no `.stream-sub` remains).
+
 ## Verified correct already
 
 Checked against the 2019 client and left alone, so a later run does not

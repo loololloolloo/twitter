@@ -3,7 +3,7 @@
     <div class="stream-head stream-head-stacked">
       <div class="stream-head-title">
         <h1><%= @list.name %></h1>
-        <span class="stream-sub">
+        <span class="stream-head-sub">
           @<%= @list.user.username %>
           &middot; <%= @list.member_count %> <%= 'member'.pluralize(@list.member_count) %>
           &middot; <%= @list.subscriber_count %> <%= 'follower'.pluralize(@list.subscriber_count) %>

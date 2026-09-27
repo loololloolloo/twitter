@@ -621,8 +621,10 @@ button.media-btn {
 
 /* ---------------- timeline ----------------
    2019 rows: a 48px circular avatar on a 12px gutter, roomier 12px/16px
-   padding, a hairline divider and a very light hover tint. */
-.timeline { list-style: none; margin: 0; padding: 0; }
+   padding, a hairline divider and a very light hover tint. The Bookmarks, List
+   and Quote Tweets screens use the same list with `.tweet-list`, so it shares
+   the reset the browser's bullets and indent would otherwise survive. */
+.timeline, .tweet-list { list-style: none; margin: 0; padding: 0; }
 .tweet { position: relative; min-height: 51px; padding: 12px 16px;
          border-bottom: 1px solid var(--xlight-gray); transition: background .1s ease; }
 

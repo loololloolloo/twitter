@@ -179,7 +179,7 @@ code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; colo
 .inline { display: inline; }
 
 /* ---------------- timeline ---------------- */
-.timeline { list-style: none; margin: 0; padding: 0; }
+.timeline, .tweet-list { list-style: none; margin: 0; padding: 0; }
 .tweet { padding: 10px 12px; border-bottom: 1px solid var(--xlight-gray); }
 .tweet:hover { background: #F5F8FA; }
 .tweet-main { display: flex; gap: 10px; }

@@ -29,6 +29,21 @@ restarted. Each entry names the page, the 2019 behaviour, and the gap.
 * Now: `_modern_rail.html.erb` renders `What's happening` as the card title and
   `Trends for you` as a nested heading, with "Show more" inside the section.
 
+### Stream lists — bullets and indent
+* 2019 drew every stream as a flush column: no list marker, no indent, each row
+  a full-width block separated by a hairline.
+* Was: the primary streams render `<ul class="timeline">`, which carries a
+  `list-style: none; margin: 0; padding: 0` reset in all three stylesheets, but
+  Bookmarks, a List timeline and Quote Tweets render the same rows inside
+  `<ul class="tweet-list">` — a class defined in no stylesheet at all. The
+  browser's default marker and indent survived on those three screens, so the
+  rows sat inset behind a bullet and did not line up with the stream elsewhere.
+* Now: `.tweet-list` is named on the same reset rule as `.timeline` in
+  `twitter.css`, `twitter-2015.css` and `twitter-prototype.css`, so the three
+  screens match the rest of the client. Asserted in
+  `test/integration/tweet_list_reset_test.rb` (each stylesheet resets the list,
+  and each of the three screens still renders it).
+
 ### Right rail — search placeholder and wording
 * 2019: the rail search field was labelled **"Search Twitter"**.
 * Was: the rail field said just "Search", and the footer links were abbreviated
